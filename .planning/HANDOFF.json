@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-26T22:34:56Z",
+  "phase": "01",
+  "phase_name": "mcp-server",
+  "phase_dir": ".planning/phases/01-mcp-server",
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "01-01", "name": "TypeScript project scaffold + SDK method resolution", "status": "done", "commit": "f574697"},
+    {"id": "01-02", "name": "MCP server skeleton + opencode_create_session + opencode_abort", "status": "done", "commit": "371cdc4"},
+    {"id": "01-03", "name": "Add 5 remaining tools + full build verification", "status": "done", "commit": "6871a5e"},
+    {"id": "code-review", "name": "Code review (01-REVIEW.md)", "status": "done", "commit": "125298e"},
+    {"id": "verification", "name": "Phase verification + HUMAN-UAT.md", "status": "done", "commit": "9bd0b85"},
+    {"id": "wr-fixes", "name": "Fix WR-02 (JSON.stringify) + WR-03 (fork body undefined)", "status": "done", "commit": "11613c9"}
+  ],
+  "remaining_tasks": [
+    {"id": "uat-1", "name": "Mark UAT test 1 passed (opencode_create_session live test PASSED)", "status": "not_started"},
+    {"id": "uat-2-5", "name": "Run UAT tests 2-5 (opencode_run, get_diff, approve_permission/fork/revert/abort, zod compat)", "status": "not_started"},
+    {"id": "phase-complete", "name": "Mark Phase 1 complete in ROADMAP + STATE after all UAT passes", "status": "not_started"},
+    {"id": "phase-2-plan", "name": "Plan Phase 2: Wiring & Validation", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {"action": "Run remaining UAT tests 2-5 against live OpenCode", "context": "UAT test 1 (opencode_create_session) already passed live — session ID returned correctly. Tests 2-5 need a running OpenCode instance on port 4096.", "blocking": true},
+    {"action": "Approve phase 1 complete after UAT passes", "context": "All structural checks passed; only live runtime tests remain before phase can be fully closed.", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "SDK method names: short verbs not session{Verb}", "rationale": "Actual @opencode-ai/sdk uses client.session.create/prompt/abort/diff/fork/revert — not the session{Verb} pattern assumed in RESEARCH.md", "phase": "01"},
+    {"decision": "opencode_approve_permission uses top-level client", "rationale": "client.postSessionIdPermissionsPermissionId() is on OpencodeClient, not client.session — confirmed from SDK type declarations", "phase": "01"},
+    {"decision": "Permission enum is once/always/reject not allow/deny/allow_always", "rationale": "REQUIREMENTS.md CORE-04 has wrong values; API enum confirmed from @opencode-ai/sdk types.gen.d.ts line 2509", "phase": "01"},
+    {"decision": "Zod v4 compatible with MCP SDK 1.29.0", "rationale": "WR-01 not a runtime issue — registerTool works fine and UAT test 1 confirmed live tool calls succeed", "phase": "01"},
+    {"decision": "tsconfig needs types: [node]", "rationale": "TypeScript 6.x requires explicit node types for process global — auto-fixed during Plan 02 execution", "phase": "01"}
+  ],
+  "uncommitted_files": [".planning/config.json (minor, unrelated)"],
+  "next_action": "Update 01-HUMAN-UAT.md to mark UAT test 1 as passed, then run UAT tests 2-5 against live OpenCode on port 4096",
+  "context_notes": "Phase 1 is structurally complete. All 7 tools built, compiled, code-reviewed, verified. UAT test 1 (opencode_create_session) passed live — got real session ID ses_234129b3effe327n9MrAW5I15A from OpenCode. WR-02 and WR-03 from code review were fixed inline. Only remaining work is UAT tests 2-5 then marking phase complete."
+}
