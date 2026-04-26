@@ -6,6 +6,7 @@ import { createOpencodeClient } from '@opencode-ai/sdk';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
 const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
+const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '120000', 10);
 const client = createOpencodeClient({ baseUrl: BASE_URL });
 
 const server = new McpServer({ name: 'prefect', version: '1.0.0' });
@@ -62,12 +63,16 @@ server.registerTool(
   },
   async ({ sessionId, prompt }) => {
     try {
-      // No AbortController / signal — POST /session/{id}/message holds the connection
-      // open for the entire agent run. RESEARCH.md Pitfall 2.
-      const { data, error } = await client.session.prompt({
-        path: { id: sessionId },
-        body: { parts: [{ type: 'text', text: prompt }] },
-      });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`opencode_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`)), TIMEOUT_MS)
+      );
+      const { data, error } = await Promise.race([
+        client.session.prompt({
+          path: { id: sessionId },
+          body: { parts: [{ type: 'text', text: prompt }] },
+        }),
+        timeout,
+      ]);
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {

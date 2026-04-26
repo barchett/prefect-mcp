@@ -10,9 +10,9 @@ files_reviewed_list:
   - src/index.ts
 findings:
   critical: 0
-  warning: 3
+  warning: 4
   info: 2
-  total: 5
+  total: 6
 status: issues_found
 ---
 
@@ -79,6 +79,30 @@ If the OpenCode API's POST `/session/{id}/fork` schema marks the body as optiona
 body: messageID ? { messageID } : undefined,
 ```
 This signals to the SDK that no body should be sent, which is consistent with how `opencode_get_diff` handles its optional `query` parameter at line 93.
+
+---
+
+### WR-04: opencode_run has no timeout — hangs indefinitely if model endpoint is unreachable
+
+**File:** `src/index.ts` (opencode_run handler)
+**Found:** UAT — network change caused Qwen endpoint to go away; tool stalled with no error, no timeout, no feedback to Claude Code.
+**Issue:** `client.session.prompt()` is a blocking HTTP call. If OpenCode loses contact with the model endpoint the TCP connection stays open indefinitely. The MCP tool call never returns, and Claude Code stalls silently with no way to recover short of killing the process.
+
+**Fix:** `Promise.race` the SDK call against a configurable timeout. The SDK's HTTP client does not expose `AbortSignal`, so the underlying fetch will linger after the timeout fires (acceptable), but the tool returns an `isError` response instead of hanging:
+```typescript
+const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '120000', 10);
+// top of file — shared config
+
+// inside opencode_run handler:
+const timeout = new Promise<never>((_, reject) =>
+  setTimeout(() => reject(new Error(`opencode_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`)), TIMEOUT_MS)
+);
+const { data, error } = await Promise.race([
+  client.session.prompt({ path: { id: sessionId }, body: { parts: [{ type: 'text', text: prompt }] } }),
+  timeout,
+]);
+```
+Default 120 s covers slow Qwen runs; override via `PREFECT_TIMEOUT_MS` env var.
 
 ---
 
