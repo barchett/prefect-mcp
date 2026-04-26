@@ -42,7 +42,10 @@ Plans:
   2. Following README instructions from scratch produces a working setup (opencode headless + MCP server + Claude Code wired)
   3. CLAUDE.md describes the create → run → diff → test → correct loop and Claude Code can follow it without additional prompting
   4. Running the example task in `examples/test-task.md` completes the full loop and lands a diff in git history
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — Write `.mcp.json` (WIRE-01) and `examples/test-task.md` (WIRE-04) — small mechanical config + validation prompt
+- [ ] 02-02-PLAN.md — Write `CLAUDE.md` (WIRE-02) and `README.md` (WIRE-03) — loop documentation + fresh-clone setup guide
 
 ## Progress
 
@@ -52,4 +55,4 @@ Phases execute in numeric order: 1 → 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. MCP Server | 3/3 | Complete | 2026-04-26 |
-| 2. Wiring & Validation | 0/TBD | Not started | - |
+| 2. Wiring & Validation | 0/2 | Not started | - |
