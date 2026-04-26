@@ -36,15 +36,15 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| CORE-01 | — | — |
-| CORE-02 | — | — |
-| CORE-03 | — | — |
-| CORE-04 | — | — |
-| CORE-05 | — | — |
-| CORE-06 | — | — |
-| CORE-07 | — | — |
-| CORE-08 | — | — |
-| WIRE-01 | — | — |
-| WIRE-02 | — | — |
-| WIRE-03 | — | — |
-| WIRE-04 | — | — |
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Pending |
+| CORE-05 | Phase 1 | Pending |
+| CORE-06 | Phase 1 | Pending |
+| CORE-07 | Phase 1 | Pending |
+| CORE-08 | Phase 1 | Pending |
+| WIRE-01 | Phase 2 | Pending |
+| WIRE-02 | Phase 2 | Pending |
+| WIRE-03 | Phase 2 | Pending |
+| WIRE-04 | Phase 2 | Pending |
