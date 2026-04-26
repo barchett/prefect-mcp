@@ -12,7 +12,7 @@ Build a TypeScript MCP server that wraps OpenCode's HTTP API as Claude Code tool
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: MCP Server** - Implement all 7 OpenCode tools as a working MCP stdio server
+- [x] **Phase 1: MCP Server** - Implement all 7 OpenCode tools as a working MCP stdio server
 - [ ] **Phase 2: Wiring & Validation** - Wire Claude Code config, document the review/correct loop, and validate end-to-end
 
 ## Phase Details
@@ -51,5 +51,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MCP Server | 0/3 | Not started | - |
+| 1. MCP Server | 3/3 | Complete | 2026-04-26 |
 | 2. Wiring & Validation | 0/TBD | Not started | - |
