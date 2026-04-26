@@ -1,0 +1,20 @@
+{
+  "name": "prefect",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js"
+  },
+  "bin": {
+    "prefect": "./build/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@opencode-ai/sdk": "1.14.25",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/node": "latest"
+  }
+}
