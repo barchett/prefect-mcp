@@ -123,7 +123,7 @@ server.registerTool(
         body: { response },
       });
       if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: String(data) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
@@ -144,7 +144,7 @@ server.registerTool(
     try {
       const { data, error } = await client.session.fork({
         path: { id: sessionId },
-        body: messageID ? { messageID } : {},
+        body: messageID ? { messageID } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -172,7 +172,7 @@ server.registerTool(
         body: { messageID, ...(partID ? { partID } : {}) },
       });
       if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: String(data) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
