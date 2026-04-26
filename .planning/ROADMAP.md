@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Scaffold project (package.json, tsconfig.json, .gitignore, npm install) and confirm SDK method names
 - [x] 01-02-PLAN.md — Server skeleton + opencode_create_session (CORE-01) + opencode_abort (CORE-07); verify CORE-08 OPENCODE_URL works
-- [ ] 01-03-PLAN.md — Add remaining 5 tools: opencode_run (CORE-02), opencode_get_diff (CORE-03), opencode_approve_permission (CORE-04), opencode_fork (CORE-05), opencode_revert (CORE-06)
+- [x] 01-03-PLAN.md — Add remaining 5 tools: opencode_run (CORE-02), opencode_get_diff (CORE-03), opencode_approve_permission (CORE-04), opencode_fork (CORE-05), opencode_revert (CORE-06)
 
 ### Phase 2: Wiring & Validation
 **Goal**: The full review/correct loop runs end-to-end inside Claude Code without manual setup steps
