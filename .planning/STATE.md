@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Session Management + Run Options + Infrastructure
-status: completed
-stopped_at: Phase 4 context gathered
-last_updated: "2026-04-27T15:43:48.872Z"
-last_activity: 2026-04-27
+status: executing
+stopped_at: Phase 4 Plan 01 complete (04-01 Part union Zod schemas)
+last_updated: "2026-04-27T17:47:24Z"
+last_activity: 2026-04-27 -- Phase 04 Plan 01 executed (src/parts.ts, src/parts.test.ts)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_plans: 11
+  completed_plans: 8
+  percent: 73
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-26)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** Phase --phase — 03
+**Current focus:** Phase --phase — 04
 
 ## Current Position
 
-Phase: 03
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-04-27
+Phase: 04 — EXECUTING
+Plan: 2 of 4 (next: 04-02)
+Status: Plan 04-01 complete — Part union Zod schemas implemented and tested
+Last activity: 2026-04-27 — Phase 04 Plan 01 executed (src/parts.ts + src/parts.test.ts, 11/11 tests pass)
 
 Progress: v1.0 shipped ✅ | v2.0 roadmap defined ✅ | Phase 3 planned ✅
 
@@ -54,7 +54,7 @@ None.
 
 ### Blockers/Concerns
 
-- SURF-02: Part type discriminator strings must be verified from node_modules/@opencode-ai/sdk/dist/gen/types.gen.d.ts before writing Zod schemas. FEATURES.md has the full Part union documented — use it. Getting discriminators wrong is the same class of bug as the once/always/reject permission enum in v1.
+None — SURF-02 discriminator verification completed: all 12 Part type literals verified from node_modules/@opencode-ai/sdk/dist/gen/types.gen.d.ts and encoded in src/parts.ts. Schemas tested at runtime via node --test.
 
 ## Deferred Items
 
@@ -68,6 +68,8 @@ None. All v1.0 deferred items resolved 2026-04-26:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 4 context gathered
-Resume file: --resume-file
+Last session: 2026-04-27T17:47:24Z
+Stopped at: Completed Phase 04 Plan 01 (04-01-PLAN.md)
+Resume file: None
+
+**Planned Phase:** 4 (Run Options + Structured Responses + Infrastructure) — 4 plans — 2026-04-27T16:44:36.972Z

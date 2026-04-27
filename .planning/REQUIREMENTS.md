@@ -30,7 +30,8 @@
 ### Structured Response Surfacing
 
 - [ ] **SURF-01**: `opencode_get_diff` surfaces `patch` as a top-level string field in its response (not buried in raw JSON)
-- [ ] **SURF-02**: `opencode_run` returns parts as a structured typed array — each part tagged by kind (text, tool_call, tool_result, file_edit, step) so callers can navigate without parsing raw JSON
+- [x] **SURF-02
+**: `opencode_run` returns parts as a structured typed array — each part tagged by kind (text, tool_call, tool_result, file_edit, step) so callers can navigate without parsing raw JSON
   - **Planner note:** Verify the exact part type discriminator strings (tag names and values) from the OpenCode SDK types (`node_modules/@opencode-ai/sdk/dist/gen/types.gen.d.ts`) or from GET /doc before writing Zod schemas. Getting these wrong is the same class of bug as the `once`/`always`/`reject` permission enum in v1.
 
 ### Infrastructure
