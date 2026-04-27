@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
-- 📋 **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (planned)
+- ✅ **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
 - 📋 **v3.0 Full API Coverage + Workflow Primitives** — Phases 5–7 (planned)
 
 ## Phases
@@ -18,10 +18,15 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 </details>
 
-### 📋 v2.0 Session Management + Run Options + Infrastructure (Planned)
+<details>
+<summary>✅ v2.0 Session Management + Run Options + Infrastructure (Phases 3–4) — SHIPPED 2026-04-27</summary>
 
-- [ ] **Phase 3: Session Management Tools** — 9 new read/write session tools: `opencode_session_list`, `opencode_session_get`, `opencode_session_status`, `opencode_session_messages`, `opencode_session_message`, `opencode_session_delete`, `opencode_session_rename`, `opencode_session_children`, `opencode_session_unrevert`
-- [ ] **Phase 4: Run Options + Structured Responses + Infrastructure** — `model`/`agent`/`system` on `opencode_run`; `opencode_prompt_async` fire-and-forget tool; `patch` field surfaced on `opencode_get_diff`; `parts` typed array on `opencode_run` response; AbortController timeout fix replacing `Promise.race`; `prefect init` CLI writes `.mcp.json`; `opencode_session_command` (POST /session/:id/command — run slash commands inside a session)
+- [x] **Phase 3: Session Management Tools** (2/2 plans) — completed 2026-04-27
+- [x] **Phase 4: Run Options + Structured Responses + Infrastructure** (4/4 plans) — completed 2026-04-27
+
+Full archive: `.planning/milestones/v2.0-ROADMAP.md`
+
+</details>
 
 ### 📋 v3.0 Full API Coverage + Workflow Primitives (Planned)
 
@@ -158,7 +163,7 @@ Plans:
 | 1. MCP Server | v1.0 | 3/3 | Complete | 2026-04-26 |
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
-| 4. Run Options + Structured Responses + Infrastructure | v2.0 | 0/4 | Not started | — |
+| 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
 | 5. Advanced Run Options + Infrastructure | v3.0 | 0/? | Not started | — |
 | 6. Session Utilities + Workspace APIs | v3.0 | 0/? | Not started | — |
 | 7. Composite Workflow Tools | v3.0 | 0/? | Not started | — |

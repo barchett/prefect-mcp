@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-26)
+See: .planning/PROJECT.md (updated 2026-04-27 after v2.0 milestone)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** Phase --phase — 04
+**Current focus:** Planning v3.0 milestone
 
 ## Current Position
 
@@ -66,7 +66,19 @@ None — SURF-02 discriminator verification completed: all 12 Part type literals
 
 ## Deferred Items
 
-None. All v1.0 deferred items resolved 2026-04-26:
+Acknowledged and deferred at v2.0 milestone close on 2026-04-27:
+
+| Category | Item | Status |
+|----------|------|--------|
+| verification | Phase 01: 01-VERIFICATION.md human_needed | acknowledged — human UAT resolves this class of item |
+| verification | Phase 02: 02-VERIFICATION.md human_needed | acknowledged — human UAT resolves this class of item |
+| verification | Phase 03: 03-VERIFICATION.md human_needed | acknowledged — resolved via 03-HUMAN-UAT.md (3 passed, 1 skipped) |
+| verification | Phase 04: 04-VERIFICATION.md human_needed | acknowledged — resolved via 04-HUMAN-UAT.md (3/3 passed) |
+| uat | Phase 02: 02-HUMAN-UAT.md [passed] | acknowledged — 0 pending scenarios, stale audit entry |
+| uat | Phase 03: 03-HUMAN-UAT.md [resolved] | acknowledged — 0 pending scenarios, stale audit entry |
+| uat | Phase 04: 04-HUMAN-UAT.md [passed] | acknowledged — 0 pending scenarios, stale audit entry |
+
+All v1.0 deferred items also resolved 2026-04-26:
 
 | Category | Item | Status |
 |----------|------|--------|

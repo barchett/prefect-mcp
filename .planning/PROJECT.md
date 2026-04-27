@@ -20,42 +20,19 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ README.md with full fresh-clone setup guide (install, build, configure OpenCode, serve, wire) — v1.0
 - ✓ examples/test-task.md end-to-end validation prompt producing a real file diff — v1.0
 
-## Current Milestone: v2.0 session-management
+### Validated (v2.0)
 
-**Goal:** Expand Prefect's toolset with session management operations, richer `opencode_run` options, a more reliable timeout mechanism, and zero-friction setup tooling.
+- ✓ session.list, session.get, session.status, session.messages, session.message — 5 read-only session inspection tools — v2.0
+- ✓ session.delete, session.rename, session.children, session.unrevert — 4 mutating session tools — v2.0
+- ✓ opencode_run model override (providerID + modelID pair, both required) — v2.0
+- ✓ opencode_run agent selection and system prompt override — v2.0
+- ✓ opencode_prompt_async — true fire-and-forget via POST /session/:id/prompt_async — v2.0
+- ✓ opencode_get_diff surfaces `patch` as top-level string field — v2.0
+- ✓ opencode_run returns structured `{ info, parts }` with Zod-validated 12-type PartSchema — v2.0
+- ✓ AbortController timeout replacing Promise.race — cancels in-flight TCP on abort — v2.0
+- ✓ prefect init CLI — writes .mcp.json with merge-not-overwrite semantics — v2.0
+- ✓ opencode_session_command — POST /session/:id/command for slash command execution — v2.0
 
-**Target features:**
-- Session management: list, get, status, messages (paginated), message, delete, rename, children, unrevert (9 new tools)
-- `opencode_run` enhancements: model/providerID+modelID override, agent selection, system prompt override
-- `prompt_async` — POST /session/:id/prompt_async (true fire-and-forget, replaces noReply concept)
-- Document `patch` field on `opencode_get_diff` and `parts` response shape on `opencode_run`
-- Timeout fix: AbortController on fetch calls replacing `Promise.race`
-- Install script: `curl | bash` zero-friction setup
-- `prefect init` CLI: writes `.mcp.json` into current project
-
-**API research gate:** Before any plan is written, fully document each endpoint being added or modified — all query params, body fields, response shape variants. For modified tools (`opencode_run`), audit current implementation against spec and produce explicit implemented / intentionally-deferred decisions for every option.
-
-### Active (v2.0 targets)
-
-- [x] session.list — GET /session — Validated Phase 3 (2026-04-27)
-- [x] session.get — GET /session/:id — Validated Phase 3 (2026-04-27)
-- [x] session.status — GET /session/status — Validated Phase 3 (2026-04-27)
-- [x] session.messages — GET /session/:id/message (with limit/pagination) — Validated Phase 3 (2026-04-27)
-- [x] session.message — GET /session/:id/message/:id — Validated Phase 3 (2026-04-27)
-- [x] session.delete — DELETE /session/:id — Validated Phase 3 (2026-04-27)
-- [x] session.rename — PATCH /session/:id — Validated Phase 3 (2026-04-27)
-- [x] session.children — GET /session/:id/children — Validated Phase 3 (2026-04-27)
-- [x] session.unrevert — POST /session/:id/unrevert — Validated Phase 3 (2026-04-27)
-- [x] opencode_run model override (providerID + modelID per prompt) — Validated Phase 4 (2026-04-27)
-- [x] opencode_run agent selection — Validated Phase 4 (2026-04-27)
-- [x] prompt_async — POST /session/:id/prompt_async (fire-and-forget) — Validated Phase 4 (2026-04-27)
-- [x] opencode_run system prompt override — Validated Phase 4 (2026-04-27)
-- [x] Document patch field on opencode_get_diff response — Validated Phase 4 (2026-04-27)
-- [x] Document parts response shape on opencode_run via PartSchema (12 Part types) — Validated Phase 4 (2026-04-27)
-- [x] Timeout fix: AbortController replacing Promise.race — Validated Phase 4 (2026-04-27)
-- [ ] Install script: curl | bash zero-friction setup
-- [x] prefect init CLI: writes .mcp.json into current project — Validated Phase 4 (2026-04-27)
-- [x] session.command — POST /session/:id/command (run slash commands) — Validated Phase 4 (2026-04-27)
 
 ### Active (v3.0 targets)
 
@@ -98,6 +75,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - If a session gets corrupted, opencode_fork at the last good message provides an escape hatch
 - The MCP SDK is `@modelcontextprotocol/sdk`; transport is StdioServerTransport (Claude Code spawns the server as a subprocess)
 - Shipped v1.0 with 201 LOC TypeScript, 46 commits
+- Shipped v2.0 with 1,221 LOC TypeScript, 69 commits — 18 tools total (up from 7)
 
 ## Constraints
 
@@ -110,15 +88,21 @@ Claude Code can delegate implementation to a local model and review/correct the 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Auto-approve OpenCode permissions | Git is the safety net; permission loop (SSE + blocking HTTP on same session) adds complexity without proportional value | Validated v1.0 |
-| OPENCODE_URL env var, default http://localhost:4096 | Easy to override without touching code; personal use means one config | Validated v1.0 |
-| opencode_run blocks via Promise.race with PREFECT_TIMEOUT_MS | OpenCode /message endpoint is long-lived blocking HTTP; racing against configurable timeout (default 120s) is simpler than AbortController | Validated v1.0; AbortController upgrade planned for v2.0 |
-| StdioServerTransport + .mcp.json project-scope | Claude Code spawns MCP servers as subprocesses via stdio; .mcp.json ensures all clones get it without manual claude mcp add | Validated v1.0 |
-| Permission response enum: once/always/reject | REQUIREMENTS.md originally said allow/deny/allow_always — confirmed from @opencode-ai/sdk types that actual API enum is once/always/reject | Validated v1.0 |
+| Auto-approve OpenCode permissions | Git is the safety net; permission loop (SSE + blocking HTTP on same session) adds complexity without proportional value | ✓ Validated v1.0 |
+| OPENCODE_URL env var, default http://localhost:4096 | Easy to override without touching code; personal use means one config | ✓ Validated v1.0 |
+| opencode_run blocks via Promise.race with PREFECT_TIMEOUT_MS | Simpler than AbortController for v1; upgraded to AbortController in v2.0 | ✓ Validated v1.0; superseded v2.0 |
+| StdioServerTransport + .mcp.json project-scope | Claude Code spawns MCP servers as subprocesses via stdio; .mcp.json ensures all clones get it without manual claude mcp add | ✓ Validated v1.0 |
+| Permission response enum: once/always/reject | REQUIREMENTS.md originally said allow/deny/allow_always — confirmed from @opencode-ai/sdk types | ✓ Validated v1.0 |
+| AbortController replaces Promise.race for opencode_run timeout | Cancels in-flight TCP connection on abort; Promise.race orphaned the HTTP request | ✓ Validated v2.0 |
+| opencode_prompt_async is a separate endpoint, not noReply | POST /session/:id/prompt_async returns 204 void; noReply on the sync prompt endpoint is a different concept | ✓ Validated v2.0 |
+| SURF-02 discriminators verified from SDK types before writing Zod schemas | Getting Part type literals wrong is the same bug class as the v1.0 permission enum error | ✓ Validated v2.0 |
+| CLI in separate src/cli.ts compiling to build/cli.js | Avoids coupling MCP server stdio startup with CLI argument parsing | ✓ Validated v2.0 |
+| Manual process.argv parsing over Commander.js | One subcommand, one flag — zero additional deps justified | ✓ Validated v2.0 |
+| model field on opencode_session_command is z.string(), not z.object() | session.command endpoint takes a single string, not a providerID+modelID object | ✓ Validated v2.0 |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-27 — Phase 4 complete (v2.0 milestone done: run options, PartSchema, AbortController, prefect init CLI, session.command)*
+*Last updated: 2026-04-27 after v2.0 milestone*
