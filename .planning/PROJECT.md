@@ -46,16 +46,16 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [x] session.rename — PATCH /session/:id — Validated Phase 3 (2026-04-27)
 - [x] session.children — GET /session/:id/children — Validated Phase 3 (2026-04-27)
 - [x] session.unrevert — POST /session/:id/unrevert — Validated Phase 3 (2026-04-27)
-- [ ] opencode_run model override (providerID + modelID per prompt)
-- [ ] opencode_run agent selection
-- [ ] prompt_async — POST /session/:id/prompt_async (replaces noReply concept)
-- [ ] opencode_run system prompt override
-- [ ] Document patch field on opencode_get_diff response
-- [ ] Document parts response shape on opencode_run (tool calls, results, file edits, step markers)
-- [ ] Timeout fix: AbortController on fetch calls replacing Promise.race
+- [x] opencode_run model override (providerID + modelID per prompt) — Validated Phase 4 (2026-04-27)
+- [x] opencode_run agent selection — Validated Phase 4 (2026-04-27)
+- [x] prompt_async — POST /session/:id/prompt_async (fire-and-forget) — Validated Phase 4 (2026-04-27)
+- [x] opencode_run system prompt override — Validated Phase 4 (2026-04-27)
+- [x] Document patch field on opencode_get_diff response — Validated Phase 4 (2026-04-27)
+- [x] Document parts response shape on opencode_run via PartSchema (12 Part types) — Validated Phase 4 (2026-04-27)
+- [x] Timeout fix: AbortController replacing Promise.race — Validated Phase 4 (2026-04-27)
 - [ ] Install script: curl | bash zero-friction setup
-- [ ] prefect init CLI: writes .mcp.json into current project
-- [ ] session.command — POST /session/:id/command (run slash commands inside a session)
+- [x] prefect init CLI: writes .mcp.json into current project — Validated Phase 4 (2026-04-27)
+- [x] session.command — POST /session/:id/command (run slash commands) — Validated Phase 4 (2026-04-27)
 
 ### Active (v3.0 targets)
 
@@ -121,4 +121,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-27 — Phase 3 complete (9 session management tools validated)*
+*Last updated: 2026-04-27 — Phase 4 complete (v2.0 milestone done: run options, PartSchema, AbortController, prefect init CLI, session.command)*
