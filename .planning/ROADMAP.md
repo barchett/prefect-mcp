@@ -21,12 +21,12 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 ### 📋 v2.0 Session Management + Run Options + Infrastructure (Planned)
 
 - [ ] **Phase 3: Session Management Tools** — 9 new read/write session tools: `opencode_session_list`, `opencode_session_get`, `opencode_session_status`, `opencode_session_messages`, `opencode_session_message`, `opencode_session_delete`, `opencode_session_rename`, `opencode_session_children`, `opencode_session_unrevert`
-- [ ] **Phase 4: Run Options + Structured Responses + Infrastructure** — `model`/`agent`/`system` on `opencode_run`; `opencode_prompt_async` fire-and-forget tool; `patch` field surfaced on `opencode_get_diff`; `parts` typed array on `opencode_run` response; AbortController timeout fix replacing `Promise.race`; `prefect init` CLI writes `.mcp.json`
+- [ ] **Phase 4: Run Options + Structured Responses + Infrastructure** — `model`/`agent`/`system` on `opencode_run`; `opencode_prompt_async` fire-and-forget tool; `patch` field surfaced on `opencode_get_diff`; `parts` typed array on `opencode_run` response; AbortController timeout fix replacing `Promise.race`; `prefect init` CLI writes `.mcp.json`; `opencode_session_command` (POST /session/:id/command — run slash commands inside a session)
 
 ### 📋 v3.0 Full API Coverage (Planned)
 
 - [ ] **Phase 5: Advanced Run Options** — `tools`, `FilePartInput`, `messageID`, `AgentPartInput`/`SubtaskPartInput` on `opencode_run`; `parentID` on `opencode_create_session`; `npm install -g` install pathway (requires npm publish)
-- [ ] **Phase 6: Session Utilities + Workspace APIs** — `session.summarize` (POST /session/:id/summarize), `session.todo` (GET /session/:id/todo), `session.init` (POST /session/:id/init), `session.command` (POST /session/:id/command), `session.shell` (POST /session/:id/shell), `session.share`/`session.unshare` (POST+DELETE /session/:id/share); GET /find/symbol, GET /vcs, GET /file/status, GET+POST /mcp, GET /experimental/tool/ids, GET /experimental/tool, GET /agent, GET /provider
+- [ ] **Phase 6: Session Utilities + Workspace APIs** — `session.summarize` (POST /session/:id/summarize), `session.todo` (GET /session/:id/todo), `session.init` (POST /session/:id/init), `session.shell` (POST /session/:id/shell), `session.share`/`session.unshare` (POST+DELETE /session/:id/share); GET /find/symbol, GET /vcs, GET /file/status, GET+POST /mcp, GET /experimental/tool/ids, GET /experimental/tool, GET /agent, GET /provider
 
 ## Phase Details
 
@@ -61,7 +61,7 @@ Plans:
 
 **Depends on**: Phase 3
 
-**Requirements**: RUN-01, RUN-02, RUN-03, RUN-04, SURF-01, SURF-02, INFRA-01, INFRA-02
+**Requirements**: RUN-01, RUN-02, RUN-03, RUN-04, SURF-01, SURF-02, INFRA-01, INFRA-02, CMD-01
 
 **Success Criteria** (what must be TRUE):
   1. Claude Code can run a prompt against a specific non-default model by passing `providerID` + `modelID` together (rejected if only one is supplied), and can select a specific agent type per prompt
@@ -70,12 +70,14 @@ Plans:
   4. `opencode_get_diff` returns a top-level `patch` string field and `opencode_run` returns a structured `parts` array with each part tagged by kind — callers can navigate responses without raw JSON parsing
   5. A timed-out `opencode_run` cancels the in-flight HTTP connection to OpenCode (not just the Promise), preventing orphaned requests
   6. A developer cloning the repo can run `prefect init` to write a correct `.mcp.json` into their project without manual JSON editing
+  7. Claude Code can execute slash commands (e.g. `/summarize`, `/compact`) inside a session by calling `opencode_session_command`
 
 **Intra-phase dependencies**:
   - INFRA-01 (AbortController) must be implemented in the same change as RUN-04 (`opencode_prompt_async`): both touch the timeout/async path in `opencode_run`, and the `noReply` vs `prompt_async` distinction (separate endpoint, 204 void) means the handler needs the full async picture before either is correct.
   - RUN-01/02/03 (body field additions) should be implemented alongside INFRA-01 since all four modify the same `opencode_run` handler block — one atomic change avoids a partially-correct intermediate state.
   - SURF-01 and SURF-02 touch `opencode_get_diff` and the `opencode_run` return shape respectively — independent of the above, can be done before or after.
   - INFRA-02 (`prefect init` CLI) is entirely independent — new file `src/cli.ts` and a `package.json` bin entry. Zero risk of interfering with any other change.
+  - CMD-01 (`opencode_session_command`) is independent — one new `server.registerTool()` call, same pattern as Phase 3 session tools.
 
 **Plans**: TBD
 
@@ -109,7 +111,7 @@ Plans:
 **Requirements**: (v3.0 — TBD when milestone is opened)
 
 **Success Criteria** (what must be TRUE):
-  1. Claude Code can trigger context compaction, generate an AGENTS.md, retrieve the session todo list, run slash commands, and run shell commands within a session context
+  1. Claude Code can trigger context compaction, generate an AGENTS.md, retrieve the session todo list, and run shell commands within a session context
   2. Claude Code can share and unshare sessions via the share/unshare endpoints
   3. Claude Code can inspect the workspace — LSP symbol search, git VCS state, file status, and configured MCP servers
   4. Claude Code can list available agents and providers/models to validate names before passing them to `opencode_run`
@@ -122,7 +124,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1. MCP Server | v1.0 | 3/3 | Complete | 2026-04-26 |
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
-| 3. Session Management Tools | v2.0 | 0/2 | Ready | — |
+| 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 0/? | Not started | — |
 | 5. Advanced Run Options | v3.0 | 0/? | Not started | — |
 | 6. Session Utilities + Workspace APIs | v3.0 | 0/? | Not started | — |

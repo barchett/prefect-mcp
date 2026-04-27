@@ -55,6 +55,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] Timeout fix: AbortController on fetch calls replacing Promise.race
 - [ ] Install script: curl | bash zero-friction setup
 - [ ] prefect init CLI: writes .mcp.json into current project
+- [ ] session.command — POST /session/:id/command (run slash commands inside a session)
 
 ### Active (v3.0 targets)
 
@@ -66,7 +67,6 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] session.summarize — POST /session/:id/summarize
 - [ ] session.todo — GET /session/:id/todo
 - [ ] session.init — POST /session/:id/init (generate AGENTS.md)
-- [ ] session.command — POST /session/:id/command
 - [ ] session.shell — POST /session/:id/shell
 - [ ] session.share / session.unshare — POST+DELETE /session/:id/share
 - [ ] GET /find/symbol — LSP-backed workspace symbol search
