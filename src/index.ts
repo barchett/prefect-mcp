@@ -129,6 +129,52 @@ server.registerTool(
   }
 );
 
+// RUN-04: Fire-and-forget prompt — POST /session/:id/prompt_async returns 204 void.
+// Same body shape as opencode_run (model/agent/system supported) but no timeout
+// because the API returns immediately. Use opencode_session_status to poll for
+// completion.
+server.registerTool(
+  'opencode_prompt_async',
+  {
+    description:
+      'Send a prompt to an OpenCode session and return immediately without waiting for the agent to finish. Returns { sessionId, accepted: true } on success. Use opencode_session_status to poll for completion, then opencode_session_messages or opencode_get_diff to retrieve results.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID from opencode_create_session'),
+      prompt: z.string().describe('The coding task or instruction to send'),
+      model: z
+        .object({
+          providerID: z.string(),
+          modelID: z.string(),
+        })
+        .optional()
+        .describe('Override the model for this single call. Both providerID and modelID are required together.'),
+      agent: z.string().optional().describe('Override the agent for this single call.'),
+      system: z.string().optional().describe('Override the system prompt for this single call.'),
+    }),
+  },
+  async ({ sessionId, prompt, model, agent, system }) => {
+    try {
+      const { error } = await client.session.promptAsync({
+        path: { id: sessionId },
+        body: {
+          parts: [{ type: 'text', text: prompt }],
+          ...(model ? { model } : {}),
+          ...(agent ? { agent } : {}),
+          ...(system ? { system } : {}),
+        },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return {
+        content: [
+          { type: 'text', text: JSON.stringify({ sessionId, accepted: true }) },
+        ],
+      };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 // CORE-03: Get the file diff for a session (or for a specific message)
 server.registerTool(
   'opencode_get_diff',
