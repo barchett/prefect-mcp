@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Session Management + Run Options + Infrastructure
 status: executing
-stopped_at: Phase 4 Plan 01 complete (04-01 Part union Zod schemas)
-last_updated: "2026-04-27T17:47:24Z"
-last_activity: 2026-04-27 -- Phase 04 Plan 01 executed (src/parts.ts, src/parts.test.ts)
+stopped_at: Completed Phase 04 Plan 04 (04-04-PLAN.md) — prefect init CLI
+last_updated: "2026-04-27T17:54:57.143Z"
+last_activity: 2026-04-27
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
-  percent: 73
+  completed_plans: 9
+  percent: 82
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-26)
 ## Current Position
 
 Phase: 04 — EXECUTING
-Plan: 2 of 4 (next: 04-02)
-Status: Plan 04-01 complete — Part union Zod schemas implemented and tested
-Last activity: 2026-04-27 — Phase 04 Plan 01 executed (src/parts.ts + src/parts.test.ts, 11/11 tests pass)
+Plan: 3 of 4 (next: 04-02)
+Status: Ready to execute
+Last activity: 2026-04-27
 
-Progress: v1.0 shipped ✅ | v2.0 roadmap defined ✅ | Phase 3 planned ✅
+Progress: [████████░░] 82%
 
 ## Accumulated Context
 
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - INFRA-01 (AbortController) and RUN-04 (prompt_async) must be implemented in the same atomic change to opencode_run — both touch the async/timeout path
 - CLI entry point: separate src/cli.ts compiles to build/cli.js — avoids coupling MCP server startup with CLI argument parsing
 - install script deferred entirely to v3.0 as npm install -g (requires npm publish) — v2.0 only ships prefect init CLI (INFRA-02)
+- Repoint single bin key 'prefect' to ./build/cli.js (D-16) — Claude Code spawns MCP server via args list in .mcp.json, not via the bin binary; no second bin key needed
+- Manual process.argv parsing over Commander.js for prefect init — minimal surface (one subcommand, one flag), zero additional deps
 
 ### Pending Todos
 
@@ -68,8 +70,8 @@ None. All v1.0 deferred items resolved 2026-04-26:
 
 ## Session Continuity
 
-Last session: 2026-04-27T17:47:24Z
-Stopped at: Completed Phase 04 Plan 01 (04-01-PLAN.md)
+Last session: 2026-04-27T17:54:57.103Z
+Stopped at: Completed Phase 04 Plan 04 (04-04-PLAN.md) — prefect init CLI
 Resume file: None
 
 **Planned Phase:** 4 (Run Options + Structured Responses + Infrastructure) — 4 plans — 2026-04-27T16:44:36.972Z

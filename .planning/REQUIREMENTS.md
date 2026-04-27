@@ -37,7 +37,8 @@
 ### Infrastructure
 
 - [ ] **INFRA-01**: `opencode_run` and `opencode_prompt_async` use AbortController + fetch `signal` instead of `Promise.race` — cancels the in-flight TCP connection on timeout rather than orphaning it
-- [ ] **INFRA-02**: `prefect init` CLI writes a correctly-configured `.mcp.json` into the current working directory
+- [x] **INFRA-02
+**: `prefect init` CLI writes a correctly-configured `.mcp.json` into the current working directory
 
 ---
 
