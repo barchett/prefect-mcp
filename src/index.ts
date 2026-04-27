@@ -256,6 +256,58 @@ server.registerTool(
   }
 );
 
+// SESSION-04: Retrieve message history for a session (limit = most-recent-N, no cursor)
+server.registerTool(
+  'opencode_session_messages',
+  {
+    description: 'Retrieve the message history for an OpenCode session. Each message includes an info object (UserMessage or AssistantMessage) and a parts array (TextPart, ToolPart, PatchPart, etc.). Use limit to cap the number of messages returned — this returns the most recent N messages only; there is no cursor or offset. Omit limit to return all messages.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      limit: z.number().int().positive().optional().describe(
+        'Maximum number of messages to return. Returns the most recent N messages — there is no offset or cursor. Omit to return all messages.'
+      ),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, limit, directory }) => {
+    try {
+      const { data, error } = await client.session.messages({
+        path: { id: sessionId },
+        query: { ...(limit !== undefined ? { limit } : {}), ...(directory ? { directory } : {}) },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-05: Fetch a single message by ID within a session
+server.registerTool(
+  'opencode_session_message',
+  {
+    description: 'Fetch a single message by ID within an OpenCode session. Returns the message info and all its parts (TextPart, ToolPart, PatchPart, etc.).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      messageId: z.string().describe('Message ID to fetch'),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, messageId, directory }) => {
+    try {
+      const { data, error } = await client.session.message({
+        path: { id: sessionId, messageID: messageId },  // SDK path param is messageID (capital D)
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
