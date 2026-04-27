@@ -20,6 +20,22 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ README.md with full fresh-clone setup guide (install, build, configure OpenCode, serve, wire) — v1.0
 - ✓ examples/test-task.md end-to-end validation prompt producing a real file diff — v1.0
 
+## Current Milestone: v2.0 session-management
+
+**Goal:** Expand Prefect's toolset with session management operations, richer `opencode_run` options, a more reliable timeout mechanism, and zero-friction setup tooling.
+
+**Target features:**
+- Session management: `opencode_session_list`, `opencode_session_get`, `opencode_session_messages`, `opencode_session_delete`
+- `opencode_run` model override (providerID + modelID per prompt)
+- `opencode_run` agent selection (build, research, etc.)
+- `opencode_run` noReply mode (fire-and-forget async)
+- `opencode_run` system prompt override
+- Timeout fix: AbortController on fetch calls replacing `Promise.race`
+- Install script: `curl | bash` zero-friction setup
+- `prefect init` CLI: writes `.mcp.json` into current project
+
+**API research gate:** Before any plan is written, fully document each endpoint being added or modified — all query params, body fields, response shape variants. For modified tools (`opencode_run`), audit current implementation against spec and produce explicit implemented / intentionally-deferred decisions for every option.
+
 ### Active (v2.0 targets)
 
 - [ ] Session management: list, get, messages, message, delete
@@ -77,4 +93,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-26 after v1.0 milestone close*
+*Last updated: 2026-04-26 — v2.0 milestone started*

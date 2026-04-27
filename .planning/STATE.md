@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: session-management
 status: planning
-stopped_at: Milestone v1.0 complete. v2.0 not yet planned.
+stopped_at: ""
 last_updated: "2026-04-26T00:00:00.000Z"
-last_activity: 2026-04-26 -- Milestone v1.0 archived
+last_activity: 2026-04-26 -- Milestone v2.0 started
 progress:
   total_phases: 0
   completed_phases: 0
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-26)
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Planning next milestone
-Last activity: 2026-04-26
+Status: Defining requirements
+Last activity: 2026-04-26 — Milestone v2.0 started
 
 Progress: v1.0 shipped ✅
 
@@ -54,13 +54,13 @@ None.
 
 ## Deferred Items
 
-Items acknowledged and deferred at milestone close on 2026-04-26:
+None. All v1.0 deferred items resolved 2026-04-26:
 
 | Category | Item | Status |
 |----------|------|--------|
-| verification | Phase 01: 01-VERIFICATION.md human_needed — MCP tool discovery requires interactive /mcp | acknowledged |
-| verification | Phase 02: 02-VERIFICATION.md human_needed — E2E loop requires live OpenCode (validated by commit e295cf5) | acknowledged |
-| uat | Phase 02: 02-HUMAN-UAT.md — audit flagged as incomplete but shows [passed] with 0 pending scenarios | acknowledged |
+| verification | Phase 01: 01-VERIFICATION.md human_needed — MCP tool discovery requires interactive /mcp | completed |
+| verification | Phase 02: 02-VERIFICATION.md human_needed — E2E loop requires live OpenCode (validated by commit e295cf5) | completed |
+| uat | Phase 02: 02-HUMAN-UAT.md — audit flagged as incomplete but shows [passed] with 0 pending scenarios | completed |
 
 ## Session Continuity
 
