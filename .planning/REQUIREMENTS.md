@@ -22,10 +22,14 @@
 
 ### Run Options
 
-- [ ] **RUN-01**: `opencode_run` accepts `model` override (`providerID` + `modelID` pair — both required together, reject if only one is provided) to select a non-default model for a single prompt
-- [ ] **RUN-02**: `opencode_run` accepts `agent` to select a specific agent type for a single prompt
-- [ ] **RUN-03**: `opencode_run` accepts `system` to inject a custom system prompt override for a single prompt
-- [ ] **RUN-04**: New `opencode_prompt_async` tool sends a prompt and returns immediately (204) — uses POST /session/:id/prompt_async; this is a separate endpoint, not the `noReply` body field on the synchronous prompt endpoint
+- [x] **RUN-01
+**: `opencode_run` accepts `model` override (`providerID` + `modelID` pair — both required together, reject if only one is provided) to select a non-default model for a single prompt
+- [x] **RUN-02
+**: `opencode_run` accepts `agent` to select a specific agent type for a single prompt
+- [x] **RUN-03
+**: `opencode_run` accepts `system` to inject a custom system prompt override for a single prompt
+- [x] **RUN-04
+**: New `opencode_prompt_async` tool sends a prompt and returns immediately (204) — uses POST /session/:id/prompt_async; this is a separate endpoint, not the `noReply` body field on the synchronous prompt endpoint
 
 ### Structured Response Surfacing
 
@@ -36,7 +40,8 @@
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: `opencode_run` and `opencode_prompt_async` use AbortController + fetch `signal` instead of `Promise.race` — cancels the in-flight TCP connection on timeout rather than orphaning it
+- [x] **INFRA-01
+**: `opencode_run` and `opencode_prompt_async` use AbortController + fetch `signal` instead of `Promise.race` — cancels the in-flight TCP connection on timeout rather than orphaning it
 - [x] **INFRA-02
 **: `prefect init` CLI writes a correctly-configured `.mcp.json` into the current working directory
 

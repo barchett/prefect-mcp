@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Session Management + Run Options + Infrastructure
 status: executing
-stopped_at: Completed Phase 04 Plan 04 (04-04-PLAN.md) — prefect init CLI
-last_updated: "2026-04-27T17:54:57.143Z"
+stopped_at: Completed Phase 04 Plan 02 (04-02-PLAN.md) — opencode_run v2.0 + opencode_prompt_async
+last_updated: "2026-04-27T18:00:47.669Z"
 last_activity: 2026-04-27
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
-  percent: 82
+  completed_plans: 10
+  percent: 91
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-26)
 ## Current Position
 
 Phase: 04 — EXECUTING
-Plan: 3 of 4 (next: 04-02)
+Plan: 4 of 4 (next: 04-02)
 Status: Ready to execute
 Last activity: 2026-04-27
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 91%
 
 ## Accumulated Context
 
@@ -49,6 +49,9 @@ Recent decisions affecting current work:
 - install script deferred entirely to v3.0 as npm install -g (requires npm publish) — v2.0 only ships prefect init CLI (INFRA-02)
 - Repoint single bin key 'prefect' to ./build/cli.js (D-16) — Claude Code spawns MCP server via args list in .mcp.json, not via the bin binary; no second bin key needed
 - Manual process.argv parsing over Commander.js for prefect init — minimal surface (one subcommand, one flag), zero additional deps
+- opencode_run returns structured { info, parts } payload with PartSchema validation instead of raw JSON.stringify(data)
+- Promise.race fully replaced by AbortController for opencode_run timeout — TCP connection cancelled on abort, not orphaned
+- opencode_prompt_async fire-and-forget tool uses client.session.promptAsync, no AbortController, returns { sessionId, accepted: true }
 
 ### Pending Todos
 
@@ -70,8 +73,8 @@ None. All v1.0 deferred items resolved 2026-04-26:
 
 ## Session Continuity
 
-Last session: 2026-04-27T17:54:57.103Z
-Stopped at: Completed Phase 04 Plan 04 (04-04-PLAN.md) — prefect init CLI
+Last session: 2026-04-27T18:00:47.613Z
+Stopped at: Completed Phase 04 Plan 02 (04-02-PLAN.md) — opencode_run v2.0 + opencode_prompt_async
 Resume file: None
 
 **Planned Phase:** 4 (Run Options + Structured Responses + Infrastructure) — 4 plans — 2026-04-27T16:44:36.972Z
