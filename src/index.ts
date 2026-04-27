@@ -8,7 +8,7 @@ import { PartSchema } from './parts.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
 const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
-const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '120000', 10);
+const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '', 10) || 120_000;
 const client = createOpencodeClient({ baseUrl: BASE_URL });
 
 const server = new McpServer({ name: 'prefect', version: '1.0.0' });

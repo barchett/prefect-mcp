@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc && chmod 755 build/index.js build/cli.js",
-    "test": "tsc && node --test build/parts.test.js build/cli.test.js"
+    "test": "tsc && node --test build/parts.test.js build/cli.test.js build/diff-patch.test.js build/session-command.test.js"
   },
   "bin": {
     "prefect": "./build/cli.js"
