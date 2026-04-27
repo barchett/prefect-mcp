@@ -25,11 +25,10 @@ Claude Code can delegate implementation to a local model and review/correct the 
 **Goal:** Expand Prefect's toolset with session management operations, richer `opencode_run` options, a more reliable timeout mechanism, and zero-friction setup tooling.
 
 **Target features:**
-- Session management: `opencode_session_list`, `opencode_session_get`, `opencode_session_messages`, `opencode_session_delete`
-- `opencode_run` model override (providerID + modelID per prompt)
-- `opencode_run` agent selection (build, research, etc.)
-- `opencode_run` noReply mode (fire-and-forget async)
-- `opencode_run` system prompt override
+- Session management: list, get, status, messages (paginated), message, delete, rename, children, unrevert (9 new tools)
+- `opencode_run` enhancements: model/providerID+modelID override, agent selection, system prompt override
+- `prompt_async` — POST /session/:id/prompt_async (true fire-and-forget, replaces noReply concept)
+- Document `patch` field on `opencode_get_diff` and `parts` response shape on `opencode_run`
 - Timeout fix: AbortController on fetch calls replacing `Promise.race`
 - Install script: `curl | bash` zero-friction setup
 - `prefect init` CLI: writes `.mcp.json` into current project
@@ -38,11 +37,21 @@ Claude Code can delegate implementation to a local model and review/correct the 
 
 ### Active (v2.0 targets)
 
-- [ ] Session management: list, get, messages, message, delete
+- [ ] session.list — GET /session
+- [ ] session.get — GET /session/:id
+- [ ] session.status — GET /session/status
+- [ ] session.messages — GET /session/:id/message (with limit/pagination)
+- [ ] session.message — GET /session/:id/message/:id
+- [ ] session.delete — DELETE /session/:id
+- [ ] session.rename — PATCH /session/:id
+- [ ] session.children — GET /session/:id/children
+- [ ] session.unrevert — POST /session/:id/unrevert
 - [ ] opencode_run model override (providerID + modelID per prompt)
-- [ ] opencode_run agent selection (build, research, etc.)
-- [ ] opencode_run noReply mode (fire-and-forget async)
+- [ ] opencode_run agent selection
+- [ ] prompt_async — POST /session/:id/prompt_async (replaces noReply concept)
 - [ ] opencode_run system prompt override
+- [ ] Document patch field on opencode_get_diff response
+- [ ] Document parts response shape on opencode_run (tool calls, results, file edits, step markers)
 - [ ] Timeout fix: AbortController on fetch calls replacing Promise.race
 - [ ] Install script: curl | bash zero-friction setup
 - [ ] prefect init CLI: writes .mcp.json into current project
@@ -54,7 +63,19 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] opencode_run messageID (resume from specific message)
 - [ ] opencode_run AgentPartInput / SubtaskPartInput
 - [ ] opencode_create_session parentID (session hierarchies)
-- [ ] Workspace inspection: /find/symbol, /vcs, /file/status, /mcp, /experimental/tool*, /agent, /provider, /session/:id/todo, /session/:id/summarize
+- [ ] session.summarize — POST /session/:id/summarize
+- [ ] session.todo — GET /session/:id/todo
+- [ ] session.init — POST /session/:id/init (generate AGENTS.md)
+- [ ] session.command — POST /session/:id/command
+- [ ] session.shell — POST /session/:id/shell
+- [ ] session.share / session.unshare — POST+DELETE /session/:id/share
+- [ ] GET /find/symbol — LSP-backed workspace symbol search
+- [ ] GET /vcs — structured VCS info
+- [ ] GET /file/status — structured git-tracked file status
+- [ ] GET /mcp + POST /mcp — inspect and inject MCP servers
+- [ ] GET /experimental/tool/ids + GET /experimental/tool — inspect available tools per model
+- [ ] GET /agent — list available agents
+- [ ] GET /provider — list configured providers and models
 
 ### Out of Scope
 
