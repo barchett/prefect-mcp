@@ -4,6 +4,18 @@
 
 A TypeScript MCP server that exposes OpenCode's headless HTTP API as Claude Code tools. Claude Code orchestrates at the task/spec level (decompose, review, correct) while delegating actual file edits to a local model (Qwen or similar) running in OpenCode. The result lands in git history; Claude Code sees diffs and runs tests independently.
 
+## Current Milestone: v3.0 Daily Driver
+
+**Goal:** Make Prefect meaningfully better for daily use — infrastructure fixes, high-leverage workflow shortcuts, semantic tooling, and proper distribution.
+
+**Target features:**
+- Infrastructure: directory param on all tools, `OPENCODE_DEFAULT_PROJECT` env var, auto-start opencode serve
+- Workflow shortcuts: `opencode_delegate`, `opencode_dispatch`, `opencode_inspect`, `opencode_await`
+- npm distribution: npm publish + `npm install -g` pathway
+- `GET /agent` — list available agents
+- `GET /provider` — list configured providers and models
+- `GET /find/symbol` — LSP-backed workspace symbol search
+
 ## Core Value
 
 Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
@@ -36,6 +48,20 @@ Claude Code can delegate implementation to a local model and review/correct the 
 
 ### Active (v3.0 targets)
 
+- [ ] directory param on all tools (currently only on opencode_create_session)
+- [ ] **INFRA-XX**: `OPENCODE_DEFAULT_PROJECT` env var — fallback directory resolution order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` → `process.cwd()`. Documented in README and `.mcp.json` env table. Implement in the same plan as directory-param propagation.
+- [ ] auto-start opencode serve if not running (currently a manual prerequisite)
+- [ ] opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01)
+- [ ] opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02)
+- [ ] opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03)
+- [ ] opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04)
+- [ ] npm publish + npm install -g prefect-mcp install pathway
+- [ ] GET /agent — list available agents
+- [ ] GET /provider — list configured providers and models
+- [ ] GET /find/symbol — LSP-backed workspace symbol search
+
+### Active (v4.0 targets)
+
 - [ ] opencode_run tools override (enable/disable per prompt)
 - [ ] opencode_run FilePartInput (file attachments as context)
 - [ ] opencode_run messageID (resume from specific message)
@@ -46,21 +72,10 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] session.init — POST /session/:id/init (generate AGENTS.md)
 - [ ] session.shell — POST /session/:id/shell
 - [ ] session.share / session.unshare — POST+DELETE /session/:id/share
-- [ ] GET /find/symbol — LSP-backed workspace symbol search
 - [ ] GET /vcs — structured VCS info
 - [ ] GET /file/status — structured git-tracked file status
 - [ ] GET /mcp + POST /mcp — inspect and inject MCP servers
 - [ ] GET /experimental/tool/ids + GET /experimental/tool — inspect available tools per model
-- [ ] GET /agent — list available agents
-- [ ] GET /provider — list configured providers and models
-- [ ] directory param on all tools (currently only on opencode_create_session)
-- [ ] **INFRA-XX**: `OPENCODE_DEFAULT_PROJECT` env var — fallback directory resolution order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` → `process.cwd()`. Documented in README and `.mcp.json` env table. Implement in the same plan as directory-param propagation.
-- [ ] auto-start opencode serve if not running (currently a manual prerequisite)
-- [ ] npm publish + npm install -g prefect-mcp install pathway
-- [ ] opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01)
-- [ ] opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02)
-- [ ] opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03)
-- [ ] opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04)
 
 ### Out of Scope
 
@@ -106,4 +121,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-27 after v2.0 milestone*
+*Last updated: 2026-04-27 — milestone v3.0 started*
