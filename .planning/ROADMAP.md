@@ -50,8 +50,8 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Read-only session tools: opencode_session_list, opencode_session_get, opencode_session_status, opencode_session_messages, opencode_session_message (SESSION-01 to SESSION-05)
-- [ ] 03-02-PLAN.md — Write/mutating session tools: opencode_session_delete, opencode_session_rename, opencode_session_children, opencode_session_unrevert (SESSION-06 to SESSION-09)
+- [x] 03-01-PLAN.md — Read-only session tools: opencode_session_list, opencode_session_get, opencode_session_status, opencode_session_messages, opencode_session_message (SESSION-01 to SESSION-05)
+- [x] 03-02-PLAN.md — Write/mutating session tools: opencode_session_delete, opencode_session_rename, opencode_session_children, opencode_session_unrevert (SESSION-06 to SESSION-09)
 
 ---
 
