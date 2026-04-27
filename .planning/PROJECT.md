@@ -54,6 +54,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] GET /agent — list available agents
 - [ ] GET /provider — list configured providers and models
 - [ ] directory param on all tools (currently only on opencode_create_session)
+- [ ] **INFRA-XX**: `OPENCODE_DEFAULT_PROJECT` env var — fallback directory resolution order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` → `process.cwd()`. Documented in README and `.mcp.json` env table. Implement in the same plan as directory-param propagation.
 - [ ] auto-start opencode serve if not running (currently a manual prerequisite)
 - [ ] npm publish + npm install -g prefect-mcp install pathway
 - [ ] opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01)
