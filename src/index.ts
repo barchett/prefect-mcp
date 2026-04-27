@@ -188,6 +188,126 @@ server.registerTool(
   }
 );
 
+// SESSION-01: List all OpenCode sessions
+server.registerTool(
+  'opencode_session_list',
+  {
+    description: 'List all OpenCode sessions. Returns an array of Session objects each with id, title, directory, time.created, time.updated, and optional summary/share/revert fields. Pass directory to filter sessions by project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Filter sessions by project directory path'),
+    }),
+  },
+  async ({ directory }) => {
+    try {
+      const { data, error } = await client.session.list({
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-02: Fetch a single OpenCode session by ID
+server.registerTool(
+  'opencode_session_get',
+  {
+    description: 'Fetch a single OpenCode session by ID. Returns the full Session object including id, title, directory, parentID (if forked), and revert state.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to fetch'),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    try {
+      const { data, error } = await client.session.get({
+        path: { id: sessionId },
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-03: Get real-time status of ALL active sessions (global endpoint — no sessionId param)
+server.registerTool(
+  'opencode_session_status',
+  {
+    description: 'Get the real-time status of all active OpenCode sessions. Returns a map of sessionID → SessionStatus where status is one of: { type: "idle" }, { type: "busy" }, or { type: "retry", attempt, message, next }. Use this before calling opencode_run to verify the target session is idle and not still processing a previous prompt.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ directory }) => {
+    try {
+      const { data, error } = await client.session.status({
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-04: Retrieve message history for a session (limit = most-recent-N, no cursor)
+server.registerTool(
+  'opencode_session_messages',
+  {
+    description: 'Retrieve the message history for an OpenCode session. Each message includes an info object (UserMessage or AssistantMessage) and a parts array (TextPart, ToolPart, PatchPart, etc.). Use limit to cap the number of messages returned — this returns the most recent N messages only; there is no cursor or offset. Omit limit to return all messages.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      limit: z.number().int().positive().optional().describe(
+        'Maximum number of messages to return. Returns the most recent N messages — there is no offset or cursor. Omit to return all messages.'
+      ),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, limit, directory }) => {
+    try {
+      const { data, error } = await client.session.messages({
+        path: { id: sessionId },
+        query: { ...(limit !== undefined ? { limit } : {}), ...(directory ? { directory } : {}) },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-05: Fetch a single message by ID within a session
+server.registerTool(
+  'opencode_session_message',
+  {
+    description: 'Fetch a single message by ID within an OpenCode session. Returns the message info and all its parts (TextPart, ToolPart, PatchPart, etc.).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      messageId: z.string().describe('Message ID to fetch'),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, messageId, directory }) => {
+    try {
+      const { data, error } = await client.session.message({
+        path: { id: sessionId, messageID: messageId },  // SDK path param is messageID (capital D)
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
