@@ -80,7 +80,13 @@ Plans:
   - INFRA-02 (`prefect init` CLI) is entirely independent — new file `src/cli.ts` and a `package.json` bin entry. Zero risk of interfering with any other change.
   - CMD-01 (`opencode_session_command`) is independent — one new `server.registerTool()` call, same pattern as Phase 3 session tools.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Zod schemas for the 12-member Part discriminated union (SURF-02 schemas in src/parts.ts)
+- [ ] 04-02-PLAN.md — opencode_run body fields (RUN-01/02/03), AbortController timeout (INFRA-01), prompt_async tool (RUN-04), parts validation (SURF-02)
+- [ ] 04-03-PLAN.md — opencode_get_diff patch field via diff package (SURF-01), opencode_session_command tool (CMD-01)
+- [ ] 04-04-PLAN.md — prefect init CLI with merge-not-overwrite .mcp.json (INFRA-02)
 
 ---
 
@@ -152,7 +158,7 @@ Plans:
 | 1. MCP Server | v1.0 | 3/3 | Complete | 2026-04-26 |
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
-| 4. Run Options + Structured Responses + Infrastructure | v2.0 | 0/? | Not started | — |
+| 4. Run Options + Structured Responses + Infrastructure | v2.0 | 0/4 | Not started | — |
 | 5. Advanced Run Options + Infrastructure | v3.0 | 0/? | Not started | — |
 | 6. Session Utilities + Workspace APIs | v3.0 | 0/? | Not started | — |
 | 7. Composite Workflow Tools | v3.0 | 0/? | Not started | — |
