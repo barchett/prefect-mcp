@@ -18,7 +18,7 @@ Do NOT use the prefect tools for:
 
 Always follow this exact sequence. Do not improvise step ordering.
 
-1. **CREATE SESSION.** Call `opencode_create_session({title: "<short task name>"})`. Save the returned `id` as your session ID for the rest of the loop.
+1. **CREATE SESSION.** Call `opencode_create_session({title: "<short task name>"})`. Save the returned `id` as your session ID for the rest of the loop. If OpenCode was not started from this project's root, also pass `directory: process.cwd()` (the absolute path) so the session writes files in the right place.
 2. **RUN PROMPT.** Call `opencode_run({sessionId, prompt: "<task description>"})`. This blocks until the agent finishes (default timeout 120 seconds; controlled by `PREFECT_TIMEOUT_MS`).
 3. **GET DIFF.** Call `opencode_get_diff({sessionId})`. Inspect the returned `FileDiff[]` to see what OpenCode changed.
 4. **REVIEW.** Read the diff. Read any modified files yourself if you need more context than the diff shows.
@@ -45,7 +45,7 @@ The default response is `once`, `always`, or `reject` (NOT `allow`/`deny`/`allow
 
 | Tool | Required Args | When to Call |
 |------|---------------|--------------|
-| `opencode_create_session` | `{title?: string}` | Once at the start of each task. |
+| `opencode_create_session` | `{title?: string, directory?: string}` | Once at the start of each task. Pass `directory` if OpenCode wasn't started from this project root. |
 | `opencode_run` | `{sessionId, prompt}` | To send a task or correction. Blocks until OpenCode finishes (up to 120s). |
 | `opencode_get_diff` | `{sessionId, messageID?}` | After every `opencode_run` to see what changed. |
 | `opencode_abort` | `{sessionId}` | Emergency stop — when `opencode_run` is stuck. |
