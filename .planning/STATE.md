@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: session-management
-status: planning
+status: ready_to_execute
 stopped_at: ""
 last_updated: "2026-04-26T00:00:00.000Z"
-last_activity: 2026-04-26 -- Roadmap created for v2.0 milestone
+last_activity: 2026-04-26 -- Phase 3 planned (2 plans, 9 session tools)
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 2
   completed_plans: 0
   percent: 0
 ---
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-26)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** v2.0 milestone — roadmap defined, ready to plan Phase 3
+**Current focus:** v2.0 milestone — Phase 3 planned, ready to execute
 
 ## Current Position
 
-Phase: Phase 3 — Session Management Tools (not started)
-Plan: —
-Status: Roadmap complete, ready for `/gsd-plan-phase 3`
-Last activity: 2026-04-26 — Roadmap written for v2.0 (Phases 3–4)
+Phase: Phase 3 — Session Management Tools (planned, ready to execute)
+Plan: 2 plans (03-01 wave 1: SESSION-01–05, 03-02 wave 2: SESSION-06–09)
+Status: Ready to execute — `/gsd-execute-phase 3`
+Last activity: 2026-04-26 — Phase 3 planned (9 additive registerTool calls, all pure additions to src/index.ts)
 
-Progress: v1.0 shipped ✅ | v2.0 roadmap defined ✅
+Progress: v1.0 shipped ✅ | v2.0 roadmap defined ✅ | Phase 3 planned ✅
 
 ## Accumulated Context
 
@@ -69,5 +69,5 @@ None. All v1.0 deferred items resolved 2026-04-26:
 ## Session Continuity
 
 Last session: 2026-04-26
-Stopped at: v2.0 roadmap written (Phases 3–4 detailed, Phases 5–6 placeholders updated). Ready to plan Phase 3.
+Stopped at: Phase 3 planned — 2 plans ready (03-01-PLAN.md wave 1, 03-02-PLAN.md wave 2). Next: `/gsd-execute-phase 3`.
 Resume file: None
