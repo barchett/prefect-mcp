@@ -188,6 +188,74 @@ server.registerTool(
   }
 );
 
+// SESSION-01: List all OpenCode sessions
+server.registerTool(
+  'opencode_session_list',
+  {
+    description: 'List all OpenCode sessions. Returns an array of Session objects each with id, title, directory, time.created, time.updated, and optional summary/share/revert fields. Pass directory to filter sessions by project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Filter sessions by project directory path'),
+    }),
+  },
+  async ({ directory }) => {
+    try {
+      const { data, error } = await client.session.list({
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-02: Fetch a single OpenCode session by ID
+server.registerTool(
+  'opencode_session_get',
+  {
+    description: 'Fetch a single OpenCode session by ID. Returns the full Session object including id, title, directory, parentID (if forked), and revert state.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to fetch'),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    try {
+      const { data, error } = await client.session.get({
+        path: { id: sessionId },
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-03: Get real-time status of ALL active sessions (global endpoint — no sessionId param)
+server.registerTool(
+  'opencode_session_status',
+  {
+    description: 'Get the real-time status of all active OpenCode sessions. Returns a map of sessionID → SessionStatus where status is one of: { type: "idle" }, { type: "busy" }, or { type: "retry", attempt, message, next }. Use this before calling opencode_run to verify the target session is idle and not still processing a previous prompt.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ directory }) => {
+    try {
+      const { data, error } = await client.session.status({
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
