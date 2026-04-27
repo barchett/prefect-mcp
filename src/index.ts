@@ -308,6 +308,56 @@ server.registerTool(
   }
 );
 
+// SESSION-06: Delete a session permanently (irreversible)
+server.registerTool(
+  'opencode_session_delete',
+  {
+    description: 'Delete an OpenCode session and all its data permanently. Returns true on success. WARNING: this is irreversible — all messages, parts, and session history will be deleted. Consider using opencode_session_rename to archive instead of deleting.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to delete'),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    try {
+      const { data, error } = await client.session.delete({
+        path: { id: sessionId },
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-07: Rename a session — MCP tool is "rename" but SDK method is client.session.update()
+server.registerTool(
+  'opencode_session_rename',
+  {
+    description: 'Rename an OpenCode session. Returns the full updated Session object.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to rename'),
+      title: z.string().describe('New display title for the session'),
+      directory: z.string().optional().describe('Optional directory filter'),
+    }),
+  },
+  async ({ sessionId, title, directory }) => {
+    try {
+      const { data, error } = await client.session.update({  // NOT client.session.rename — does not exist
+        path: { id: sessionId },
+        body: { title },
+        query: directory ? { directory } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
