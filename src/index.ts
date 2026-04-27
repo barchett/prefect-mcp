@@ -502,6 +502,49 @@ server.registerTool(
   }
 );
 
+// CMD-01: Run a slash command inside an OpenCode session (e.g. /compact, /clear).
+// Calls POST /session/:id/command. Same response shape as opencode_run:
+// { info: AssistantMessage, parts: Part[] }. Note that `model` here is a plain
+// string (e.g. "anthropic/claude-3-5-sonnet"), NOT a { providerID, modelID }
+// object — this is deliberate; the OpenCode command endpoint accepts a single
+// model string, unlike the prompt endpoint.
+server.registerTool(
+  'opencode_session_command',
+  {
+    description:
+      'Run a slash command inside an OpenCode session (e.g. compact, clear). Returns { info: AssistantMessage, parts: Part[] } as JSON. Use this for session-level operations that have no equivalent SDK method.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      command: z.string().describe('The slash command name without the leading slash (e.g. "compact")'),
+      arguments: z.string().describe('Arguments string to pass to the command (use empty string if none)'),
+      messageID: z.string().optional().describe('Optional message ID for context'),
+      agent: z.string().optional().describe('Optional agent override'),
+      model: z
+        .string()
+        .optional()
+        .describe('Optional model override as a plain string (NOT { providerID, modelID } — this endpoint takes a single string).'),
+    }),
+  },
+  async ({ sessionId, command, arguments: args, messageID, agent, model }) => {
+    try {
+      const { data, error } = await client.session.command({
+        path: { id: sessionId },
+        body: {
+          command,
+          arguments: args,
+          ...(messageID ? { messageID } : {}),
+          ...(agent ? { agent } : {}),
+          ...(model ? { model } : {}),
+        },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
