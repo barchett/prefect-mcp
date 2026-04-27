@@ -49,7 +49,7 @@
 - `opencode_run` messageID (reply to a specific message)
 - `opencode_run` AgentPartInput / SubtaskPartInput
 - `opencode_create_session` parentID (session hierarchies)
-- Install script: `npm install -g prefect-mcp` (requires npm publish)
+- Install script: `npm install -g prefect-mcp` (requires npm publish — deferred from v2.0)
 - session.summarize, session.todo, session.init, session.command, session.shell, session.share/unshare
 - GET /find/symbol, GET /vcs, GET /file/status, GET+POST /mcp
 - GET /experimental/tool/ids, GET /experimental/tool, GET /agent, GET /provider
@@ -67,9 +67,22 @@
 
 ## Traceability
 
-| REQ-ID | Phase | Plan |
-|--------|-------|------|
-| SESSION-01–09 | Phase 3 | — |
-| RUN-01–04 | Phase 4 | — |
-| SURF-01–02 | Phase 4 | — |
-| INFRA-01–02 | Phase 4 | — |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| SESSION-01 | Phase 3 | Pending |
+| SESSION-02 | Phase 3 | Pending |
+| SESSION-03 | Phase 3 | Pending |
+| SESSION-04 | Phase 3 | Pending |
+| SESSION-05 | Phase 3 | Pending |
+| SESSION-06 | Phase 3 | Pending |
+| SESSION-07 | Phase 3 | Pending |
+| SESSION-08 | Phase 3 | Pending |
+| SESSION-09 | Phase 3 | Pending |
+| RUN-01 | Phase 4 | Pending |
+| RUN-02 | Phase 4 | Pending |
+| RUN-03 | Phase 4 | Pending |
+| RUN-04 | Phase 4 | Pending |
+| SURF-01 | Phase 4 | Pending |
+| SURF-02 | Phase 4 | Pending |
+| INFRA-01 | Phase 4 | Pending |
+| INFRA-02 | Phase 4 | Pending |
