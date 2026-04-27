@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
+import { PartSchema } from './parts.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
 const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
@@ -55,31 +56,74 @@ server.registerTool(
   }
 );
 
-// CORE-02: Run a prompt against an OpenCode session — blocks until agent loop completes
+// CORE-02 + RUN-01/02/03 + INFRA-01 + SURF-02:
+// Run a prompt against an OpenCode session. Optional per-call overrides for
+// model (providerID + modelID required together), agent, and system prompt.
+// Uses AbortController so timeout cancels the in-flight TCP connection rather
+// than orphaning it (the previous Promise.race left the request running on
+// OpenCode after we gave up on it). Response parts are validated against
+// PartSchema and returned as a structured { info, parts } payload.
 server.registerTool(
   'opencode_run',
   {
-    description: 'Send a prompt to an OpenCode session and block until the agent finishes. Returns the assistant message and parts. May take seconds to minutes depending on task complexity.',
+    description:
+      'Send a prompt to an OpenCode session and block until the agent finishes. Returns { info: AssistantMessage, parts: Part[] } as JSON. Optional model/agent/system override the session defaults for this single call. May take seconds to minutes depending on task complexity.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID from opencode_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
+      // RUN-01: model override — both providerID AND modelID required together
+      model: z
+        .object({
+          providerID: z.string(),
+          modelID: z.string(),
+        })
+        .optional()
+        .describe('Override the model for this single call. Both providerID and modelID are required together.'),
+      // RUN-02: agent override
+      agent: z.string().optional().describe('Override the agent for this single call.'),
+      // RUN-03: system prompt override
+      system: z.string().optional().describe('Override the system prompt for this single call.'),
     }),
   },
-  async ({ sessionId, prompt }) => {
+  async ({ sessionId, prompt, model, agent, system }) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`opencode_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`)), TIMEOUT_MS)
-      );
-      const { data, error } = await Promise.race([
-        client.session.prompt({
-          path: { id: sessionId },
-          body: { parts: [{ type: 'text', text: prompt }] },
-        }),
-        timeout,
-      ]);
+      const { data, error } = await client.session.prompt({
+        path: { id: sessionId },
+        body: {
+          parts: [{ type: 'text', text: prompt }],
+          ...(model ? { model } : {}),
+          ...(agent ? { agent } : {}),
+          ...(system ? { system } : {}),
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      // SURF-02: validate parts against the discriminated union from src/parts.ts
+      const validatedParts = PartSchema.array().parse(data!.parts);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ info: data!.info, parts: validatedParts }),
+          },
+        ],
+      };
     } catch (err) {
+      clearTimeout(timer);
+      if ((err as Error).name === 'AbortError') {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `opencode_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`,
+            },
+          ],
+          isError: true,
+        };
+      }
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
   }
