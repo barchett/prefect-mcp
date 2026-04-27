@@ -83,10 +83,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Zod schemas for the 12-member Part discriminated union (SURF-02 schemas in src/parts.ts)
-- [ ] 04-02-PLAN.md — opencode_run body fields (RUN-01/02/03), AbortController timeout (INFRA-01), prompt_async tool (RUN-04), parts validation (SURF-02)
-- [ ] 04-03-PLAN.md — opencode_get_diff patch field via diff package (SURF-01), opencode_session_command tool (CMD-01)
-- [ ] 04-04-PLAN.md — prefect init CLI with merge-not-overwrite .mcp.json (INFRA-02)
+- [x] 04-01-PLAN.md — Zod schemas for the 12-member Part discriminated union (SURF-02 schemas in src/parts.ts)
+- [x] 04-02-PLAN.md — opencode_run body fields (RUN-01/02/03), AbortController timeout (INFRA-01), prompt_async tool (RUN-04), parts validation (SURF-02)
+- [x] 04-03-PLAN.md — opencode_get_diff patch field via diff package (SURF-01), opencode_session_command tool (CMD-01)
+- [x] 04-04-PLAN.md — prefect init CLI with merge-not-overwrite .mcp.json (INFRA-02)
 
 ---
 
