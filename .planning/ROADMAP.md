@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
 - 📋 **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (planned)
-- 📋 **v3.0 Full API Coverage** — Phases 5–6 (planned)
+- 📋 **v3.0 Full API Coverage + Workflow Primitives** — Phases 5–7 (planned)
 
 ## Phases
 
@@ -23,10 +23,11 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 - [ ] **Phase 3: Session Management Tools** — 9 new read/write session tools: `opencode_session_list`, `opencode_session_get`, `opencode_session_status`, `opencode_session_messages`, `opencode_session_message`, `opencode_session_delete`, `opencode_session_rename`, `opencode_session_children`, `opencode_session_unrevert`
 - [ ] **Phase 4: Run Options + Structured Responses + Infrastructure** — `model`/`agent`/`system` on `opencode_run`; `opencode_prompt_async` fire-and-forget tool; `patch` field surfaced on `opencode_get_diff`; `parts` typed array on `opencode_run` response; AbortController timeout fix replacing `Promise.race`; `prefect init` CLI writes `.mcp.json`; `opencode_session_command` (POST /session/:id/command — run slash commands inside a session)
 
-### 📋 v3.0 Full API Coverage (Planned)
+### 📋 v3.0 Full API Coverage + Workflow Primitives (Planned)
 
-- [ ] **Phase 5: Advanced Run Options** — `tools`, `FilePartInput`, `messageID`, `AgentPartInput`/`SubtaskPartInput` on `opencode_run`; `parentID` on `opencode_create_session`; `npm install -g` install pathway (requires npm publish)
-- [ ] **Phase 6: Session Utilities + Workspace APIs** — `session.summarize` (POST /session/:id/summarize), `session.todo` (GET /session/:id/todo), `session.init` (POST /session/:id/init), `session.shell` (POST /session/:id/shell), `session.share`/`session.unshare` (POST+DELETE /session/:id/share); GET /find/symbol, GET /vcs, GET /file/status, GET+POST /mcp, GET /experimental/tool/ids, GET /experimental/tool, GET /agent, GET /provider
+- [ ] **Phase 5: Advanced Run Options + Infrastructure** — `tools`, `FilePartInput`, `messageID`, `AgentPartInput`/`SubtaskPartInput` on `opencode_run`; `parentID` on `opencode_create_session`; `directory` param on all tools; auto-start `opencode serve` if not running; `npm publish` + `npm install -g prefect-mcp` install pathway
+- [ ] **Phase 6: Session Utilities + Workspace APIs** — `session.summarize`, `session.todo`, `session.init`, `session.shell`, `session.share`/`session.unshare`; GET /find/symbol, GET /vcs, GET /file/status, GET+POST /mcp, GET /experimental/tool/ids, GET /experimental/tool, GET /agent, GET /provider
+- [ ] **Phase 7: Composite Workflow Tools** — `opencode_delegate` (blocking create+run+diff in one call), `opencode_dispatch` (non-blocking fire-and-forget), `opencode_inspect` (compact progress report: status+todo+changed files), `opencode_await` (poll dispatch session to completion)
 
 ## Phase Details
 
@@ -83,9 +84,9 @@ Plans:
 
 ---
 
-### Phase 5: Advanced Run Options
+### Phase 5: Advanced Run Options + Infrastructure
 
-**Goal**: `opencode_run` exposes the full prompt body surface and sessions support parent/child hierarchies via `parentID`.
+**Goal**: `opencode_run` exposes the full prompt body surface, all tools accept a `directory` override, OpenCode starts automatically, and the package is installable from npm.
 
 **Depends on**: Phase 4
 
@@ -96,7 +97,9 @@ Plans:
   2. Claude Code can enable or disable specific tools per prompt using the `tools` map
   3. Claude Code can resume a conversation from a specific message using `messageID`
   4. `opencode_create_session` accepts `parentID` to explicitly model session hierarchies
-  5. The package is installable via `npm install -g prefect-mcp` from a published npm registry entry
+  5. Every tool accepts an optional `directory` parameter (not just `opencode_create_session`)
+  6. If OpenCode is not running when any tool is called, the MCP server starts it automatically rather than returning an error
+  7. The package is installable via `npm install -g prefect-mcp` from a published npm registry entry
 
 **Plans**: TBD
 
@@ -118,6 +121,30 @@ Plans:
 
 **Plans**: TBD
 
+---
+
+### Phase 7: Composite Workflow Tools
+
+**Goal**: Claude Code can delegate an entire task in one call and supervise async work without managing session lifecycle manually — reducing the create+run+diff loop to a single tool invocation.
+
+**Depends on**: Phase 4 (needs `opencode_prompt_async` and structured responses)
+
+**Requirements**: WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04
+
+**Success Criteria** (what must be TRUE):
+  1. Claude Code can delegate a coding task in a single blocking call (`opencode_delegate`) and receive messages, diff, and status without calling create_session, run, and get_diff separately
+  2. Claude Code can fire a task non-blocking (`opencode_dispatch`), continue its own work, then retrieve the result later — enabling parallel supervisor/worker execution
+  3. Claude Code can get a compact progress snapshot of any running or completed session (`opencode_inspect`) in one call: status, todo items, and changed files
+  4. Claude Code can block on a previously dispatched session (`opencode_await`) and receive the same full structured result as `opencode_delegate`
+
+**Intra-phase dependencies**:
+  - WORKFLOW-01 (`opencode_delegate`) = create_session + run + get_diff composed; depends on Phase 4's structured `parts` and `patch` surfaces being available
+  - WORKFLOW-02 (`opencode_dispatch`) = create_session + prompt_async; requires Phase 4's `opencode_prompt_async`
+  - WORKFLOW-04 (`opencode_await`) polls session status + retrieves diff on completion; pairs with WORKFLOW-02
+  - WORKFLOW-03 (`opencode_inspect`) = session_status + session_todo + get_diff composed; independent of other workflow tools
+
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -126,5 +153,6 @@ Plans:
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 0/? | Not started | — |
-| 5. Advanced Run Options | v3.0 | 0/? | Not started | — |
+| 5. Advanced Run Options + Infrastructure | v3.0 | 0/? | Not started | — |
 | 6. Session Utilities + Workspace APIs | v3.0 | 0/? | Not started | — |
+| 7. Composite Workflow Tools | v3.0 | 0/? | Not started | — |

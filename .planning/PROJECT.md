@@ -76,10 +76,17 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] GET /experimental/tool/ids + GET /experimental/tool — inspect available tools per model
 - [ ] GET /agent — list available agents
 - [ ] GET /provider — list configured providers and models
+- [ ] directory param on all tools (currently only on opencode_create_session)
+- [ ] auto-start opencode serve if not running (currently a manual prerequisite)
+- [ ] npm publish + npm install -g prefect-mcp install pathway
+- [ ] opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01)
+- [ ] opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02)
+- [ ] opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03)
+- [ ] opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04)
 
 ### Out of Scope
 
-- npm packaging / shareable library — personal use tool for now
+- Multi-user or team npm registry — npm publish is in scope but scoped to single-developer install
 - Permission loop (SSE + concurrent HTTP) — OpenCode auto-approves trusted ops; git is the safety net
 - Multi-user or team config — single machine, single developer
 
