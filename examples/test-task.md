@@ -6,7 +6,7 @@ This task validates that the full Prefect loop works after setup. Run it once af
 
 Before running this task:
 1. `npm install && npm run build` has been run (otherwise the MCP server cannot start; `build/index.js` does not exist).
-2. `opencode serve --port 4096` is running in another terminal (verify: `curl http://localhost:4096/global/health` returns `{"healthy":true,...}`).
+2. `opencode serve --port 4096` is running **from the project root** in another terminal (verify: `curl http://localhost:4096/global/health` returns `{"healthy":true,...}`). OpenCode fixes its working directory at startup — sessions created from a wrong-directory server will write files there, not here.
 3. Claude Code has been opened in the project root and `/mcp` shows `prefect` as connected.
 
 ## The Prompt

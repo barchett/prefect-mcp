@@ -98,11 +98,14 @@ Adjust the provider key (`vllm`) and path if you use Ollama, OpenAI, etc.
 
 ### 4. Start OpenCode headless
 
-In a dedicated terminal:
+**From the project root** in a dedicated terminal:
 
 ```bash
+cd /path/to/supervisor
 opencode serve --port 4096
 ```
+
+> **You must run this from the project root.** OpenCode sets the working directory for all sessions to wherever `opencode serve` was launched. If you start it from `~` or another directory, `opencode_run` will create and edit files there instead of in your project.
 
 > **You must specify `--port 4096`.** The default port is `0` (random), which won't match the MCP server's default `OPENCODE_URL=http://localhost:4096`.
 
@@ -179,7 +182,8 @@ If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `/mcp` shows prefect as failed | `build/` missing | `npm run build` then restart Claude Code |
-| `opencode_create_session` returns connection error | OpenCode not running, or wrong port | `opencode serve --port 4096`, verify with `curl http://localhost:4096/global/health` |
+| `opencode_create_session` returns connection error | OpenCode not running, or wrong port | `opencode serve --port 4096` from project root, verify with `curl http://localhost:4096/global/health` |
+| `opencode_get_diff` returns files in wrong directory | OpenCode started from wrong directory | Stop and restart `opencode serve --port 4096` from the project root |
 | `opencode_run` times out | Default 120s exceeded | Increase `PREFECT_TIMEOUT_MS` in `.mcp.json` env |
 | `opencode_get_diff` returns `[]` | Prompt didn't ask OpenCode to write files | Re-prompt explicitly asking for a file write (see `examples/test-task.md` for a known-good prompt) |
 | Tools missing in fresh Claude session | `.mcp.json` not committed or wrong scope | `claude mcp add --scope project prefect -- node build/index.js` |
