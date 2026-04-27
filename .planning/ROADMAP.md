@@ -47,7 +47,11 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 **Intra-phase dependencies**: All 9 tools are purely additive (no existing code touched). They can be implemented in any order. `opencode_session_children` and `opencode_session_unrevert` depend on sessions having been forked or reverted first, but there is no implementation dependency — each is a standalone API call.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Read-only session tools: opencode_session_list, opencode_session_get, opencode_session_status, opencode_session_messages, opencode_session_message (SESSION-01 to SESSION-05)
+- [ ] 03-02-PLAN.md — Write/mutating session tools: opencode_session_delete, opencode_session_rename, opencode_session_children, opencode_session_unrevert (SESSION-06 to SESSION-09)
 
 ---
 
@@ -118,7 +122,7 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 |-------|-----------|----------------|--------|-----------|
 | 1. MCP Server | v1.0 | 3/3 | Complete | 2026-04-26 |
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
-| 3. Session Management Tools | v2.0 | 0/? | Not started | — |
+| 3. Session Management Tools | v2.0 | 0/2 | Ready | — |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 0/? | Not started | — |
 | 5. Advanced Run Options | v3.0 | 0/? | Not started | — |
 | 6. Session Utilities + Workspace APIs | v3.0 | 0/? | Not started | — |
