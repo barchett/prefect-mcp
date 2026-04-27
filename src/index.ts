@@ -15,14 +15,18 @@ const server = new McpServer({ name: 'prefect', version: '1.0.0' });
 server.registerTool(
   'opencode_create_session',
   {
-    description: 'Create a new OpenCode coding session. Returns the Session object including the session id (ULID) used by all other tools.',
+    description: 'Create a new OpenCode coding session. Returns the Session object including the session id (ULID) used by all other tools. Pass directory to pin the session to a specific project root — required when OpenCode serves multiple projects from a single running instance.',
     inputSchema: z.object({
       title: z.string().optional().describe('Optional display title for the session'),
+      directory: z.string().optional().describe('Absolute path to the project root for this session. Defaults to the directory OpenCode was started from.'),
     }),
   },
-  async ({ title }) => {
+  async ({ title, directory }) => {
     try {
-      const { data, error } = await client.session.create({ body: { title } });
+      const { data, error } = await client.session.create({
+        body: { title },
+        query: directory ? { directory } : undefined,
+      });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
