@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Session Management + Run Options + Infrastructure
-status: executing
-stopped_at: Completed Phase 04 Plan 02 (04-02-PLAN.md) — opencode_run v2.0 + opencode_prompt_async
-last_updated: "2026-04-27T18:00:47.669Z"
+status: verifying
+stopped_at: Completed Phase 04 Plan 03 (04-03-PLAN.md) — SURF-01 patch field + CMD-01 opencode_session_command
+last_updated: "2026-04-27T18:09:07.855Z"
 last_activity: 2026-04-27
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
-  percent: 91
+  completed_plans: 11
+  percent: 100
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-04-26)
 
 Phase: 04 — EXECUTING
 Plan: 4 of 4 (next: 04-02)
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-27
 
-Progress: [█████████░] 91%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Recent decisions affecting current work:
 - opencode_run returns structured { info, parts } payload with PartSchema validation instead of raw JSON.stringify(data)
 - Promise.race fully replaced by AbortController for opencode_run timeout — TCP connection cancelled on abort, not orphaned
 - opencode_prompt_async fire-and-forget tool uses client.session.promptAsync, no AbortController, returns { sessionId, accepted: true }
+- data ?? [] guard in opencode_get_diff: SDK types data as possibly undefined; ?? [] prevents runtime error without non-null assertion
+- model: z.string().optional() for opencode_session_command (not z.object): deliberate API difference per D-19 — session.command endpoint takes single string
+- arguments: args destructure rename in opencode_session_command: arguments is reserved in non-strict JS; body field stays 'arguments' per SDK
 
 ### Pending Todos
 
@@ -73,8 +76,8 @@ None. All v1.0 deferred items resolved 2026-04-26:
 
 ## Session Continuity
 
-Last session: 2026-04-27T18:00:47.613Z
-Stopped at: Completed Phase 04 Plan 02 (04-02-PLAN.md) — opencode_run v2.0 + opencode_prompt_async
+Last session: 2026-04-27T18:09:07.816Z
+Stopped at: Completed Phase 04 Plan 03 (04-03-PLAN.md) — SURF-01 patch field + CMD-01 opencode_session_command
 Resume file: None
 
 **Planned Phase:** 4 (Run Options + Structured Responses + Infrastructure) — 4 plans — 2026-04-27T16:44:36.972Z
