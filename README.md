@@ -90,7 +90,7 @@ The `permission: allow` block is intentional — Prefect treats git as the safet
 Auth file (placeholder is required even for local models):
 
 ```bash
-mkdir -p ~/.config/opencode
+mkdir -p ~/.local/share/opencode
 echo '{"vllm": "dummy"}' > ~/.local/share/opencode/auth.json
 ```
 
