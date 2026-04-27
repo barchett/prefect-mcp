@@ -1,58 +1,40 @@
 # Roadmap: Prefect
 
-## Overview
+## Milestones
 
-Build a TypeScript MCP server that wraps OpenCode's HTTP API as Claude Code tools, then wire it into the Claude Code workflow with documentation and an end-to-end validation task. Phase 1 delivers the working server; Phase 2 makes it usable day-to-day.
+- ✅ **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
+- 📋 **v2.0 Session Management** — Phases 3–4 (planned)
+- 📋 **v3.0 Full API Coverage** — Phases 5–6 (planned)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 MVP (Phases 1–2) — SHIPPED 2026-04-26</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] **Phase 1: MCP Server** (3/3 plans) — completed 2026-04-26
+- [x] **Phase 2: Wiring & Validation** (2/2 plans) — completed 2026-04-26
 
-- [x] **Phase 1: MCP Server** - Implement all 7 OpenCode tools as a working MCP stdio server
-- [ ] **Phase 2: Wiring & Validation** - Wire Claude Code config, document the review/correct loop, and validate end-to-end
+Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
-## Phase Details
+</details>
 
-### Phase 1: MCP Server
-**Goal**: Claude Code can invoke all OpenCode tools via the MCP server
-**Depends on**: Nothing (first phase)
-**Requirements**: CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08
-**Success Criteria** (what must be TRUE):
-  1. Running the MCP server and calling `opencode_create_session` returns a session ID from OpenCode
-  2. Calling `opencode_run` with a prompt blocks until OpenCode finishes and returns the result
-  3. Calling `opencode_get_diff` returns the file diff for a completed session
-  4. Calling `opencode_approve_permission`, `opencode_fork`, `opencode_revert`, and `opencode_abort` all reach the correct OpenCode endpoints without error
-  5. Changing `OPENCODE_URL` env var redirects all tool calls to the new base URL
-**Plans**: 3 plans
-Plans:
-- [x] 01-01-PLAN.md — Scaffold project (package.json, tsconfig.json, .gitignore, npm install) and confirm SDK method names
-- [x] 01-02-PLAN.md — Server skeleton + opencode_create_session (CORE-01) + opencode_abort (CORE-07); verify CORE-08 OPENCODE_URL works
-- [x] 01-03-PLAN.md — Add remaining 5 tools: opencode_run (CORE-02), opencode_get_diff (CORE-03), opencode_approve_permission (CORE-04), opencode_fork (CORE-05), opencode_revert (CORE-06)
+### 📋 v2.0 Session Management (Planned)
 
-### Phase 2: Wiring & Validation
-**Goal**: The full review/correct loop runs end-to-end inside Claude Code without manual setup steps
-**Depends on**: Phase 1
-**Requirements**: WIRE-01, WIRE-02, WIRE-03, WIRE-04
-**Success Criteria** (what must be TRUE):
-  1. Opening a fresh Claude Code session, the MCP tools appear in the tool list without any manual configuration step
-  2. Following README instructions from scratch produces a working setup (opencode headless + MCP server + Claude Code wired)
-  3. CLAUDE.md describes the create → run → diff → test → correct loop and Claude Code can follow it without additional prompting
-  4. Running the example task in `examples/test-task.md` completes the full loop and lands a diff in git history
-**Plans**: 2 plans
-Plans:
-- [x] 02-01-PLAN.md — Write `.mcp.json` (WIRE-01) and `examples/test-task.md` (WIRE-04) — small mechanical config + validation prompt
-- [x] 02-02-PLAN.md — Write `CLAUDE.md` (WIRE-02) and `README.md` (WIRE-03) — loop documentation + fresh-clone setup guide
+- [ ] **Phase 3: Session Management Tools** — `session.list`, `session.get`, `session.messages`, `session.message`, `session.delete`
+- [ ] **Phase 4: Run Options + Infrastructure** — `model`/`providerID+modelID` override, `agent`, `noReply`, `system` on `opencode_run`; AbortController timeout fix; install script; `prefect init` CLI
+
+### 📋 v3.0 Full API Coverage (Planned)
+
+- [ ] **Phase 5: Advanced Run Options** — `tools`, `FilePartInput`, `messageID`, `AgentPartInput`/`SubtaskPartInput` on `opencode_run`; `parentID` on `opencode_create_session`
+- [ ] **Phase 6: Workspace Inspection APIs** — `/find/symbol`, `/vcs`, `/file/status`, `/mcp` (GET+POST), `/experimental/tool/ids`, `/experimental/tool`, `/agent`, `/provider`, `/session/:id/todo`, `/session/:id/summarize`
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. MCP Server | 3/3 | Complete | 2026-04-26 |
-| 2. Wiring & Validation | 2/2 | Complete | 2026-04-27 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. MCP Server | v1.0 | 3/3 | Complete | 2026-04-26 |
+| 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
+| 3. Session Management Tools | v2.0 | 0/? | Not started | — |
+| 4. Run Options + Infrastructure | v2.0 | 0/? | Not started | — |
+| 5. Advanced Run Options | v3.0 | 0/? | Not started | — |
+| 6. Workspace Inspection APIs | v3.0 | 0/? | Not started | — |

@@ -1,73 +1,52 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: milestone_complete
-stopped_at: Phase 2 complete — all 4 requirements satisfied (WIRE-01 through WIRE-04).
-last_updated: "2026-04-27T00:00:00.000Z"
-last_activity: 2026-04-27 -- Phase 02 execution complete
+milestone: v2.0
+milestone_name: session-management
+status: planning
+stopped_at: Milestone v1.0 complete. v2.0 not yet planned.
+last_updated: "2026-04-26T00:00:00.000Z"
+last_activity: 2026-04-26 -- Milestone v1.0 archived
 progress:
-  total_phases: 2
-  completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
-  percent: 150
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-25)
+See: .planning/PROJECT.md (updated 2026-04-26)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** Milestone v1.0 complete — all phases done
+**Current focus:** Planning v2.0 milestone — session management + high-value run options + infrastructure
 
 ## Current Position
 
-Phase: 02
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-04-27
+Phase: —
+Plan: —
+Status: Planning next milestone
+Last activity: 2026-04-26
 
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 2
-- Average duration: —
-- Total execution time: 0 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 02 | 2 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: —
-- Trend: —
-
-*Updated after each plan completion*
+Progress: v1.0 shipped ✅
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
+See PROJECT.md Key Decisions for full log.
 Recent decisions affecting current work:
 
 - Auto-approve OpenCode permissions: git is the safety net; SSE permission loop is out of scope
 - OPENCODE_URL env var defaults to http://localhost:4096 — easy override, no code changes needed
-- opencode_run blocking behavior is a TODO pending live API verification against running OpenCode
-- StdioServerTransport: Claude Code spawns MCP servers as stdio subprocesses natively
+- opencode_run blocks via Promise.race with PREFECT_TIMEOUT_MS (120s default)
+- StdioServerTransport + .mcp.json project-scope: Claude Code spawns MCP servers as stdio subprocesses
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
@@ -75,16 +54,16 @@ None.
 
 ## Deferred Items
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| v2 | npm packaging / shareable library | Deferred | Init |
-| v2 | OpenCode config template with Qwen endpoint | Deferred | Init |
-| v2 | SSE-based permission loop | Deferred | Init |
+Items acknowledged and deferred at milestone close on 2026-04-26:
+
+| Category | Item | Status |
+|----------|------|--------|
+| verification | Phase 01: 01-VERIFICATION.md human_needed — MCP tool discovery requires interactive /mcp | acknowledged |
+| verification | Phase 02: 02-VERIFICATION.md human_needed — E2E loop requires live OpenCode (validated by commit e295cf5) | acknowledged |
+| uat | Phase 02: 02-HUMAN-UAT.md — audit flagged as incomplete but shows [passed] with 0 pending scenarios | acknowledged |
 
 ## Session Continuity
 
 Last session: 2026-04-26
-Stopped at: Phase 1 complete — UAT 5/5 passed. Ready to plan Phase 2.
+Stopped at: Milestone v1.0 archived. Ready to plan v2.0.
 Resume file: None
-
-**Planned Phase:** 2 (Wiring & Validation) — 2 plans — 2026-04-26T23:51:18.352Z
