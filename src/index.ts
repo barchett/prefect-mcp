@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
+import { createPatch } from 'diff';
 import { PartSchema } from './parts.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
@@ -192,7 +193,11 @@ server.registerTool(
         query: messageID ? { messageID } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      const withPatch = (data ?? []).map((d) => ({
+        ...d,
+        patch: createPatch(d.file, d.before, d.after),
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify(withPatch) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
