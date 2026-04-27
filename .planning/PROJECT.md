@@ -37,15 +37,15 @@ Claude Code can delegate implementation to a local model and review/correct the 
 
 ### Active (v2.0 targets)
 
-- [ ] session.list — GET /session
-- [ ] session.get — GET /session/:id
-- [ ] session.status — GET /session/status
-- [ ] session.messages — GET /session/:id/message (with limit/pagination)
-- [ ] session.message — GET /session/:id/message/:id
-- [ ] session.delete — DELETE /session/:id
-- [ ] session.rename — PATCH /session/:id
-- [ ] session.children — GET /session/:id/children
-- [ ] session.unrevert — POST /session/:id/unrevert
+- [x] session.list — GET /session — Validated Phase 3 (2026-04-27)
+- [x] session.get — GET /session/:id — Validated Phase 3 (2026-04-27)
+- [x] session.status — GET /session/status — Validated Phase 3 (2026-04-27)
+- [x] session.messages — GET /session/:id/message (with limit/pagination) — Validated Phase 3 (2026-04-27)
+- [x] session.message — GET /session/:id/message/:id — Validated Phase 3 (2026-04-27)
+- [x] session.delete — DELETE /session/:id — Validated Phase 3 (2026-04-27)
+- [x] session.rename — PATCH /session/:id — Validated Phase 3 (2026-04-27)
+- [x] session.children — GET /session/:id/children — Validated Phase 3 (2026-04-27)
+- [x] session.unrevert — POST /session/:id/unrevert — Validated Phase 3 (2026-04-27)
 - [ ] opencode_run model override (providerID + modelID per prompt)
 - [ ] opencode_run agent selection
 - [ ] prompt_async — POST /session/:id/prompt_async (replaces noReply concept)
@@ -114,4 +114,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-26 — v2.0 milestone started*
+*Last updated: 2026-04-27 — Phase 3 complete (9 session management tools validated)*
