@@ -36,7 +36,7 @@ Always follow this exact sequence. Do not improvise step ordering.
 OpenCode's local config (`~/.config/opencode/opencode.json`) has all permissions set to `allow` (`bash`, `edit`, `write`, `webfetch`). This means OpenCode does NOT pause to ask for permission during normal operation.
 
 `opencode_approve_permission` is therefore an **emergency-only tool**. Use it only if:
-- OpenCode's config has been changed to require permissions (you'd see a `requestId` in the run output), OR
+- OpenCode's config has been changed to require permissions (you'd see a `permissionId` in the run output — pass it as the `permissionId` argument to `opencode_approve_permission`), OR
 - You explicitly want to deny a specific operation that did slip through.
 
 The default response is `once`, `always`, or `reject` (NOT `allow`/`deny`/`allow_always` — those are wrong despite some old docs).
