@@ -2,9 +2,9 @@
 
 ## Infrastructure
 
-- [ ] **INFRA-01**: All 18 MCP tools accept an optional `directory` parameter that overrides the working directory for that call
-- [ ] **INFRA-02**: `resolveDirectory()` helper resolves directory in order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` env var → `process.cwd()`
-- [ ] **INFRA-03**: `OPENCODE_DEFAULT_PROJECT` env var is read at request time (not server startup) so changes take effect without restarting Claude Code
+- [x] **INFRA-01**: All 18 MCP tools accept an optional `directory` parameter that overrides the working directory for that call
+- [x] **INFRA-02**: `resolveDirectory()` helper resolves directory in order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` env var → `process.cwd()`
+- [x] **INFRA-03**: `OPENCODE_DEFAULT_PROJECT` env var is read at request time (not server startup) so changes take effect without restarting Claude Code
 - [ ] **INFRA-04**: If `OPENCODE_SERVER_PASSWORD` is set in the shell environment, every HTTP request includes a `Authorization: Basic <token>` header
 - [ ] **INFRA-05**: `OPENCODE_SERVER_USERNAME` env var sets the Basic Auth username (default: `opencode`)
 - [ ] **INFRA-06**: Auth credentials are never stored in `.mcp.json` — README explicitly warns against putting `OPENCODE_SERVER_PASSWORD` in the `.mcp.json` env block
@@ -59,9 +59,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 5 | Pending |
-| INFRA-02 | Phase 5 | Pending |
-| INFRA-03 | Phase 5 | Pending |
+| INFRA-01 | Phase 5 | Complete |
+| INFRA-02 | Phase 5 | Complete |
+| INFRA-03 | Phase 5 | Complete |
 | INFRA-04 | Phase 6 | Pending |
 | INFRA-05 | Phase 6 | Pending |
 | INFRA-06 | Phase 6 | Pending |

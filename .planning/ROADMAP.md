@@ -30,7 +30,7 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
 
 ### v3.0 Daily Driver (Phases 5–9)
 
-- [ ] **Phase 5: Directory Infrastructure** — `resolveDirectory()` helper + directory param on all 18 existing tools + `OPENCODE_DEFAULT_PROJECT` env var
+- [x] **Phase 5: Directory Infrastructure** — `resolveDirectory()` helper + directory param on all 18 existing tools + `OPENCODE_DEFAULT_PROJECT` env var (completed 2026-04-28)
 - [ ] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling
 - [ ] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await
 - [ ] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol
@@ -107,7 +107,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 05-01-PLAN.md — Add resolveDirectory() helper + add directory schema to all 18 tools + route every handler through the helper (INFRA-01, INFRA-02, INFRA-03)
+- [x] 05-01-PLAN.md — Add resolveDirectory() helper + add directory schema to all 18 tools + route every handler through the helper (INFRA-01, INFRA-02, INFRA-03)
 
 ---
 
@@ -195,7 +195,7 @@ Plans:
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
-| 5. Directory Infrastructure | v3.0 | 0/1 | Not started | — |
+| 5. Directory Infrastructure | v3.0 | 1/1 | Complete    | 2026-04-28 |
 | 6. Auth + Auto-start | v3.0 | 0/? | Not started | — |
 | 7. Composite Tools | v3.0 | 0/? | Not started | — |
 | 8. Read-only API Wrappers | v3.0 | 0/? | Not started | — |
