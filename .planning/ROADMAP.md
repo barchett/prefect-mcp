@@ -173,7 +173,10 @@ Plans:
   3. `opencode_find_symbol` accepts a query string and returns matching symbols with file path and location data
   4. `npm run build` passes with zero errors after the three tools are added
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md — Three read-only tools registered in src/index.ts: opencode_list_agents, opencode_list_providers, opencode_find_symbol (API-01, API-02, API-03)
 
 ---
 
@@ -183,7 +186,7 @@ Plans:
 
 **Depends on**: Phase 5, 6, 7, 8 (all features must be stable before publishing)
 
-**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06, DIST-07, DIST-08, DIST-09, DIST-10
+**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06, DIST-07, DIST-08, DIST-09, DIST-10, DIST-11
 
 **Success Criteria** (what must be TRUE):
   1. `npm pack --dry-run` lists only `build/` files and `README.md` — no `node_modules/`, no `src/` TypeScript sources
@@ -191,7 +194,7 @@ Plans:
   3. `prefect init` detects a global install and writes `"command": "prefect-mcp"` (PATH-relative bin); a local install writes the existing absolute path form
   4. README documents both install pathways: local (clone + build) and global (`npm install -g prefect-mcp`)
   5. All `opencode_*` tool names are renamed to `prefect_*` across every `*.ts` and `*.md` file, and `npm test` passes after the rename
-  6. CLAUDE.md tool reference table and canonical loop steps use `prefect_*` names throughout
+  6. CLAUDE.md tool reference table and canonical loop steps use `prefect_*` names throughout, and the canonical loop explicitly instructs callers to always pass `directory` on every `prefect_create_session`, `prefect_delegate`, and `prefect_dispatch` call
   7. `examples/test-task.md` validation prompt uses `prefect_*` tool names
 
 **Plans**: TBD
@@ -209,5 +212,5 @@ Plans:
 | 5. Directory Infrastructure | v3.0 | 1/1 | Complete    | 2026-04-28 |
 | 6. Auth + Auto-start | v3.0 | 0/3 | Not started | — |
 | 7. Composite Tools | v3.0 | 0/2 | Not started | — |
-| 8. Read-only API Wrappers | v3.0 | 0/? | Not started | — |
+| 8. Read-only API Wrappers | v3.0 | 0/1 | Not started | — |
 | 9. npm Distribution | v3.0 | 0/? | Not started | — |
