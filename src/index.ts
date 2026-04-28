@@ -773,6 +773,34 @@ server.registerTool(
   }
 );
 
+// API-02: List OpenCode providers and their models (Phase 8)
+server.registerTool(
+  'opencode_list_providers',
+  {
+    description: 'List the providers configured in the connected OpenCode instance and their available models. Returns Array<{ id, name, models: Array<{ id, name }> }>. Use returned provider.id + model.id as providerID/modelID params for opencode_run. Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.provider.list({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      const mapped = (data?.all ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        models: Object.values(p.models).map((m) => ({ id: m.id, name: m.name })),
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify(mapped) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
