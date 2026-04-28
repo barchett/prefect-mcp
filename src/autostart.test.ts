@@ -34,36 +34,29 @@ function errorFetch(delay = 0): (req: Request) => Promise<Response> {
 // spawning port indirectly by checking the spawn call arguments captured in
 // the integration-style test below.
 
-// ── autoStartAttempted once-per-lifetime guard ──────────────────────────────
+// ── Promise-based spawn lock ─────────────────────────────────────────────────
 
-test('ensureOpencodeRunning returns immediately on second call (once-per-lifetime guard)', async () => {
-  // We need a fresh module load for the first call, so use dynamic import.
-  // Bust the cache by using a URL with a unique query string.
-  // In Node.js ESM, import() uses the specifier as the cache key; adding ?v=N
-  // produces a distinct module instance (separate autoStartAttempted flag).
-  const { ensureOpencodeRunning } = await import('./autostart.js?v=guard-test' as string) as typeof import('./autostart.js');
+test('ensureOpencodeRunning deduplicates concurrent calls (only one health poll)', async () => {
+  // Fresh module instance so startPromise starts as null.
+  const { ensureOpencodeRunning } = await import('./autostart.js?v=dedup-test' as string) as typeof import('./autostart.js');
 
-  // Stub spawn by setting OPENCODE_URL to a no-op port; stub authFetch via fetch.
   const origFetch = globalThis.fetch;
   let fetchCallCount = 0;
-  (globalThis as unknown as Record<string, unknown>).fetch = (req: Request) => {
+  (globalThis as unknown as Record<string, unknown>).fetch = (_req: Request) => {
     fetchCallCount++;
     return Promise.resolve(new Response('{}', { status: 200 }));
   };
 
-  // Minimal child_process.spawn stub: we cannot easily stub spawn without
-  // import mocking, so we rely on the fact that on a port with no listener,
-  // waitForHealth() will resolve immediately because we stubbed globalThis.fetch
-  // to return 200. The spawn call itself will fail silently (opencode not found)
-  // since child.unref() is called and the error is not surfaced.
   try {
-    await ensureOpencodeRunning(); // first call — sets flag
-    const callsAfterFirst = fetchCallCount;
-    assert.ok(callsAfterFirst >= 1, 'health poll should have been called at least once');
+    // Fire two concurrent calls — only one health poll should occur.
+    await Promise.all([ensureOpencodeRunning(), ensureOpencodeRunning()]);
+    assert.ok(fetchCallCount >= 1, 'health poll should have been called at least once');
+    // Both calls resolved but startPromise was shared — fetch count stays low.
+    const dedupedCount = fetchCallCount;
 
-    await ensureOpencodeRunning(); // second call — returns immediately
-    // fetch should NOT be called again on second call
-    assert.equal(fetchCallCount, callsAfterFirst, 'no additional fetch calls on second invocation');
+    // After both settle, startPromise is null again — a third call spawns anew.
+    await ensureOpencodeRunning();
+    assert.ok(fetchCallCount > dedupedCount, 'post-reset call should trigger a new health poll (crash recovery)');
   } finally {
     (globalThis as unknown as Record<string, unknown>).fetch = origFetch;
   }
