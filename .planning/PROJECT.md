@@ -50,7 +50,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 
 - [ ] directory param on all tools (currently only on opencode_create_session)
 - [ ] **INFRA-XX**: `OPENCODE_DEFAULT_PROJECT` env var — fallback directory resolution order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` → `process.cwd()`. Documented in README and `.mcp.json` env table. Implement in the same plan as directory-param propagation.
-- [ ] auto-start opencode serve if not running (currently a manual prerequisite)
+- ✓ auto-start opencode serve if not running — Phase 6 complete — v3.0
 - [ ] opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01)
 - [ ] opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02)
 - [ ] opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03)
@@ -92,6 +92,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - The MCP SDK is `@modelcontextprotocol/sdk`; transport is StdioServerTransport (Claude Code spawns the server as a subprocess)
 - Shipped v1.0 with 201 LOC TypeScript, 46 commits
 - Shipped v2.0 with 1,221 LOC TypeScript, 69 commits — 18 tools total (up from 7)
+- Phase 6 complete (2026-04-28): HTTP Basic Auth injection + auto-start of opencode serve — unified via src/fetch.ts SDK hook covering all 18 tools
 
 ## Constraints
 
