@@ -20,12 +20,15 @@ function isConnRefused(err: unknown): boolean {
  * waits for health, then retries the request once with auth headers.
  */
 export async function fetchWithAuth(request: Request): Promise<Response> {
+  // Clone before first attempt — POST body is marked consumed on any send (even
+  // a refused connection), so the retry after auto-start needs a fresh clone.
+  const retry = request.clone();
   try {
     return await authFetch(request);
   } catch (err) {
     if (isConnRefused(err)) {
       await ensureOpencodeRunning();
-      return authFetch(request);
+      return authFetch(retry);
     }
     throw err;
   }
