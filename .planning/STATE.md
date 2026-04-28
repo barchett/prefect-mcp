@@ -49,6 +49,8 @@ Recent decisions affecting current work:
 - opencode_run returns structured { info, parts } payload with PartSchema validation
 - model: z.string().optional() for opencode_session_command (not z.object): deliberate API difference — session.command endpoint takes single string
 - v3.0 phases 5-9: directory infrastructure first (foundation), then auth+autostart (group together — health poll needs auth), then composite tools (highest risk, depends on resolveDirectory), then API wrappers (purely additive), then distribution last (stable features before publish)
+- Phase 5 design decision: uniform directory schema on all 18 tools, but only pass to SDK where the endpoint accepts it — document which tools honor it. Consistent tool surface beats inconsistent schema; silent discard is acceptable when clearly documented (same reasoning as v1.0 permission enum: user-facing contract matters more than internal implementation symmetry).
+- Phase 5 design decision: resolveDirectory() ends at undefined (NOT process.cwd()). Only send directory to OpenCode when explicitly provided via per-tool param or OPENCODE_DEFAULT_PROJECT. Sending process.cwd() unconditionally would silently override OpenCode's own session-level directory tracking — hard to diagnose bug class.
 
 ### Pending Todos
 
