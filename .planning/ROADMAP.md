@@ -100,11 +100,14 @@ Plans:
 
 **Success Criteria** (what must be TRUE):
   1. Passing `directory` to any of the 18 existing tools causes that call to use the specified path, not the server's cwd
-  2. When no `directory` param is passed, `OPENCODE_DEFAULT_PROJECT` env var is used if set, otherwise `process.cwd()` is the fallback
+  2. When no `directory` param is passed, `OPENCODE_DEFAULT_PROJECT` env var is used if set, otherwise the resolver returns `undefined` so OpenCode uses its own session-level directory tracking (locked design decision: never silently override with `process.cwd()`)
   3. Changing `OPENCODE_DEFAULT_PROJECT` in the shell takes effect on the next tool call without restarting Claude Code
   4. `npm run build` passes with zero TypeScript errors after all 18 tools are updated
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 05-01-PLAN.md — Add resolveDirectory() helper + add directory schema to all 18 tools + route every handler through the helper (INFRA-01, INFRA-02, INFRA-03)
 
 ---
 
@@ -192,7 +195,7 @@ Plans:
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
-| 5. Directory Infrastructure | v3.0 | 0/? | Not started | — |
+| 5. Directory Infrastructure | v3.0 | 0/1 | Not started | — |
 | 6. Auth + Auto-start | v3.0 | 0/? | Not started | — |
 | 7. Composite Tools | v3.0 | 0/? | Not started | — |
 | 8. Read-only API Wrappers | v3.0 | 0/? | Not started | — |
