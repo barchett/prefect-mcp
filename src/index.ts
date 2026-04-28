@@ -3,8 +3,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
+import { createPatch } from 'diff';
 import { fetchWithAuth } from './fetch.js';
 import { resolveDirectory } from './config.js';
+import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
@@ -545,6 +547,195 @@ server.registerTool(
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-01 + WORKFLOW-02: Blocking composite — createSession → runPrompt → getDiff.
+// Returns { sessionId, result, diff } in one call, replicating the canonical three-step loop.
+// On timeout: aborts the session and returns isError:true (D-05).
+// Session kept alive after completion — caller decides when to delete (D-06).
+server.registerTool(
+  'opencode_delegate',
+  {
+    description:
+      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call opencode_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded.',
+    inputSchema: z.object({
+      prompt: z.string().describe('The coding task or instruction to execute'),
+      title: z.string().optional().describe('Optional display title for the created session'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+      model: z
+        .object({ providerID: z.string(), modelID: z.string() })
+        .optional()
+        .describe('Override the model for this call. Both providerID and modelID required together.'),
+      agent: z.string().optional().describe('Override the agent for this call.'),
+      system: z.string().optional().describe('Override the system prompt for this call.'),
+    }),
+  },
+  async ({ prompt, title, directory, model, agent, system }) => {
+    const dir = resolveDirectory(directory);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    let sessionId: string | undefined;
+    try {
+      const session = await createSession(client, title, dir);
+      sessionId = session.id;
+      const result = await runPrompt(client, sessionId, prompt, { model, agent, system }, dir, controller.signal);
+      clearTimeout(timer);
+      const diff = await getDiff(client, sessionId, undefined, dir);
+      return { content: [{ type: 'text', text: JSON.stringify({ sessionId, result, diff }) }] };
+    } catch (err) {
+      clearTimeout(timer);
+      if ((err as Error).name === 'AbortError' && sessionId) {
+        await client.session.abort({ path: { id: sessionId } }).catch(() => {});
+        return {
+          content: [{ type: 'text', text: `opencode_delegate timed out after ${TIMEOUT_MS / 1000}s — session ${sessionId} aborted` }],
+          isError: true,
+        };
+      }
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-03: Non-blocking composite — createSession → promptAsync → return { sessionId }.
+// Returns immediately; session runs in background. Use opencode_await or
+// opencode_inspect to track progress. Same model/agent/system fields as opencode_run.
+server.registerTool(
+  'opencode_dispatch',
+  {
+    description:
+      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use opencode_await to poll for completion or opencode_inspect to check status.',
+    inputSchema: z.object({
+      prompt: z.string().describe('The coding task or instruction to execute'),
+      title: z.string().optional().describe('Optional display title for the created session'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+      model: z
+        .object({ providerID: z.string(), modelID: z.string() })
+        .optional()
+        .describe('Override the model for this call. Both providerID and modelID required together.'),
+      agent: z.string().optional().describe('Override the agent for this call.'),
+      system: z.string().optional().describe('Override the system prompt for this call.'),
+    }),
+  },
+  async ({ prompt, title, directory, model, agent, system }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const session = await createSession(client, title, dir);
+      const { error } = await client.session.promptAsync({
+        path: { id: session.id },
+        body: {
+          parts: [{ type: 'text', text: prompt }],
+          ...(model ? { model } : {}),
+          ...(agent ? { agent } : {}),
+          ...(system ? { system } : {}),
+        },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify({ sessionId: session.id }) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-04: Compact snapshot — { status, todos, changedFiles }.
+// Calls three endpoints in parallel: session.status() (global map — index by sessionId),
+// session.todo() (requires path.id), session.diff() (mapped to { file, additions, deletions }
+// only — no patch content per D-10).
+server.registerTool(
+  'opencode_inspect',
+  {
+    description:
+      'Return a compact snapshot { status, todos, changedFiles } for a session. Faster than fetching full message history. changedFiles contains { file, additions, deletions } — use opencode_get_diff for full patch content.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to inspect'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const [statusResult, todoResult, diffResult] = await Promise.all([
+        client.session.status({ query: dir ? { directory: dir } : undefined }),
+        client.session.todo({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        client.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+      ]);
+      if (statusResult.error) throw new Error(JSON.stringify(statusResult.error));
+      if (todoResult.error) throw new Error(JSON.stringify(todoResult.error));
+      if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
+      const status = (statusResult.data as Record<string, { type: string }>)[sessionId]?.type ?? 'unknown';
+      const todos = todoResult.data ?? [];
+      const changedFiles = (diffResult.data ?? []).map((d) => ({
+        file: d.file,
+        additions: d.additions,
+        deletions: d.deletions,
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify({ status, todos, changedFiles }) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-05 + WORKFLOW-06: Poll session.status() until the session's type is "idle",
+// then reconstruct { result: { info, parts }, diff } from messages + diff endpoints.
+// pollIntervalMs default 2000, timeoutMs default TIMEOUT_MS (D-14).
+// On timeout: return isError:true with sessionId in payload (D-15).
+// Undefined status entry (session not in map) is treated as idle — OpenCode may have
+// already completed and removed the session from the status map before first poll.
+server.registerTool(
+  'opencode_await',
+  {
+    description:
+      'Poll a dispatched session until it reaches idle state, then return { result: { info, parts }, diff }. Use after opencode_dispatch. Accepts pollIntervalMs (default 2000) and timeoutMs (default PREFECT_TIMEOUT_MS).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID from opencode_dispatch'),
+      pollIntervalMs: z.number().int().positive().optional().describe('Milliseconds between status polls. Default: 2000.'),
+      timeoutMs: z.number().int().positive().optional().describe('Maximum milliseconds to wait. Default: PREFECT_TIMEOUT_MS env var (default 120000).'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+    }),
+  },
+  async ({ sessionId, pollIntervalMs = 2000, timeoutMs = TIMEOUT_MS, directory }) => {
+    const dir = resolveDirectory(directory);
+    const deadline = Date.now() + timeoutMs;
+    try {
+      // Poll until idle or timeout
+      while (true) {
+        const { data, error } = await client.session.status({ query: dir ? { directory: dir } : undefined });
+        if (error) throw new Error(JSON.stringify(error));
+        const statusEntry = (data as Record<string, { type: string }>)[sessionId];
+        // Treat undefined (session not in map) as idle — may have completed before first poll
+        if (!statusEntry || statusEntry.type === 'idle') break;
+        if (Date.now() + pollIntervalMs >= deadline) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ error: `opencode_await timed out after ${timeoutMs}ms`, sessionId }) }],
+            isError: true,
+          };
+        }
+        await new Promise<void>((r) => setTimeout(r, pollIntervalMs));
+      }
+      // Reconstruct result from messages (last assistant message) and full diff
+      const [messagesResult, diffResult] = await Promise.all([
+        client.session.messages({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        client.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+      ]);
+      if (messagesResult.error) throw new Error(JSON.stringify(messagesResult.error));
+      if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
+      // D-12: find last assistant message — same shape as opencode_run result
+      const msgs = messagesResult.data ?? [];
+      const last = [...msgs].reverse().find((m) => (m.info as { role?: string }).role === 'assistant');
+      if (!last) throw new Error('opencode_await: no assistant message found in session after idle');
+      const validatedParts = PartSchema.array().parse(last.parts);
+      const diff = (diffResult.data ?? []).map((d) => ({
+        ...d,
+        patch: createPatch(d.file, d.before, d.after),
+      }));
+      // D-13: return shape matches opencode_delegate for easy substitution
+      return { content: [{ type: 'text', text: JSON.stringify({ result: { info: last.info, parts: validatedParts }, diff }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
