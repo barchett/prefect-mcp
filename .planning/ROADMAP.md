@@ -129,9 +129,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — src/auth.ts (buildAuthHeader + authFetch) + README INFRA-06 warning (INFRA-04, INFRA-05, INFRA-06)
-- [ ] 06-02-PLAN.md — src/autostart.ts (ensureOpencodeRunning + health poll) (INFRA-07, INFRA-08, INFRA-09, INFRA-10)
-- [ ] 06-03-PLAN.md — Wire auth + auto-start into src/index.ts + build verification + WSL2 smoke test (INFRA-04, INFRA-05, INFRA-07, INFRA-08, INFRA-09, INFRA-10)
+- [x] 06-01-PLAN.md — src/auth.ts (buildAuthHeader + authFetch) + README INFRA-06 warning (INFRA-04, INFRA-05, INFRA-06)
+- [x] 06-02-PLAN.md — src/autostart.ts (ensureOpencodeRunning + health poll) (INFRA-07, INFRA-08, INFRA-09, INFRA-10)
+- [x] 06-03-PLAN.md — Wire auth + auto-start into src/index.ts + build verification + WSL2 smoke test (INFRA-04, INFRA-05, INFRA-07, INFRA-08, INFRA-09, INFRA-10)
 
 ---
 
