@@ -145,6 +145,14 @@ With everything wired up, follow `examples/test-task.md` to confirm the full cre
 |---------|---------|---------|
 | `OPENCODE_URL` | `http://localhost:4096` | Base URL for OpenCode API |
 | `PREFECT_TIMEOUT_MS` | `120000` | Max wait for `opencode_run` to return (ms) |
+| `OPENCODE_SERVER_PASSWORD` | _(unset)_ | HTTP Basic Auth password for OpenCode server (read at every tool call) |
+| `OPENCODE_SERVER_USERNAME` | `opencode` | HTTP Basic Auth username (only used when `OPENCODE_SERVER_PASSWORD` is set) |
+
+> **Security (INFRA-06):** Do NOT put `OPENCODE_SERVER_PASSWORD` in the `.mcp.json` `env` block.
+> `.mcp.json` is committed to version control — storing credentials there leaks them.
+> Set `OPENCODE_SERVER_PASSWORD` in your shell profile (e.g., `~/.bashrc` or `~/.zshrc`)
+> or in a `.env` file that is gitignored. The MCP server reads it at call time from the
+> shell environment, not from `.mcp.json`.
 
 To override per-project, edit the `env` field of `.mcp.json`:
 
