@@ -1,6 +1,15 @@
 import { authFetch } from './auth.js';
 import { ensureOpencodeRunning } from './autostart.js';
 
+// Node.js fetch wraps ECONNREFUSED in err.cause, not in the top-level message.
+// String(err) === "TypeError: fetch failed" — no ECONNREFUSED there.
+// String(err.cause) === "Error: connect ECONNREFUSED ..." — that's where to look.
+function isConnRefused(err: unknown): boolean {
+  if (!(err instanceof TypeError)) return false;
+  const cause = (err as { cause?: unknown }).cause;
+  return String(err).includes('ECONNREFUSED') || String(cause).includes('ECONNREFUSED');
+}
+
 /**
  * Authenticated fetch wrapper with auto-start.
  * Every outbound OpenCode SDK request flows through this function via the
@@ -14,7 +23,7 @@ export async function fetchWithAuth(request: Request): Promise<Response> {
   try {
     return await authFetch(request);
   } catch (err) {
-    if (err instanceof TypeError && String(err).includes('ECONNREFUSED')) {
+    if (isConnRefused(err)) {
       await ensureOpencodeRunning();
       return authFetch(request);
     }
