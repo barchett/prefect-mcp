@@ -151,8 +151,11 @@ Plans:
   5. `opencode_await` polls a dispatched session to completion and returns `{ result, diff }`, with configurable `pollIntervalMs` and `timeoutMs`
   6. All four composite tools compile cleanly and the 18 existing tools behave identically after the handler-extraction refactor
 
-**Plans**: TBD
-**UI hint**: no
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Handler extraction refactor: create src/handlers.ts (createSession, runPrompt, getDiff) + update three existing tools in src/index.ts to delegate (WORKFLOW-07)
+- [ ] 07-02-PLAN.md — Four composite tools: opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await in src/index.ts (WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05, WORKFLOW-06)
 
 ---
 
@@ -202,6 +205,6 @@ Plans:
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
 | 5. Directory Infrastructure | v3.0 | 1/1 | Complete    | 2026-04-28 |
 | 6. Auth + Auto-start | v3.0 | 0/3 | Not started | — |
-| 7. Composite Tools | v3.0 | 0/? | Not started | — |
+| 7. Composite Tools | v3.0 | 0/2 | Not started | — |
 | 8. Read-only API Wrappers | v3.0 | 0/? | Not started | — |
 | 9. npm Distribution | v3.0 | 0/? | Not started | — |
