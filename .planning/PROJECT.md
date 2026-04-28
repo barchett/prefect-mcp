@@ -51,10 +51,10 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] directory param on all tools (currently only on opencode_create_session)
 - [ ] **INFRA-XX**: `OPENCODE_DEFAULT_PROJECT` env var — fallback directory resolution order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` → `process.cwd()`. Documented in README and `.mcp.json` env table. Implement in the same plan as directory-param propagation.
 - ✓ auto-start opencode serve if not running — Phase 6 complete — v3.0
-- [ ] opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01)
-- [ ] opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02)
-- [ ] opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03)
-- [ ] opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04)
+- ✓ opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01) — Phase 7 complete
+- ✓ opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02) — Phase 7 complete
+- ✓ opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03) — Phase 7 complete
+- ✓ opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04) — Phase 7 complete
 - [ ] npm publish + npm install -g prefect-mcp install pathway
 - [ ] GET /agent — list available agents
 - [ ] GET /provider — list configured providers and models
@@ -93,6 +93,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - Shipped v1.0 with 201 LOC TypeScript, 46 commits
 - Shipped v2.0 with 1,221 LOC TypeScript, 69 commits — 18 tools total (up from 7)
 - Phase 6 complete (2026-04-28): HTTP Basic Auth injection + auto-start of opencode serve — unified via src/fetch.ts SDK hook covering all 18 tools
+- Phase 7 complete (2026-04-28): Four composite tools (opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await) + handler extraction refactor (src/handlers.ts) — 22 tools total
 
 ## Constraints
 
@@ -122,4 +123,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-27 — milestone v3.0 started*
+*Last updated: 2026-04-28 — Phase 7 complete*
