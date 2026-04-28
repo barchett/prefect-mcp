@@ -821,7 +821,8 @@ server.registerTool(
       });
       if (error) throw new Error(JSON.stringify(error));
       const mapped = (data ?? []).map((sym) => {
-        const absolutePath = sym.location.uri.replace(/^file:\/\//, '');
+        if (!sym.location.uri.startsWith('file://')) return null;
+        const absolutePath = decodeURIComponent(sym.location.uri.replace(/^file:\/\//, ''));
         const filePath = dir ? path.relative(dir, absolutePath) : absolutePath;
         return {
           name: sym.name,
@@ -829,7 +830,7 @@ server.registerTool(
           path: filePath,
           range: sym.location.range,
         };
-      });
+      }).filter((sym) => sym !== null);
       return { content: [{ type: 'text', text: JSON.stringify(mapped) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
