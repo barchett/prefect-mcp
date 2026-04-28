@@ -62,6 +62,33 @@ test('ensureOpencodeRunning deduplicates concurrent calls (only one health poll)
   }
 });
 
+// ── Remote-host guard ────────────────────────────────────────────────────────
+
+test('ensureOpencodeRunning throws immediately for non-local OPENCODE_URL', async () => {
+  // BASE_URL is a module-level constant — set env var BEFORE import so the fresh
+  // module instance picks up the remote URL at init time.
+  const origUrl = process.env.OPENCODE_URL;
+  process.env.OPENCODE_URL = 'http://192.168.1.100:4096';
+
+  try {
+    const { ensureOpencodeRunning } = await import('./autostart.js?v=remote-guard-test' as string) as typeof import('./autostart.js');
+
+    await assert.rejects(
+      () => ensureOpencodeRunning(),
+      (err: Error) => {
+        assert.ok(
+          err.message.includes('Auto-start skipped') && err.message.includes('192.168.1.100'),
+          `Expected remote-host error, got: ${err.message}`,
+        );
+        return true;
+      },
+    );
+  } finally {
+    if (origUrl === undefined) delete process.env.OPENCODE_URL;
+    else process.env.OPENCODE_URL = origUrl;
+  }
+});
+
 // ── waitForHealth timeout ────────────────────────────────────────────────────
 
 test('ensureOpencodeRunning throws when OpenCode does not become healthy within timeout', async () => {

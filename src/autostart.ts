@@ -69,6 +69,21 @@ async function waitForHealth(): Promise<void> {
 export async function ensureOpencodeRunning(): Promise<void> {
   if (startPromise) return startPromise;
 
+  // Fail fast if OPENCODE_URL points to a remote host — spawning locally would
+  // start the wrong process and then time out polling a machine we didn't touch.
+  try {
+    const { hostname } = new URL(BASE_URL);
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      throw new Error(
+        `[Prefect] Auto-start skipped — OPENCODE_URL points to remote host '${hostname}'. ` +
+          `Start OpenCode manually on that machine.`,
+      );
+    }
+  } catch (err) {
+    if ((err as Error).message.startsWith('[Prefect]')) throw err;
+    // Malformed BASE_URL — fall through and let the spawn attempt fail naturally.
+  }
+
   const port = parsePort(BASE_URL);
   const cwd = resolveDirectory(undefined);
 
