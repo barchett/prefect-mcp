@@ -57,4 +57,31 @@
 
 ## Traceability
 
-_Filled by roadmapper after roadmap creation._
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| INFRA-01 | Phase 5 | Pending |
+| INFRA-02 | Phase 5 | Pending |
+| INFRA-03 | Phase 5 | Pending |
+| INFRA-04 | Phase 6 | Pending |
+| INFRA-05 | Phase 6 | Pending |
+| INFRA-06 | Phase 6 | Pending |
+| INFRA-07 | Phase 6 | Pending |
+| INFRA-08 | Phase 6 | Pending |
+| INFRA-09 | Phase 6 | Pending |
+| INFRA-10 | Phase 6 | Pending |
+| WORKFLOW-01 | Phase 7 | Pending |
+| WORKFLOW-02 | Phase 7 | Pending |
+| WORKFLOW-03 | Phase 7 | Pending |
+| WORKFLOW-04 | Phase 7 | Pending |
+| WORKFLOW-05 | Phase 7 | Pending |
+| WORKFLOW-06 | Phase 7 | Pending |
+| WORKFLOW-07 | Phase 7 | Pending |
+| API-01 | Phase 8 | Pending |
+| API-02 | Phase 8 | Pending |
+| API-03 | Phase 8 | Pending |
+| DIST-01 | Phase 9 | Pending |
+| DIST-02 | Phase 9 | Pending |
+| DIST-03 | Phase 9 | Pending |
+| DIST-04 | Phase 9 | Pending |
+| DIST-05 | Phase 9 | Pending |
+| DIST-06 | Phase 9 | Pending |

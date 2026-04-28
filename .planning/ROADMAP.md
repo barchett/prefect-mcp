@@ -2,14 +2,14 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
-- ✅ **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
-- 📋 **v3.0 Full API Coverage + Workflow Primitives** — Phases 5–7 (planned)
+- **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
+- **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
+- **v3.0 Daily Driver** — Phases 5–9 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 MVP (Phases 1–2) — SHIPPED 2026-04-26</summary>
+<summary>v1.0 MVP (Phases 1–2) — SHIPPED 2026-04-26</summary>
 
 - [x] **Phase 1: MCP Server** (3/3 plans) — completed 2026-04-26
 - [x] **Phase 2: Wiring & Validation** (2/2 plans) — completed 2026-04-26
@@ -19,7 +19,7 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>✅ v2.0 Session Management + Run Options + Infrastructure (Phases 3–4) — SHIPPED 2026-04-27</summary>
+<summary>v2.0 Session Management + Run Options + Infrastructure (Phases 3–4) — SHIPPED 2026-04-27</summary>
 
 - [x] **Phase 3: Session Management Tools** (2/2 plans) — completed 2026-04-27
 - [x] **Phase 4: Run Options + Structured Responses + Infrastructure** (4/4 plans) — completed 2026-04-27
@@ -28,11 +28,15 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
 
 </details>
 
-### 📋 v3.0 Full API Coverage + Workflow Primitives (Planned)
+### v3.0 Daily Driver (Phases 5–9)
 
-- [ ] **Phase 5: Advanced Run Options + Infrastructure** — `tools`, `FilePartInput`, `messageID`, `AgentPartInput`/`SubtaskPartInput` on `opencode_run`; `parentID` on `opencode_create_session`; `directory` param on all tools; auto-start `opencode serve` if not running; `npm publish` + `npm install -g prefect-mcp` install pathway
-- [ ] **Phase 6: Session Utilities + Workspace APIs** — `session.summarize`, `session.todo`, `session.init`, `session.shell`, `session.share`/`session.unshare`; GET /find/symbol, GET /vcs, GET /file/status, GET+POST /mcp, GET /experimental/tool/ids, GET /experimental/tool, GET /agent, GET /provider
-- [ ] **Phase 7: Composite Workflow Tools** — `opencode_delegate` (blocking create+run+diff in one call), `opencode_dispatch` (non-blocking fire-and-forget), `opencode_inspect` (compact progress report: status+todo+changed files), `opencode_await` (poll dispatch session to completion)
+- [ ] **Phase 5: Directory Infrastructure** — `resolveDirectory()` helper + directory param on all 18 existing tools + `OPENCODE_DEFAULT_PROJECT` env var
+- [ ] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling
+- [ ] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await
+- [ ] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol
+- [ ] **Phase 9: npm Distribution** — package.json fields, pack verification, global install pathway, README docs
+
+---
 
 ## Phase Details
 
@@ -50,8 +54,6 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
   3. Claude Code can check real-time session status (idle/busy/retrying) across all active sessions before deciding to call `opencode_run`
   4. Claude Code can delete a session it no longer needs and rename a session for clarity
   5. Claude Code can list child sessions of a forked session and unrevert a session to undo a prior revert
-
-**Intra-phase dependencies**: All 9 tools are purely additive (no existing code touched). They can be implemented in any order. `opencode_session_children` and `opencode_session_unrevert` depend on sessions having been forked or reverted first, but there is no implementation dependency — each is a standalone API call.
 
 **Plans**: 2 plans
 
@@ -78,13 +80,6 @@ Plans:
   6. A developer cloning the repo can run `prefect init` to write a correct `.mcp.json` into their project without manual JSON editing
   7. Claude Code can execute slash commands (e.g. `/summarize`, `/compact`) inside a session by calling `opencode_session_command`
 
-**Intra-phase dependencies**:
-  - INFRA-01 (AbortController) must be implemented in the same change as RUN-04 (`opencode_prompt_async`): both touch the timeout/async path in `opencode_run`, and the `noReply` vs `prompt_async` distinction (separate endpoint, 204 void) means the handler needs the full async picture before either is correct.
-  - RUN-01/02/03 (body field additions) should be implemented alongside INFRA-01 since all four modify the same `opencode_run` handler block — one atomic change avoids a partially-correct intermediate state.
-  - SURF-01 and SURF-02 touch `opencode_get_diff` and the `opencode_run` return shape respectively — independent of the above, can be done before or after.
-  - INFRA-02 (`prefect init` CLI) is entirely independent — new file `src/cli.ts` and a `package.json` bin entry. Zero risk of interfering with any other change.
-  - CMD-01 (`opencode_session_command`) is independent — one new `server.registerTool()` call, same pattern as Phase 3 session tools.
-
 **Plans**: 4 plans
 
 Plans:
@@ -95,66 +90,99 @@ Plans:
 
 ---
 
-### Phase 5: Advanced Run Options + Infrastructure
+### Phase 5: Directory Infrastructure
 
-**Goal**: `opencode_run` exposes the full prompt body surface, all tools accept a `directory` override, OpenCode starts automatically, and the package is installable from npm.
+**Goal**: All existing tools resolve working directory consistently via a shared helper with a documented three-tier fallback.
 
-**Depends on**: Phase 4
+**Depends on**: Phase 4 (v2.0 18-tool baseline)
 
-**Requirements**: (v3.0 — TBD when milestone is opened)
+**Requirements**: INFRA-01, INFRA-02, INFRA-03
 
 **Success Criteria** (what must be TRUE):
-  1. Claude Code can attach files to a prompt as context using `FilePartInput`
-  2. Claude Code can enable or disable specific tools per prompt using the `tools` map
-  3. Claude Code can resume a conversation from a specific message using `messageID`
-  4. `opencode_create_session` accepts `parentID` to explicitly model session hierarchies
-  5. Every tool accepts an optional `directory` parameter (not just `opencode_create_session`)
-  6. If OpenCode is not running when any tool is called, the MCP server starts it automatically rather than returning an error
-  7. The package is installable via `npm install -g prefect-mcp` from a published npm registry entry
+  1. Passing `directory` to any of the 18 existing tools causes that call to use the specified path, not the server's cwd
+  2. When no `directory` param is passed, `OPENCODE_DEFAULT_PROJECT` env var is used if set, otherwise `process.cwd()` is the fallback
+  3. Changing `OPENCODE_DEFAULT_PROJECT` in the shell takes effect on the next tool call without restarting Claude Code
+  4. `npm run build` passes with zero TypeScript errors after all 18 tools are updated
 
 **Plans**: TBD
 
 ---
 
-### Phase 6: Session Utilities + Workspace APIs
+### Phase 6: Auth + Auto-start
 
-**Goal**: Prefect exposes the full remaining OpenCode API surface — session lifecycle utilities, workspace inspection, and experimental tool introspection.
+**Goal**: Prefect handles HTTP Basic Auth transparently and starts OpenCode automatically when the server is unreachable.
 
-**Depends on**: Phase 5
+**Depends on**: Phase 5 (resolveDirectory needed for auto-start working directory resolution)
 
-**Requirements**: (v3.0 — TBD when milestone is opened)
+**Requirements**: INFRA-04, INFRA-05, INFRA-06, INFRA-07, INFRA-08, INFRA-09, INFRA-10
 
 **Success Criteria** (what must be TRUE):
-  1. Claude Code can trigger context compaction, generate an AGENTS.md, retrieve the session todo list, and run shell commands within a session context
-  2. Claude Code can share and unshare sessions via the share/unshare endpoints
-  3. Claude Code can inspect the workspace — LSP symbol search, git VCS state, file status, and configured MCP servers
-  4. Claude Code can list available agents and providers/models to validate names before passing them to `opencode_run`
+  1. When `OPENCODE_SERVER_PASSWORD` is set, every HTTP request carries a correct `Authorization: Basic <token>` header and requests succeed without editing `.mcp.json`
+  2. README explicitly warns that `OPENCODE_SERVER_PASSWORD` must not be placed in the `.mcp.json` env block
+  3. When OpenCode is not running at first tool call, Prefect spawns it automatically and the tool call completes successfully — startup is transparent to the caller
+  4. Auto-started OpenCode produces no output on the MCP stdout pipe (stderr may surface; stdout is silenced)
+  5. The auto-start health poll uses authenticated headers so a password-protected server is detected as healthy rather than looping on 401
 
 **Plans**: TBD
 
 ---
 
-### Phase 7: Composite Workflow Tools
+### Phase 7: Composite Tools
 
-**Goal**: Claude Code can delegate an entire task in one call and supervise async work without managing session lifecycle manually — reducing the create+run+diff loop to a single tool invocation.
+**Goal**: Users can delegate, dispatch, inspect, and await sessions with single tool calls instead of a manual three-step sequence.
 
-**Depends on**: Phase 4 (needs `opencode_prompt_async` and structured responses)
+**Depends on**: Phase 5 (resolveDirectory), Phase 6 (auth + server availability guarantee)
 
-**Requirements**: WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04
+**Requirements**: WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05, WORKFLOW-06, WORKFLOW-07
 
 **Success Criteria** (what must be TRUE):
-  1. Claude Code can delegate a coding task in a single blocking call (`opencode_delegate`) and receive messages, diff, and status without calling create_session, run, and get_diff separately
-  2. Claude Code can fire a task non-blocking (`opencode_dispatch`), continue its own work, then retrieve the result later — enabling parallel supervisor/worker execution
-  3. Claude Code can get a compact progress snapshot of any running or completed session (`opencode_inspect`) in one call: status, todo items, and changed files
-  4. Claude Code can block on a previously dispatched session (`opencode_await`) and receive the same full structured result as `opencode_delegate`
-
-**Intra-phase dependencies**:
-  - WORKFLOW-01 (`opencode_delegate`) = create_session + run + get_diff composed; depends on Phase 4's structured `parts` and `patch` surfaces being available
-  - WORKFLOW-02 (`opencode_dispatch`) = create_session + prompt_async; requires Phase 4's `opencode_prompt_async`
-  - WORKFLOW-04 (`opencode_await`) polls session status + retrieves diff on completion; pairs with WORKFLOW-02
-  - WORKFLOW-03 (`opencode_inspect`) = session_status + session_todo + get_diff composed; independent of other workflow tools
+  1. `opencode_delegate` creates a session, runs a prompt, and returns `{ sessionId, result, diff }` in one blocking call — replicating the canonical three-step loop in a single tool invocation
+  2. `opencode_delegate` aborts the created session and returns an error if the run exceeds `PREFECT_TIMEOUT_MS`
+  3. `opencode_dispatch` returns `{ sessionId }` immediately (fire-and-forget), allowing Claude Code to continue other work while the session runs
+  4. `opencode_inspect` returns a compact `{ status, todos, changedFiles }` snapshot without fetching full message history
+  5. `opencode_await` polls a dispatched session to completion and returns `{ result, diff }`, with configurable `pollIntervalMs` and `timeoutMs`
+  6. All four composite tools compile cleanly and the 18 existing tools behave identically after the handler-extraction refactor
 
 **Plans**: TBD
+**UI hint**: no
+
+---
+
+### Phase 8: Read-only API Wrappers
+
+**Goal**: Users can list available agents, configured providers, and search workspace symbols directly from Claude Code.
+
+**Depends on**: Phase 5 (resolveDirectory for directory-aware calls)
+
+**Requirements**: API-01, API-02, API-03
+
+**Success Criteria** (what must be TRUE):
+  1. `opencode_list_agents` returns the agents available in an OpenCode instance, including id, name, and description fields
+  2. `opencode_list_providers` returns configured providers and their models, surfacing which providers are connected/authenticated
+  3. `opencode_find_symbol` accepts a query string and returns matching symbols with file path and location data
+  4. `npm run build` passes with zero errors after the three tools are added
+
+**Plans**: TBD
+
+---
+
+### Phase 9: npm Distribution
+
+**Goal**: Prefect is publishable as `prefect-mcp` on npm and installable globally with a documented dual-pathway install guide.
+
+**Depends on**: Phase 5, 6, 7, 8 (all features must be stable before publishing)
+
+**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06
+
+**Success Criteria** (what must be TRUE):
+  1. `npm pack --dry-run` lists only `build/` files and `README.md` — no `node_modules/`, no `src/` TypeScript sources
+  2. `package.json` contains `name: "prefect-mcp"`, `license`, `engines: { node: ">=20" }`, `publishConfig`, and `files` fields
+  3. `prefect init` detects a global install and writes `"command": "prefect-mcp"` (PATH-relative bin); a local install writes the existing absolute path form
+  4. README documents both install pathways: local (clone + build) and global (`npm install -g prefect-mcp`)
+
+**Plans**: TBD
+
+---
 
 ## Progress
 
@@ -164,6 +192,8 @@ Plans:
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
-| 5. Advanced Run Options + Infrastructure | v3.0 | 0/? | Not started | — |
-| 6. Session Utilities + Workspace APIs | v3.0 | 0/? | Not started | — |
-| 7. Composite Workflow Tools | v3.0 | 0/? | Not started | — |
+| 5. Directory Infrastructure | v3.0 | 0/? | Not started | — |
+| 6. Auth + Auto-start | v3.0 | 0/? | Not started | — |
+| 7. Composite Tools | v3.0 | 0/? | Not started | — |
+| 8. Read-only API Wrappers | v3.0 | 0/? | Not started | — |
+| 9. npm Distribution | v3.0 | 0/? | Not started | — |

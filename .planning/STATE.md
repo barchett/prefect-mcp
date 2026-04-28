@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Daily Driver
-status: defining_requirements
-stopped_at: Milestone v3.0 started — defining requirements
+status: roadmap_created
+stopped_at: Roadmap created — phase 5 ready to plan
 last_updated: "2026-04-27"
 last_activity: 2026-04-27
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-27 for v3.0 milestone)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** Defining v3.0 requirements
+**Current focus:** Phase 5 — Directory Infrastructure
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-04-27 — Milestone v3.0 started
+Phase: 5 — Directory Infrastructure
+Plan: — (not started)
+Status: Roadmap created, phase 5 ready to plan
+Last activity: 2026-04-27 — Roadmap created for v3.0 Daily Driver
 
 Progress: [__________] 0%
 
@@ -48,6 +48,7 @@ Recent decisions affecting current work:
 - Manual process.argv parsing over Commander.js for prefect init — minimal surface (one subcommand, one flag), zero additional deps
 - opencode_run returns structured { info, parts } payload with PartSchema validation
 - model: z.string().optional() for opencode_session_command (not z.object): deliberate API difference — session.command endpoint takes single string
+- v3.0 phases 5-9: directory infrastructure first (foundation), then auth+autostart (group together — health poll needs auth), then composite tools (highest risk, depends on resolveDirectory), then API wrappers (purely additive), then distribution last (stable features before publish)
 
 ### Pending Todos
 
@@ -55,7 +56,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Auto-start reliability in WSL2 is MEDIUM confidence — live testing required during Phase 6
+- client.session.todo() call signature needs compile-time verification before opencode_inspect is implemented (Phase 7)
+- npm name "prefect-mcp" availability needs verification before Phase 9 (`npm info prefect-mcp`)
+- opencode startup time on this machine is unknown — waitForHealth() poll cap must be tuned during Phase 6
 
 ## Deferred Items
 
@@ -64,5 +68,5 @@ None for v3.0 at start. See MILESTONES.md for v2.0 deferred items.
 ## Session Continuity
 
 Last session: 2026-04-27
-Stopped at: Milestone v3.0 started — defining requirements
+Stopped at: Roadmap created — phase 5 ready to plan
 Resume file: None
