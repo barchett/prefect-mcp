@@ -642,6 +642,106 @@ server.registerTool(
   }
 );
 
+// WORKFLOW-04: Compact snapshot — { status, todos, changedFiles }.
+// Calls three endpoints in parallel: session.status() (global map — index by sessionId),
+// session.todo() (requires path.id), session.diff() (mapped to { file, additions, deletions }
+// only — no patch content per D-10).
+server.registerTool(
+  'opencode_inspect',
+  {
+    description:
+      'Return a compact snapshot { status, todos, changedFiles } for a session. Faster than fetching full message history. changedFiles contains { file, additions, deletions } — use opencode_get_diff for full patch content.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to inspect'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const [statusResult, todoResult, diffResult] = await Promise.all([
+        client.session.status({ query: dir ? { directory: dir } : undefined }),
+        client.session.todo({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        client.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+      ]);
+      if (statusResult.error) throw new Error(JSON.stringify(statusResult.error));
+      if (todoResult.error) throw new Error(JSON.stringify(todoResult.error));
+      if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
+      const status = (statusResult.data as Record<string, { type: string }>)[sessionId]?.type ?? 'unknown';
+      const todos = todoResult.data ?? [];
+      const changedFiles = (diffResult.data ?? []).map((d) => ({
+        file: d.file,
+        additions: d.additions,
+        deletions: d.deletions,
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify({ status, todos, changedFiles }) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-05 + WORKFLOW-06: Poll session.status() until the session's type is "idle",
+// then reconstruct { result: { info, parts }, diff } from messages + diff endpoints.
+// pollIntervalMs default 2000, timeoutMs default TIMEOUT_MS (D-14).
+// On timeout: return isError:true with sessionId in payload (D-15).
+// Undefined status entry (session not in map) is treated as idle — OpenCode may have
+// already completed and removed the session from the status map before first poll.
+server.registerTool(
+  'opencode_await',
+  {
+    description:
+      'Poll a dispatched session until it reaches idle state, then return { result: { info, parts }, diff }. Use after opencode_dispatch. Accepts pollIntervalMs (default 2000) and timeoutMs (default PREFECT_TIMEOUT_MS).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID from opencode_dispatch'),
+      pollIntervalMs: z.number().int().positive().optional().describe('Milliseconds between status polls. Default: 2000.'),
+      timeoutMs: z.number().int().positive().optional().describe('Maximum milliseconds to wait. Default: PREFECT_TIMEOUT_MS env var (default 120000).'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+    }),
+  },
+  async ({ sessionId, pollIntervalMs = 2000, timeoutMs = TIMEOUT_MS, directory }) => {
+    const dir = resolveDirectory(directory);
+    const deadline = Date.now() + timeoutMs;
+    try {
+      // Poll until idle or timeout
+      while (true) {
+        const { data, error } = await client.session.status({ query: dir ? { directory: dir } : undefined });
+        if (error) throw new Error(JSON.stringify(error));
+        const statusEntry = (data as Record<string, { type: string }>)[sessionId];
+        // Treat undefined (session not in map) as idle — may have completed before first poll
+        if (!statusEntry || statusEntry.type === 'idle') break;
+        if (Date.now() + pollIntervalMs >= deadline) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ error: `opencode_await timed out after ${timeoutMs}ms`, sessionId }) }],
+            isError: true,
+          };
+        }
+        await new Promise<void>((r) => setTimeout(r, pollIntervalMs));
+      }
+      // Reconstruct result from messages (last assistant message) and full diff
+      const [messagesResult, diffResult] = await Promise.all([
+        client.session.messages({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        client.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+      ]);
+      if (messagesResult.error) throw new Error(JSON.stringify(messagesResult.error));
+      if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
+      // D-12: find last assistant message — same shape as opencode_run result
+      const msgs = messagesResult.data ?? [];
+      const last = [...msgs].reverse().find((m) => (m.info as { role?: string }).role === 'assistant');
+      if (!last) throw new Error('opencode_await: no assistant message found in session after idle');
+      const validatedParts = PartSchema.array().parse(last.parts);
+      const diff = (diffResult.data ?? []).map((d) => ({
+        ...d,
+        patch: createPatch(d.file, d.before, d.after),
+      }));
+      // D-13: return shape matches opencode_delegate for easy substitution
+      return { content: [{ type: 'text', text: JSON.stringify({ result: { info: last.info, parts: validatedParts }, diff }) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
