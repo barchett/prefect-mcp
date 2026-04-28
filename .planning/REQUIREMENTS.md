@@ -37,8 +37,27 @@
 - [ ] **DIST-04**: `npm pack --dry-run` is verified to include only `build/` and `README.md` before first publish
 - [ ] **DIST-05**: `prefect init` detects global vs local install — global writes `"command": "prefect-mcp"` (PATH-relative bin); local writes `"command": "node", "args": ["/absolute/path/build/index.js"]` (current behavior)
 - [ ] **DIST-06**: README documents both install pathways: local (existing) and global (`npm install -g prefect-mcp`)
+- [ ] **DIST-07**: All tool names are renamed from `opencode_*` to `prefect_*` across all `*.ts` and `*.md` files
+- [ ] **DIST-08**: `npm test` passes after the rename with zero errors
+- [ ] **DIST-09**: CLAUDE.md tool reference table and canonical loop steps use `prefect_*` names throughout
+- [ ] **DIST-10**: `examples/test-task.md` validation prompt uses `prefect_*` tool names
+- [ ] **DIST-11**: CLAUDE.md canonical loop instructs callers to always pass an explicit `directory` arg on every `prefect_create_session`, `prefect_delegate`, and `prefect_dispatch` call — never rely on the server's default working directory
+- [ ] **DIST-12**: All `OPENCODE_*` env vars are renamed to `PREFECT_*` across all `*.ts`, `*.md`, and test files — `OPENCODE_URL` → `PREFECT_SERVER_URL`, `OPENCODE_SERVER_PASSWORD` → `PREFECT_SERVER_PASSWORD`, `OPENCODE_SERVER_USERNAME` → `PREFECT_SERVER_USERNAME`, `OPENCODE_DEFAULT_PROJECT` → `PREFECT_DEFAULT_PROJECT`; `PREFECT_TIMEOUT_MS` and `PREFECT_AUTOSTART_TIMEOUT_MS` are unchanged
 
 ## Future Requirements (v4.0)
+
+### Multi-server Registry
+
+- [ ] **MULTI-01**: `prefect add-server <name> <host> <port> <model>` CLI command — registers a named OpenCode server in `~/.config/prefect/servers.json`
+- [ ] **MULTI-02**: `prefect remove-server <name>` CLI command — deregisters a named server
+- [ ] **MULTI-03**: `prefect list-servers` CLI command — prints the registry with host, port, and model columns
+- [ ] **MULTI-04**: Server registry persisted to `~/.config/prefect/servers.json`; reads on every CLI invocation (no in-process cache)
+- [ ] **MULTI-05**: All composite and session tools accept an optional `server: string` param — routes the call to the named server; defaults to first registered server or `OPENCODE_URL` if registry is empty
+- [ ] **MULTI-06**: `ensureOpencodeRunning()` is server-aware — auto-starts the correct OpenCode instance for the targeted named server using its host/port
+- [ ] **MULTI-07**: CLAUDE.md server registry section documents available workers so Claude Code can make informed routing decisions without inspecting the config file
+- [ ] **MULTI-08**: `prefect init` prompts for first server registration during setup and writes the entry to `servers.json`
+
+### Existing v4 Backlog
 
 - `opencode_run` tools override, FilePartInput, messageID resume, AgentPartInput/SubtaskPartInput
 - `opencode_create_session` parentID (session hierarchies)
@@ -85,3 +104,17 @@
 | DIST-04 | Phase 9 | Pending |
 | DIST-05 | Phase 9 | Pending |
 | DIST-06 | Phase 9 | Pending |
+| DIST-07 | Phase 9 | Pending |
+| DIST-08 | Phase 9 | Pending |
+| DIST-09 | Phase 9 | Pending |
+| DIST-10 | Phase 9 | Pending |
+| DIST-11 | Phase 9 | Pending |
+| DIST-12 | Phase 9 | Pending |
+| MULTI-01 | v4.0 | Backlog |
+| MULTI-02 | v4.0 | Backlog |
+| MULTI-03 | v4.0 | Backlog |
+| MULTI-04 | v4.0 | Backlog |
+| MULTI-05 | v4.0 | Backlog |
+| MULTI-06 | v4.0 | Backlog |
+| MULTI-07 | v4.0 | Backlog |
+| MULTI-08 | v4.0 | Backlog |

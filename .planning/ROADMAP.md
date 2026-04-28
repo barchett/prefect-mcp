@@ -34,7 +34,7 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
 - [ ] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling
 - [ ] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await
 - [ ] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol
-- [ ] **Phase 9: npm Distribution** — tool rename (`opencode_*` → `prefect_*`), package.json fields, pack verification, global install pathway, README + CLAUDE.md docs
+- [ ] **Phase 9: npm Distribution** — tool rename (`opencode_*` → `prefect_*`), env var rename (`OPENCODE_*` → `PREFECT_*`), package.json fields, pack verification, global install pathway, README + CLAUDE.md docs
 
 ---
 
@@ -186,7 +186,7 @@ Plans:
 
 **Depends on**: Phase 5, 6, 7, 8 (all features must be stable before publishing)
 
-**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06, DIST-07, DIST-08, DIST-09, DIST-10, DIST-11
+**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06, DIST-07, DIST-08, DIST-09, DIST-10, DIST-11, DIST-12
 
 **Success Criteria** (what must be TRUE):
   1. `npm pack --dry-run` lists only `build/` files and `README.md` — no `node_modules/`, no `src/` TypeScript sources
@@ -196,6 +196,7 @@ Plans:
   5. All `opencode_*` tool names are renamed to `prefect_*` across every `*.ts` and `*.md` file, and `npm test` passes after the rename
   6. CLAUDE.md tool reference table and canonical loop steps use `prefect_*` names throughout, and the canonical loop explicitly instructs callers to always pass `directory` on every `prefect_create_session`, `prefect_delegate`, and `prefect_dispatch` call
   7. `examples/test-task.md` validation prompt uses `prefect_*` tool names
+  8. All `OPENCODE_*` env vars are renamed to `PREFECT_*` across every `*.ts`, `*.md`, and test file: `OPENCODE_URL` → `PREFECT_SERVER_URL`, `OPENCODE_SERVER_PASSWORD` → `PREFECT_SERVER_PASSWORD`, `OPENCODE_SERVER_USERNAME` → `PREFECT_SERVER_USERNAME`, `OPENCODE_DEFAULT_PROJECT` → `PREFECT_DEFAULT_PROJECT`; `PREFECT_TIMEOUT_MS` and `PREFECT_AUTOSTART_TIMEOUT_MS` are unchanged
 
 **Plans**: TBD
 
