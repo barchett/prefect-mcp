@@ -100,6 +100,8 @@ Adjust the provider key (`vllm`) and path if you use Ollama, OpenAI, etc.
 
 Prefect auto-starts OpenCode on the first tool call if it isn't already running, so this step is optional for most setups. Auto-start spawns `opencode serve --port <N>` where `<N>` is the port from `OPENCODE_URL` (default 4096). The process is spawned in `OPENCODE_DEFAULT_PROJECT` if set, otherwise in Prefect's own working directory.
 
+> **Auto-start only works when `OPENCODE_URL` is local** (`localhost` or `127.0.0.1`). If `OPENCODE_URL` points to a remote host (e.g. a Windows host IP from WSL2), auto-start will spawn a local process that cannot satisfy the remote health check and will time out. Start OpenCode manually on the remote machine instead.
+
 If you prefer to manage the process yourself, start it manually **from your project root** in a dedicated terminal:
 
 ```bash
@@ -174,6 +176,8 @@ See `CLAUDE.md` for the canonical create -> run -> diff -> test -> correct loop.
 ## WSL Note
 
 If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4096` works as expected. If OpenCode is on the Windows host and you're using WSL2 default NAT networking, point `OPENCODE_URL` at the Windows host IP instead of `localhost`.
+
+> **Auto-start does not work when `OPENCODE_URL` is non-local.** Auto-start spawns `opencode serve` on the same machine as the MCP server, then health-polls `OPENCODE_URL`. If `OPENCODE_URL` points to a remote host (e.g. a Windows host IP from WSL2), the local spawn cannot satisfy the remote health check and auto-start will time out. Start OpenCode manually on the remote machine in this case.
 
 ## Project Layout
 
