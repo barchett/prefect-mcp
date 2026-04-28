@@ -126,7 +126,12 @@ Plans:
   4. Auto-started OpenCode produces no output on the MCP stdout pipe (stderr may surface; stdout is silenced)
   5. The auto-start health poll uses authenticated headers so a password-protected server is detected as healthy rather than looping on 401
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — src/auth.ts (buildAuthHeader + authFetch) + README INFRA-06 warning (INFRA-04, INFRA-05, INFRA-06)
+- [ ] 06-02-PLAN.md — src/autostart.ts (ensureOpencodeRunning + health poll) (INFRA-07, INFRA-08, INFRA-09, INFRA-10)
+- [ ] 06-03-PLAN.md — Wire auth + auto-start into src/index.ts + build verification + WSL2 smoke test (INFRA-04, INFRA-05, INFRA-07, INFRA-08, INFRA-09, INFRA-10)
 
 ---
 
@@ -196,7 +201,7 @@ Plans:
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
 | 5. Directory Infrastructure | v3.0 | 1/1 | Complete    | 2026-04-28 |
-| 6. Auth + Auto-start | v3.0 | 0/? | Not started | — |
+| 6. Auth + Auto-start | v3.0 | 0/3 | Not started | — |
 | 7. Composite Tools | v3.0 | 0/? | Not started | — |
 | 8. Read-only API Wrappers | v3.0 | 0/? | Not started | — |
 | 9. npm Distribution | v3.0 | 0/? | Not started | — |
