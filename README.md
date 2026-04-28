@@ -98,18 +98,20 @@ Adjust the provider key (`vllm`) and path if you use Ollama, OpenAI, etc.
 
 ### 4. Start OpenCode headless
 
-**From the project root** in a dedicated terminal:
+Prefect auto-starts OpenCode on the first tool call if it isn't already running, so this step is optional for most setups. Auto-start spawns `opencode serve --port <N>` where `<N>` is the port from `OPENCODE_URL` (default 4096). The process is spawned in `OPENCODE_DEFAULT_PROJECT` if set, otherwise in Prefect's own working directory.
+
+If you prefer to manage the process yourself, start it manually **from your project root** in a dedicated terminal:
 
 ```bash
-cd /path/to/supervisor
+cd /path/to/your-project
 opencode serve --port 4096
 ```
 
-> **You must run this from the project root.** OpenCode sets the working directory for all sessions to wherever `opencode serve` was launched. If you start it from `~` or another directory, `opencode_run` will create and edit files there instead of in your project.
+> **Run from your project root, not from `~` or elsewhere.** OpenCode sets the working directory for all sessions to wherever `opencode serve` was launched. Manual start from the wrong directory causes `opencode_run` to create files there.
 
-> **You must specify `--port 4096`.** The default port is `0` (random), which won't match the MCP server's default `OPENCODE_URL=http://localhost:4096`.
+> **Use `--port 4096`** (or whatever port is in `OPENCODE_URL`). The default OpenCode port is `0` (random).
 
-Health check (in another terminal):
+Health check:
 
 ```bash
 curl http://localhost:4096/global/health
@@ -133,7 +135,7 @@ Inside the session, run:
 You should see `prefect` listed as connected. If it shows as failed, the most likely causes (in order):
 1. `build/index.js` does not exist -> run `npm run build`.
 2. `.mcp.json` is malformed or missing -> see step 2 above.
-3. OpenCode is not running on port 4096 -> see step 4.
+3. `opencode` is not on PATH (auto-start will fail silently) -> verify with `which opencode`.
 
 ### 6. Run the validation task
 
@@ -143,8 +145,10 @@ With everything wired up, follow `examples/test-task.md` to confirm the full cre
 
 | Env Var | Default | Purpose |
 |---------|---------|---------|
-| `OPENCODE_URL` | `http://localhost:4096` | Base URL for OpenCode API |
+| `OPENCODE_URL` | `http://localhost:4096` | Base URL for OpenCode API; port is also used when auto-starting (`opencode serve --port <N>`) |
 | `PREFECT_TIMEOUT_MS` | `120000` | Max wait for `opencode_run` to return (ms) |
+| `PREFECT_AUTOSTART_TIMEOUT_MS` | `30000` | Max wait for OpenCode to become healthy after auto-start spawn (ms) |
+| `OPENCODE_DEFAULT_PROJECT` | _(unset)_ | Working directory passed to `opencode serve` on auto-start; defaults to Prefect's own cwd |
 | `OPENCODE_SERVER_PASSWORD` | _(unset)_ | HTTP Basic Auth password for OpenCode server (read at every tool call) |
 | `OPENCODE_SERVER_USERNAME` | `opencode` | HTTP Basic Auth username (only used when `OPENCODE_SERVER_PASSWORD` is set) |
 
@@ -190,7 +194,7 @@ If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `/mcp` shows prefect as failed | `build/` missing | `npm run build` then restart Claude Code |
-| `opencode_create_session` returns connection error | OpenCode not running, or wrong port | `opencode serve --port 4096` from project root, verify with `curl http://localhost:4096/global/health` |
+| `opencode_create_session` returns connection error | Auto-start failed (opencode not on PATH, or startup exceeded `PREFECT_AUTOSTART_TIMEOUT_MS`) | Check that `opencode` is on PATH; increase `PREFECT_AUTOSTART_TIMEOUT_MS` if slow to start; or start manually: `opencode serve --port 4096` from project root |
 | `opencode_get_diff` returns files in wrong directory | OpenCode started from wrong directory | Stop and restart `opencode serve --port 4096` from the project root |
 | `opencode_run` times out | Default 120s exceeded | Increase `PREFECT_TIMEOUT_MS` in `.mcp.json` env |
 | `opencode_get_diff` returns `[]` | Prompt didn't ask OpenCode to write files | Re-prompt explicitly asking for a file write (see `examples/test-task.md` for a known-good prompt) |
