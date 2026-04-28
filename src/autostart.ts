@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { authFetch } from './auth.js';
+import { buildAuthHeader } from './auth.js';
 import { resolveDirectory } from './index.js';
 
 // INFRA-07 + INFRA-09: Base URL and port for spawning and health-checking OpenCode.
@@ -31,7 +31,7 @@ function parsePort(url: string): string {
 
 /**
  * Poll GET /global/health until the server responds with HTTP 200.
- * Uses authFetch (INFRA-10) so a password-protected server returns 200, not 401.
+ * Uses buildAuthHeader (INFRA-10) so password-protected servers return 200, not 401.
  * Throws if the server does not become healthy within AUTOSTART_TIMEOUT_MS.
  */
 async function waitForHealth(): Promise<void> {
@@ -39,7 +39,7 @@ async function waitForHealth(): Promise<void> {
   const healthUrl = `${BASE_URL}/global/health`;
   while (Date.now() < deadline) {
     try {
-      const res = await authFetch(new Request(healthUrl));
+      const res = await globalThis.fetch(new Request(healthUrl, { headers: buildAuthHeader() }));
       if (res.ok) return; // healthy — proceed
     } catch {
       // Connection not yet ready — keep polling
@@ -60,7 +60,7 @@ async function waitForHealth(): Promise<void> {
  * D-09: cwd = resolveDirectory(undefined) — OPENCODE_DEFAULT_PROJECT if set,
  *        otherwise undefined (OpenCode uses its own cwd).
  * D-10: Port parsed from OPENCODE_URL; falls back to 4096.
- * INFRA-10: waitForHealth() uses authFetch — auth-protected servers detected healthy.
+ * INFRA-10: waitForHealth() uses buildAuthHeader — auth-protected servers detected healthy.
  */
 export async function ensureOpencodeRunning(): Promise<void> {
   if (autoStartAttempted) return;

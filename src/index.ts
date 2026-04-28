@@ -5,13 +5,12 @@ import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
 import { createPatch } from 'diff';
 import { PartSchema } from './parts.js';
-import { authFetch } from './auth.js';
-import { ensureOpencodeRunning } from './autostart.js';
+import { fetchWithAuth } from './fetch.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
 const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
 const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '', 10) || 120_000;
-const client = createOpencodeClient({ baseUrl: BASE_URL, fetch: authFetch });
+const client = createOpencodeClient({ baseUrl: BASE_URL, fetch: fetchWithAuth });
 
 /**
  * INFRA-02 + INFRA-03: Resolve the target OpenCode project directory.
@@ -147,37 +146,6 @@ server.registerTool(
           ],
           isError: true,
         };
-      }
-      // INFRA-07: If OpenCode is not running, spawn it and retry once.
-      // Node.js fetch throws TypeError with 'ECONNREFUSED' in the message when the
-      // server is unreachable. Only trigger auto-start on this specific error class.
-      if (err instanceof TypeError && String(err).includes('ECONNREFUSED')) {
-        try {
-          await ensureOpencodeRunning();
-          // Retry the prompt once after successful auto-start
-          const { data: retryData, error: retryError } = await client.session.prompt({
-            path: { id: sessionId },
-            body: {
-              parts: [{ type: 'text', text: prompt }],
-              ...(model ? { model } : {}),
-              ...(agent ? { agent } : {}),
-              ...(system ? { system } : {}),
-            },
-            query: dir ? { directory: dir } : undefined,
-          });
-          if (retryError) throw new Error(JSON.stringify(retryError));
-          const validatedParts = PartSchema.array().parse(retryData!.parts);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({ info: retryData!.info, parts: validatedParts }),
-              },
-            ],
-          };
-        } catch (retryErr) {
-          return { content: [{ type: 'text', text: String(retryErr) }], isError: true };
-        }
       }
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
