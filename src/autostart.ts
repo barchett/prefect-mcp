@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { buildAuthHeader } from './auth.js';
-import { resolveDirectory } from './index.js';
+import { resolveDirectory } from './config.js';
 
 // INFRA-07 + INFRA-09: Base URL and port for spawning and health-checking OpenCode.
 // Read at module init (same as BASE_URL in index.ts — stable for the process lifetime).
@@ -104,4 +104,9 @@ export async function ensureOpencodeRunning(): Promise<void> {
   });
 
   return startPromise;
+}
+
+/** @internal — test use only. Resets the spawn lock so each test starts clean. */
+export function _resetStartPromise(): void {
+  startPromise = null;
 }

@@ -6,23 +6,14 @@ import { createOpencodeClient } from '@opencode-ai/sdk';
 import { createPatch } from 'diff';
 import { PartSchema } from './parts.js';
 import { fetchWithAuth } from './fetch.js';
+import { resolveDirectory } from './config.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
 const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
 const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '', 10) || 120_000;
 const client = createOpencodeClient({ baseUrl: BASE_URL, fetch: fetchWithAuth });
 
-/**
- * INFRA-02 + INFRA-03: Resolve the target OpenCode project directory.
- * Fallback chain: per-tool param → OPENCODE_DEFAULT_PROJECT env var → undefined.
- * Returns undefined (not process.cwd()) so OpenCode uses its own session-level
- * directory tracking when no explicit directory is provided.
- * IMPORTANT: process.env is read at call time (not module init) so that changes
- * to OPENCODE_DEFAULT_PROJECT take effect without restarting the MCP server.
- */
-export function resolveDirectory(perToolParam: string | undefined): string | undefined {
-  return perToolParam ?? process.env.OPENCODE_DEFAULT_PROJECT ?? undefined;
-}
+export { resolveDirectory };
 
 const server = new McpServer({ name: 'prefect', version: '1.0.0' });
 

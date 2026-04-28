@@ -28,8 +28,10 @@ export async function authFetch(request: Request): Promise<Response> {
   if (Object.keys(headers).length === 0) {
     return globalThis.fetch(request);
   }
-  // Merge auth header with existing request headers (existing headers win on conflict,
-  // except Authorization which we always set)
+  // Auth header always wins — we intentionally overwrite any pre-existing Authorization.
+  if (request.headers.get('Authorization')) {
+    console.error('[Prefect] authFetch: overwriting existing Authorization header with Basic Auth');
+  }
   const merged = { ...Object.fromEntries(request.headers), ...headers };
   const authed = new Request(request, { headers: merged });
   return globalThis.fetch(authed);
