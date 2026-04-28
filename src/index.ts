@@ -588,10 +588,13 @@ server.registerTool(
       return { content: [{ type: 'text', text: JSON.stringify({ sessionId, result, diff }) }] };
     } catch (err) {
       clearTimeout(timer);
-      if ((err as Error).name === 'AbortError' && sessionId) {
-        await client.session.abort({ path: { id: sessionId } }).catch(() => {});
+      if ((err as Error).name === 'AbortError') {
+        // sessionId may be undefined if abort fired during createSession
+        if (sessionId) {
+          await client.session.abort({ path: { id: sessionId } }).catch(() => {});
+        }
         return {
-          content: [{ type: 'text', text: `opencode_delegate timed out after ${TIMEOUT_MS / 1000}s — session ${sessionId} aborted` }],
+          content: [{ type: 'text', text: `opencode_delegate timed out after ${TIMEOUT_MS / 1000}s${sessionId ? ` — session ${sessionId} aborted` : ' — during session creation'}` }],
           isError: true,
         };
       }
