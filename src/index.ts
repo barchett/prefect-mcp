@@ -710,7 +710,7 @@ server.registerTool(
         const statusEntry = (data as Record<string, { type: string }>)[sessionId];
         // Treat undefined (session not in map) as idle — may have completed before first poll
         if (!statusEntry || statusEntry.type === 'idle') break;
-        if (Date.now() + pollIntervalMs >= deadline) {
+        if (Date.now() >= deadline) {
           return {
             content: [{ type: 'text', text: JSON.stringify({ error: `opencode_await timed out after ${timeoutMs}ms`, sessionId }) }],
             isError: true,
