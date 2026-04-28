@@ -745,6 +745,34 @@ server.registerTool(
   }
 );
 
+// API-01: List OpenCode agents (Phase 8)
+server.registerTool(
+  'opencode_list_agents',
+  {
+    description: 'List the agents available in the connected OpenCode instance. Returns Array<{ name, description?, mode }>. Use the returned name (e.g. "build", "general") as the agent param when calling opencode_run. Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.app.agents({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      const mapped = (data ?? []).map((a) => ({
+        name: a.name,
+        description: a.description,
+        mode: a.mode,
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify(mapped) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
