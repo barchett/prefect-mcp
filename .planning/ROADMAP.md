@@ -34,7 +34,7 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
 - [ ] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling
 - [ ] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await
 - [ ] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol
-- [ ] **Phase 9: npm Distribution** — package.json fields, pack verification, global install pathway, README docs
+- [ ] **Phase 9: npm Distribution** — tool rename (`opencode_*` → `prefect_*`), package.json fields, pack verification, global install pathway, README + CLAUDE.md docs
 
 ---
 
@@ -154,8 +154,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Handler extraction refactor: create src/handlers.ts (createSession, runPrompt, getDiff) + update three existing tools in src/index.ts to delegate (WORKFLOW-07)
-- [ ] 07-02-PLAN.md — Four composite tools: opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await in src/index.ts (WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05, WORKFLOW-06)
+- [x] 07-01-PLAN.md — Handler extraction refactor: create src/handlers.ts (createSession, runPrompt, getDiff) + update three existing tools in src/index.ts to delegate (WORKFLOW-07)
+- [x] 07-02-PLAN.md — Four composite tools: opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await in src/index.ts (WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05, WORKFLOW-06)
 
 ---
 
@@ -179,17 +179,20 @@ Plans:
 
 ### Phase 9: npm Distribution
 
-**Goal**: Prefect is publishable as `prefect-mcp` on npm and installable globally with a documented dual-pathway install guide.
+**Goal**: All tool names are renamed from `opencode_*` to `prefect_*`, Prefect is publishable as `prefect-mcp` on npm, and the canonical workflow docs (CLAUDE.md, examples/) reflect the new names.
 
 **Depends on**: Phase 5, 6, 7, 8 (all features must be stable before publishing)
 
-**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06
+**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05, DIST-06, DIST-07, DIST-08, DIST-09, DIST-10
 
 **Success Criteria** (what must be TRUE):
   1. `npm pack --dry-run` lists only `build/` files and `README.md` — no `node_modules/`, no `src/` TypeScript sources
   2. `package.json` contains `name: "prefect-mcp"`, `license`, `engines: { node: ">=20" }`, `publishConfig`, and `files` fields
   3. `prefect init` detects a global install and writes `"command": "prefect-mcp"` (PATH-relative bin); a local install writes the existing absolute path form
   4. README documents both install pathways: local (clone + build) and global (`npm install -g prefect-mcp`)
+  5. All `opencode_*` tool names are renamed to `prefect_*` across every `*.ts` and `*.md` file, and `npm test` passes after the rename
+  6. CLAUDE.md tool reference table and canonical loop steps use `prefect_*` names throughout
+  7. `examples/test-task.md` validation prompt uses `prefect_*` tool names
 
 **Plans**: TBD
 
