@@ -26,7 +26,8 @@ export async function createSession(
     query: directory ? { directory } : undefined,
   });
   if (error) throw new Error(JSON.stringify(error));
-  return data!;
+  if (!data) throw new Error('createSession: API returned no data and no error');
+  return data;
 }
 
 /**
@@ -56,8 +57,9 @@ export async function runPrompt(
     signal,
   });
   if (error) throw new Error(JSON.stringify(error));
-  const validatedParts = PartSchema.array().parse(data!.parts);
-  return { info: data!.info, parts: validatedParts };
+  if (!data) throw new Error('runPrompt: API returned no data and no error');
+  const validatedParts = PartSchema.array().parse(data.parts);
+  return { info: data.info, parts: validatedParts };
 }
 
 /**
