@@ -3,10 +3,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
-import { createPatch } from 'diff';
-import { PartSchema } from './parts.js';
 import { fetchWithAuth } from './fetch.js';
 import { resolveDirectory } from './config.js';
+import { createSession, runPrompt, getDiff } from './handlers.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
 const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
@@ -30,12 +29,8 @@ server.registerTool(
   async ({ title, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.create({
-        body: { title },
-        query: dir ? { directory: dir } : undefined,
-      });
-      if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      const session = await createSession(client, title, dir);
+      return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
@@ -102,29 +97,9 @@ server.registerTool(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const { data, error } = await client.session.prompt({
-        path: { id: sessionId },
-        body: {
-          parts: [{ type: 'text', text: prompt }],
-          ...(model ? { model } : {}),
-          ...(agent ? { agent } : {}),
-          ...(system ? { system } : {}),
-        },
-        query: dir ? { directory: dir } : undefined,
-        signal: controller.signal,
-      });
+      const result = await runPrompt(client, sessionId, prompt, { model, agent, system }, dir, controller.signal);
       clearTimeout(timer);
-      if (error) throw new Error(JSON.stringify(error));
-      // SURF-02: validate parts against the discriminated union from src/parts.ts
-      const validatedParts = PartSchema.array().parse(data!.parts);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ info: data!.info, parts: validatedParts }),
-          },
-        ],
-      };
+      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (err) {
       clearTimeout(timer);
       if ((err as Error).name === 'AbortError') {
@@ -206,19 +181,8 @@ server.registerTool(
   async ({ sessionId, messageID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.diff({
-        path: { id: sessionId },
-        query: {
-          ...(messageID ? { messageID } : {}),
-          ...(dir ? { directory: dir } : {}),
-        },
-      });
-      if (error) throw new Error(JSON.stringify(error));
-      const withPatch = (data ?? []).map((d) => ({
-        ...d,
-        patch: createPatch(d.file, d.before, d.after),
-      }));
-      return { content: [{ type: 'text', text: JSON.stringify(withPatch) }] };
+      const diffs = await getDiff(client, sessionId, messageID, dir);
+      return { content: [{ type: 'text', text: JSON.stringify(diffs) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
