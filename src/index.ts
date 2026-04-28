@@ -11,6 +11,18 @@ const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
 const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '', 10) || 120_000;
 const client = createOpencodeClient({ baseUrl: BASE_URL });
 
+/**
+ * INFRA-02 + INFRA-03: Resolve the target OpenCode project directory.
+ * Fallback chain: per-tool param → OPENCODE_DEFAULT_PROJECT env var → undefined.
+ * Returns undefined (not process.cwd()) so OpenCode uses its own session-level
+ * directory tracking when no explicit directory is provided.
+ * IMPORTANT: process.env is read at call time (not module init) so that changes
+ * to OPENCODE_DEFAULT_PROJECT take effect without restarting the MCP server.
+ */
+export function resolveDirectory(perToolParam: string | undefined): string | undefined {
+  return perToolParam ?? process.env.OPENCODE_DEFAULT_PROJECT ?? undefined;
+}
+
 const server = new McpServer({ name: 'prefect', version: '1.0.0' });
 
 // CORE-01: Create a new OpenCode session
@@ -24,10 +36,11 @@ server.registerTool(
     }),
   },
   async ({ title, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.create({
         body: { title },
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -44,11 +57,16 @@ server.registerTool(
     description: 'Abort a running OpenCode session. Returns true on success.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID returned from opencode_create_session'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
-  async ({ sessionId }) => {
+  async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.abort({ path: { id: sessionId } });
+      const { data, error } = await client.session.abort({
+        path: { id: sessionId },
+        query: dir ? { directory: dir } : undefined,
+      });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: String(data) }] };
     } catch (err) {
@@ -72,6 +90,7 @@ server.registerTool(
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID from opencode_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
+      directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
       // RUN-01: model override — both providerID AND modelID required together
       model: z
         .object({
@@ -86,7 +105,8 @@ server.registerTool(
       system: z.string().optional().describe('Override the system prompt for this single call.'),
     }),
   },
-  async ({ sessionId, prompt, model, agent, system }) => {
+  async ({ sessionId, prompt, directory, model, agent, system }) => {
+    const dir = resolveDirectory(directory);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
@@ -98,6 +118,7 @@ server.registerTool(
           ...(agent ? { agent } : {}),
           ...(system ? { system } : {}),
         },
+        query: dir ? { directory: dir } : undefined,
         signal: controller.signal,
       });
       clearTimeout(timer);
@@ -142,6 +163,7 @@ server.registerTool(
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID from opencode_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
+      directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
       model: z
         .object({
           providerID: z.string(),
@@ -153,7 +175,8 @@ server.registerTool(
       system: z.string().optional().describe('Override the system prompt for this single call.'),
     }),
   },
-  async ({ sessionId, prompt, model, agent, system }) => {
+  async ({ sessionId, prompt, directory, model, agent, system }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { error } = await client.session.promptAsync({
         path: { id: sessionId },
@@ -163,6 +186,7 @@ server.registerTool(
           ...(agent ? { agent } : {}),
           ...(system ? { system } : {}),
         },
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return {
@@ -184,13 +208,18 @@ server.registerTool(
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
       messageID: z.string().optional().describe('Optional message ID to scope the diff to a single message'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
-  async ({ sessionId, messageID }) => {
+  async ({ sessionId, messageID, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.diff({
         path: { id: sessionId },
-        query: messageID ? { messageID } : undefined,
+        query: {
+          ...(messageID ? { messageID } : {}),
+          ...(dir ? { directory: dir } : {}),
+        },
       });
       if (error) throw new Error(JSON.stringify(error));
       const withPatch = (data ?? []).map((d) => ({
@@ -217,14 +246,17 @@ server.registerTool(
       response: z.enum(['once', 'always', 'reject']).describe(
         'once = approve this request only; always = approve similar future requests; reject = deny'
       ),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
-  async ({ sessionId, permissionId, response }) => {
+  async ({ sessionId, permissionId, response, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       // CRITICAL: permissions method is on TOP-LEVEL client, NOT client.session
       const { data, error } = await client.postSessionIdPermissionsPermissionId({
         path: { id: sessionId, permissionID: permissionId },
         body: { response },
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -242,13 +274,16 @@ server.registerTool(
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID to fork from'),
       messageID: z.string().optional().describe('Optional message ID to fork at; if omitted, forks at the current tip'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
-  async ({ sessionId, messageID }) => {
+  async ({ sessionId, messageID, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.fork({
         path: { id: sessionId },
         body: messageID ? { messageID } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -267,13 +302,16 @@ server.registerTool(
       sessionId: z.string().describe('Session ID'),
       messageID: z.string().describe('Required: message ID to revert to'),
       partID: z.string().optional().describe('Optional: specific part within the message'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
-  async ({ sessionId, messageID, partID }) => {
+  async ({ sessionId, messageID, partID, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.revert({
         path: { id: sessionId },
         body: { messageID, ...(partID ? { partID } : {}) },
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -293,9 +331,10 @@ server.registerTool(
     }),
   },
   async ({ directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.list({
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -316,10 +355,11 @@ server.registerTool(
     }),
   },
   async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.get({
         path: { id: sessionId },
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -339,9 +379,10 @@ server.registerTool(
     }),
   },
   async ({ directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.status({
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -365,10 +406,11 @@ server.registerTool(
     }),
   },
   async ({ sessionId, limit, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.messages({
         path: { id: sessionId },
-        query: { ...(limit !== undefined ? { limit } : {}), ...(directory ? { directory } : {}) },
+        query: { ...(limit !== undefined ? { limit } : {}), ...(dir ? { directory: dir } : {}) },
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -390,10 +432,11 @@ server.registerTool(
     }),
   },
   async ({ sessionId, messageId, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.message({
         path: { id: sessionId, messageID: messageId },  // SDK path param is messageID (capital D)
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -414,10 +457,11 @@ server.registerTool(
     }),
   },
   async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.delete({
         path: { id: sessionId },
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -439,11 +483,12 @@ server.registerTool(
     }),
   },
   async ({ sessionId, title, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.update({  // NOT client.session.rename — does not exist
         path: { id: sessionId },
         body: { title },
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -464,10 +509,11 @@ server.registerTool(
     }),
   },
   async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.children({
         path: { id: sessionId },
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
@@ -488,10 +534,11 @@ server.registerTool(
     }),
   },
   async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.unrevert({
         path: { id: sessionId },
-        query: directory ? { directory } : undefined,
+        query: dir ? { directory: dir } : undefined,
         // NO body — SessionUnrevertData.body is typed `never`
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -523,9 +570,11 @@ server.registerTool(
         .string()
         .optional()
         .describe('Optional model override as a plain string (NOT { providerID, modelID } — this endpoint takes a single string).'),
+      directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
     }),
   },
-  async ({ sessionId, command, arguments: args, messageID, agent, model }) => {
+  async ({ sessionId, command, arguments: args, messageID, agent, model, directory }) => {
+    const dir = resolveDirectory(directory);
     try {
       const { data, error } = await client.session.command({
         path: { id: sessionId },
@@ -536,6 +585,7 @@ server.registerTool(
           ...(agent ? { agent } : {}),
           ...(model ? { model } : {}),
         },
+        query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
