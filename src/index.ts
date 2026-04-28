@@ -3,8 +3,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
+import { createPatch } from 'diff';
 import { fetchWithAuth } from './fetch.js';
 import { resolveDirectory } from './config.js';
+import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
 
 // CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
@@ -545,6 +547,95 @@ server.registerTool(
       });
       if (error) throw new Error(JSON.stringify(error));
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-01 + WORKFLOW-02: Blocking composite — createSession → runPrompt → getDiff.
+// Returns { sessionId, result, diff } in one call, replicating the canonical three-step loop.
+// On timeout: aborts the session and returns isError:true (D-05).
+// Session kept alive after completion — caller decides when to delete (D-06).
+server.registerTool(
+  'opencode_delegate',
+  {
+    description:
+      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call opencode_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded.',
+    inputSchema: z.object({
+      prompt: z.string().describe('The coding task or instruction to execute'),
+      title: z.string().optional().describe('Optional display title for the created session'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+      model: z
+        .object({ providerID: z.string(), modelID: z.string() })
+        .optional()
+        .describe('Override the model for this call. Both providerID and modelID required together.'),
+      agent: z.string().optional().describe('Override the agent for this call.'),
+      system: z.string().optional().describe('Override the system prompt for this call.'),
+    }),
+  },
+  async ({ prompt, title, directory, model, agent, system }) => {
+    const dir = resolveDirectory(directory);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    let sessionId: string | undefined;
+    try {
+      const session = await createSession(client, title, dir);
+      sessionId = session.id;
+      const result = await runPrompt(client, sessionId, prompt, { model, agent, system }, dir, controller.signal);
+      clearTimeout(timer);
+      const diff = await getDiff(client, sessionId, undefined, dir);
+      return { content: [{ type: 'text', text: JSON.stringify({ sessionId, result, diff }) }] };
+    } catch (err) {
+      clearTimeout(timer);
+      if ((err as Error).name === 'AbortError' && sessionId) {
+        await client.session.abort({ path: { id: sessionId } }).catch(() => {});
+        return {
+          content: [{ type: 'text', text: `opencode_delegate timed out after ${TIMEOUT_MS / 1000}s — session ${sessionId} aborted` }],
+          isError: true,
+        };
+      }
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// WORKFLOW-03: Non-blocking composite — createSession → promptAsync → return { sessionId }.
+// Returns immediately; session runs in background. Use opencode_await or
+// opencode_inspect to track progress. Same model/agent/system fields as opencode_run.
+server.registerTool(
+  'opencode_dispatch',
+  {
+    description:
+      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use opencode_await to poll for completion or opencode_inspect to check status.',
+    inputSchema: z.object({
+      prompt: z.string().describe('The coding task or instruction to execute'),
+      title: z.string().optional().describe('Optional display title for the created session'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
+      model: z
+        .object({ providerID: z.string(), modelID: z.string() })
+        .optional()
+        .describe('Override the model for this call. Both providerID and modelID required together.'),
+      agent: z.string().optional().describe('Override the agent for this call.'),
+      system: z.string().optional().describe('Override the system prompt for this call.'),
+    }),
+  },
+  async ({ prompt, title, directory, model, agent, system }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const session = await createSession(client, title, dir);
+      const { error } = await client.session.promptAsync({
+        path: { id: session.id },
+        body: {
+          parts: [{ type: 'text', text: prompt }],
+          ...(model ? { model } : {}),
+          ...(agent ? { agent } : {}),
+          ...(system ? { system } : {}),
+        },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify({ sessionId: session.id }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
