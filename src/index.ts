@@ -33,13 +33,14 @@ server.registerTool(
     description: 'Create a new OpenCode coding session. Returns the Session object including the session id (ULID) used by all other tools. Pass directory to pin the session to a specific project root — required when OpenCode serves multiple projects from a single running instance.',
     inputSchema: z.object({
       title: z.string().optional().describe('Optional display title for the session'),
+      parentID: z.string().optional().describe('Optional parent session ID — creates this session as a child of the given parent for hierarchy tracking.'),
       directory: z.string().optional().describe('Absolute path to the project root for this session. Defaults to the directory OpenCode was started from.'),
     }),
   },
-  async ({ title, directory }) => {
+  async ({ title, parentID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const session = await createSession(client, title, dir);
+      const session = await createSession(client, title, dir, parentID);
       return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -100,14 +101,42 @@ server.registerTool(
       agent: z.string().optional().describe('Override the agent for this single call.'),
       // RUN-03: system prompt override
       system: z.string().optional().describe('Override the system prompt for this single call.'),
+      // RUN-05: tools override — CRITICAL: record (Map<string, boolean>), NOT array of strings
+      tools: z.record(z.string(), z.boolean()).optional()
+        .describe('Override enabled tools for this call. Map of tool ID to boolean enable/disable flag. Example: { "bash": true, "edit": false }'),
+      // RUN-06: file attachments — FilePartInput shape (use file:// URIs for local files)
+      files: z.array(z.object({
+        type: z.literal('file'),
+        mime: z.string(),
+        filename: z.string().optional(),
+        url: z.string(),
+      })).optional()
+        .describe('File attachments to include as context. Each file requires mime type and url (use file:// URIs for local paths).'),
+      // RUN-07: message resume
+      messageID: z.string().optional()
+        .describe('Resume the session from this message ID rather than appending to the end.'),
+      // RUN-08: structured agent part input (distinct from the top-level agent string override)
+      agentInput: z.object({
+        type: z.literal('agent'),
+        name: z.string(),
+      }).optional()
+        .describe('Structured agent part input — specify the agent name for this prompt. Distinct from the top-level agent string override.'),
+      // RUN-08: structured subtask part input
+      subtaskInput: z.object({
+        type: z.literal('subtask'),
+        prompt: z.string(),
+        description: z.string(),
+        agent: z.string(),
+      }).optional()
+        .describe('Structured subtask part input — delegate a subtask to a specific agent.'),
     }),
   },
-  async ({ sessionId, prompt, directory, model, agent, system }) => {
+  async ({ sessionId, prompt, directory, model, agent, system, tools, files, messageID, agentInput, subtaskInput }) => {
     const dir = resolveDirectory(directory);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const result = await runPrompt(client, sessionId, prompt, { model, agent, system }, dir, controller.signal);
+      const result = await runPrompt(client, sessionId, prompt, { model, agent, system, tools, files, messageID, agentInput, subtaskInput }, dir, controller.signal);
       clearTimeout(timer);
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (err) {
@@ -150,18 +179,53 @@ server.registerTool(
         .describe('Override the model for this single call. Both providerID and modelID are required together.'),
       agent: z.string().optional().describe('Override the agent for this single call.'),
       system: z.string().optional().describe('Override the system prompt for this single call.'),
+      // RUN-05: tools override — CRITICAL: record (Map<string, boolean>), NOT array of strings
+      tools: z.record(z.string(), z.boolean()).optional()
+        .describe('Override enabled tools for this call. Map of tool ID to boolean enable/disable flag. Example: { "bash": true, "edit": false }'),
+      // RUN-06: file attachments — FilePartInput shape (use file:// URIs for local files)
+      files: z.array(z.object({
+        type: z.literal('file'),
+        mime: z.string(),
+        filename: z.string().optional(),
+        url: z.string(),
+      })).optional()
+        .describe('File attachments to include as context. Each file requires mime type and url (use file:// URIs for local paths).'),
+      // RUN-07: message resume
+      messageID: z.string().optional()
+        .describe('Resume the session from this message ID rather than appending to the end.'),
+      // RUN-08: structured agent part input (distinct from the top-level agent string override)
+      agentInput: z.object({
+        type: z.literal('agent'),
+        name: z.string(),
+      }).optional()
+        .describe('Structured agent part input — specify the agent name for this prompt. Distinct from the top-level agent string override.'),
+      // RUN-08: structured subtask part input
+      subtaskInput: z.object({
+        type: z.literal('subtask'),
+        prompt: z.string(),
+        description: z.string(),
+        agent: z.string(),
+      }).optional()
+        .describe('Structured subtask part input — delegate a subtask to a specific agent.'),
     }),
   },
-  async ({ sessionId, prompt, directory, model, agent, system }) => {
+  async ({ sessionId, prompt, directory, model, agent, system, tools, files, messageID, agentInput, subtaskInput }) => {
     const dir = resolveDirectory(directory);
     try {
       const { error } = await client.session.promptAsync({
         path: { id: sessionId },
         body: {
-          parts: [{ type: 'text', text: prompt }],
+          parts: [
+            { type: 'text', text: prompt },
+            ...(files ?? []),
+            ...(agentInput ? [agentInput] : []),
+            ...(subtaskInput ? [subtaskInput] : []),
+          ],
           ...(model ? { model } : {}),
           ...(agent ? { agent } : {}),
           ...(system ? { system } : {}),
+          ...(tools ? { tools } : {}),
+          ...(messageID ? { messageID } : {}),
         },
         query: dir ? { directory: dir } : undefined,
       });
