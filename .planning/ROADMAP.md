@@ -198,7 +198,11 @@ Plans:
   7. `examples/test-task.md` validation prompt uses `prefect_*` tool names
   8. All `OPENCODE_*` env vars are renamed to `PREFECT_*` across every `*.ts`, `*.md`, and test file: `OPENCODE_URL` → `PREFECT_SERVER_URL`, `OPENCODE_SERVER_PASSWORD` → `PREFECT_SERVER_PASSWORD`, `OPENCODE_SERVER_USERNAME` → `PREFECT_SERVER_USERNAME`, `OPENCODE_DEFAULT_PROJECT` → `PREFECT_DEFAULT_PROJECT`; `PREFECT_TIMEOUT_MS` and `PREFECT_AUTOSTART_TIMEOUT_MS` are unchanged
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Code rename (opencode_* → prefect_*) in src/*.ts + env var soft migration in src/index.ts, src/auth.ts, src/config.ts, src/autostart.ts + test files updated to PREFECT_* names + package.json publishing fields with dual bin entries; gate: `npm test` passes (DIST-01, DIST-02, DIST-03, DIST-07, DIST-08, DIST-12)
+- [ ] 09-02-PLAN.md — Docs rename (CLAUDE.md, README.md, examples/test-task.md) + add directory-arg instruction to CLAUDE.md canonical loop + add global install pathway to README + global install detection in src/cli.ts + `npm pack --dry-run` verification (DIST-04, DIST-05, DIST-06, DIST-07, DIST-09, DIST-10, DIST-11, DIST-12)
 
 ---
 
@@ -214,4 +218,4 @@ Plans:
 | 6. Auth + Auto-start | v3.0 | 0/3 | Not started | — |
 | 7. Composite Tools | v3.0 | 0/2 | Not started | — |
 | 8. Read-only API Wrappers | v3.0 | 0/1 | Not started | — |
-| 9. npm Distribution | v3.0 | 0/? | Not started | — |
+| 9. npm Distribution | v3.0 | 0/2 | Not started | — |
