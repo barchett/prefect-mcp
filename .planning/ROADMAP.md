@@ -33,7 +33,7 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
 - [x] **Phase 5: Directory Infrastructure** — `resolveDirectory()` helper + directory param on all 18 existing tools + `OPENCODE_DEFAULT_PROJECT` env var (completed 2026-04-28)
 - [ ] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling
 - [ ] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await
-- [ ] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol
+- [x] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol (completed 2026-04-28)
 - [ ] **Phase 9: npm Distribution** — tool rename (`opencode_*` → `prefect_*`), env var rename (`OPENCODE_*` → `PREFECT_*`), package.json fields, pack verification, global install pathway, README + CLAUDE.md docs
 
 ---
@@ -176,7 +176,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md — Three read-only tools registered in src/index.ts: opencode_list_agents, opencode_list_providers, opencode_find_symbol (API-01, API-02, API-03)
+- [x] 08-01-PLAN.md — Three read-only tools registered in src/index.ts: opencode_list_agents, opencode_list_providers, opencode_find_symbol (API-01, API-02, API-03)
 
 ---
 
