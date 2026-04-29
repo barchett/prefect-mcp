@@ -21,7 +21,7 @@ const server = new McpServer({ name: 'prefect', version: '1.0.0' });
 
 // CORE-01: Create a new OpenCode session
 server.registerTool(
-  'opencode_create_session',
+  'prefect_create_session',
   {
     description: 'Create a new OpenCode coding session. Returns the Session object including the session id (ULID) used by all other tools. Pass directory to pin the session to a specific project root — required when OpenCode serves multiple projects from a single running instance.',
     inputSchema: z.object({
@@ -42,11 +42,11 @@ server.registerTool(
 
 // CORE-07: Abort a running session
 server.registerTool(
-  'opencode_abort',
+  'prefect_abort',
   {
     description: 'Abort a running OpenCode session. Returns true on success.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID returned from opencode_create_session'),
+      sessionId: z.string().describe('Session ID returned from prefect_create_session'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -73,12 +73,12 @@ server.registerTool(
 // OpenCode after we gave up on it). Response parts are validated against
 // PartSchema and returned as a structured { info, parts } payload.
 server.registerTool(
-  'opencode_run',
+  'prefect_run',
   {
     description:
       'Send a prompt to an OpenCode session and block until the agent finishes. Returns { info: AssistantMessage, parts: Part[] } as JSON. Optional model/agent/system override the session defaults for this single call. May take seconds to minutes depending on task complexity.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID from opencode_create_session'),
+      sessionId: z.string().describe('Session ID from prefect_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
       directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
       // RUN-01: model override — both providerID AND modelID required together
@@ -110,7 +110,7 @@ server.registerTool(
           content: [
             {
               type: 'text',
-              text: `opencode_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`,
+              text: `prefect_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`,
             },
           ],
           isError: true,
@@ -122,16 +122,16 @@ server.registerTool(
 );
 
 // RUN-04: Fire-and-forget prompt — POST /session/:id/prompt_async returns 204 void.
-// Same body shape as opencode_run (model/agent/system supported) but no timeout
-// because the API returns immediately. Use opencode_session_status to poll for
+// Same body shape as prefect_run (model/agent/system supported) but no timeout
+// because the API returns immediately. Use prefect_session_status to poll for
 // completion.
 server.registerTool(
-  'opencode_prompt_async',
+  'prefect_prompt_async',
   {
     description:
-      'Send a prompt to an OpenCode session and return immediately without waiting for the agent to finish. Returns { sessionId, accepted: true } on success. Use opencode_session_status to poll for completion, then opencode_session_messages or opencode_get_diff to retrieve results.',
+      'Send a prompt to an OpenCode session and return immediately without waiting for the agent to finish. Returns { sessionId, accepted: true } on success. Use prefect_session_status to poll for completion, then prefect_session_messages or prefect_get_diff to retrieve results.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID from opencode_create_session'),
+      sessionId: z.string().describe('Session ID from prefect_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
       directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
       model: z
@@ -172,7 +172,7 @@ server.registerTool(
 
 // CORE-03: Get the file diff for a session (or for a specific message)
 server.registerTool(
-  'opencode_get_diff',
+  'prefect_get_diff',
   {
     description: 'Get the file diff for an OpenCode session. Returns an array of FileDiff objects (file, before, after, additions, deletions). If messageID is provided, returns the diff for that message; otherwise returns the diff for the session.',
     inputSchema: z.object({
@@ -196,7 +196,7 @@ server.registerTool(
 // NOTE: REQUIREMENTS.md says allow/deny/allow_always — that's WRONG.
 // The OpenCode API enum is "once" | "always" | "reject" (verified from @opencode-ai/sdk types).
 server.registerTool(
-  'opencode_approve_permission',
+  'prefect_approve_permission',
   {
     description: 'Respond to an OpenCode permission request. once = approve this request only; always = approve similar future requests; reject = deny.',
     inputSchema: z.object({
@@ -227,7 +227,7 @@ server.registerTool(
 
 // CORE-05: Fork a session (escape hatch for corrupted sessions)
 server.registerTool(
-  'opencode_fork',
+  'prefect_fork',
   {
     description: 'Fork an OpenCode session, optionally at a specific message. Returns a new Session. Use this as an escape hatch when a session has gone off the rails.',
     inputSchema: z.object({
@@ -254,7 +254,7 @@ server.registerTool(
 
 // CORE-06: Revert a session to a prior message
 server.registerTool(
-  'opencode_revert',
+  'prefect_revert',
   {
     description: 'Revert an OpenCode session to a prior message. messageID is required. Optionally scope to a specific part of that message via partID.',
     inputSchema: z.object({
@@ -282,7 +282,7 @@ server.registerTool(
 
 // SESSION-01: List all OpenCode sessions
 server.registerTool(
-  'opencode_session_list',
+  'prefect_session_list',
   {
     description: 'List all OpenCode sessions. Returns an array of Session objects each with id, title, directory, time.created, time.updated, and optional summary/share/revert fields. Pass directory to filter sessions by project root.',
     inputSchema: z.object({
@@ -305,7 +305,7 @@ server.registerTool(
 
 // SESSION-02: Fetch a single OpenCode session by ID
 server.registerTool(
-  'opencode_session_get',
+  'prefect_session_get',
   {
     description: 'Fetch a single OpenCode session by ID. Returns the full Session object including id, title, directory, parentID (if forked), and revert state.',
     inputSchema: z.object({
@@ -330,9 +330,9 @@ server.registerTool(
 
 // SESSION-03: Get real-time status of ALL active sessions (global endpoint — no sessionId param)
 server.registerTool(
-  'opencode_session_status',
+  'prefect_session_status',
   {
-    description: 'Get the real-time status of all active OpenCode sessions. Returns a map of sessionID → SessionStatus where status is one of: { type: "idle" }, { type: "busy" }, or { type: "retry", attempt, message, next }. Use this before calling opencode_run to verify the target session is idle and not still processing a previous prompt.',
+    description: 'Get the real-time status of all active OpenCode sessions. Returns a map of sessionID → SessionStatus where status is one of: { type: "idle" }, { type: "busy" }, or { type: "retry", attempt, message, next }. Use this before calling prefect_run to verify the target session is idle and not still processing a previous prompt.',
     inputSchema: z.object({
       directory: z.string().optional().describe('Optional directory filter'),
     }),
@@ -353,7 +353,7 @@ server.registerTool(
 
 // SESSION-04: Retrieve message history for a session (limit = most-recent-N, no cursor)
 server.registerTool(
-  'opencode_session_messages',
+  'prefect_session_messages',
   {
     description: 'Retrieve the message history for an OpenCode session. Each message includes an info object (UserMessage or AssistantMessage) and a parts array (TextPart, ToolPart, PatchPart, etc.). Use limit to cap the number of messages returned — this returns the most recent N messages only; there is no cursor or offset. Omit limit to return all messages.',
     inputSchema: z.object({
@@ -381,7 +381,7 @@ server.registerTool(
 
 // SESSION-05: Fetch a single message by ID within a session
 server.registerTool(
-  'opencode_session_message',
+  'prefect_session_message',
   {
     description: 'Fetch a single message by ID within an OpenCode session. Returns the message info and all its parts (TextPart, ToolPart, PatchPart, etc.).',
     inputSchema: z.object({
@@ -407,9 +407,9 @@ server.registerTool(
 
 // SESSION-06: Delete a session permanently (irreversible)
 server.registerTool(
-  'opencode_session_delete',
+  'prefect_session_delete',
   {
-    description: 'Delete an OpenCode session and all its data permanently. Returns true on success. WARNING: this is irreversible — all messages, parts, and session history will be deleted. Consider using opencode_session_rename to archive instead of deleting.',
+    description: 'Delete an OpenCode session and all its data permanently. Returns true on success. WARNING: this is irreversible — all messages, parts, and session history will be deleted. Consider using prefect_session_rename to archive instead of deleting.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID to delete'),
       directory: z.string().optional().describe('Optional directory filter'),
@@ -432,7 +432,7 @@ server.registerTool(
 
 // SESSION-07: Rename a session — MCP tool is "rename" but SDK method is client.session.update()
 server.registerTool(
-  'opencode_session_rename',
+  'prefect_session_rename',
   {
     description: 'Rename an OpenCode session. Returns the full updated Session object.',
     inputSchema: z.object({
@@ -459,9 +459,9 @@ server.registerTool(
 
 // SESSION-08: List child sessions forked from a parent session
 server.registerTool(
-  'opencode_session_children',
+  'prefect_session_children',
   {
-    description: 'List all child sessions forked from this session. Returns an empty array if no forks have been made from this session. Use opencode_fork to create child sessions.',
+    description: 'List all child sessions forked from this session. Returns an empty array if no forks have been made from this session. Use prefect_fork to create child sessions.',
     inputSchema: z.object({
       sessionId: z.string().describe('Parent session ID — must be a session that was previously forked from'),
       directory: z.string().optional().describe('Optional directory filter'),
@@ -484,9 +484,9 @@ server.registerTool(
 
 // SESSION-09: Undo a prior revert — NO body (SessionUnrevertData.body is typed never)
 server.registerTool(
-  'opencode_session_unrevert',
+  'prefect_session_unrevert',
   {
-    description: 'Restore all messages removed by a prior opencode_revert — undo the revert. Only valid if the session is in a reverted state (Session.revert field is non-null). Returns the updated Session object with the revert field cleared.',
+    description: 'Restore all messages removed by a prior prefect_revert — undo the revert. Only valid if the session is in a reverted state (Session.revert field is non-null). Returns the updated Session object with the revert field cleared.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID to unrevert — must have been previously reverted'),
       directory: z.string().optional().describe('Optional directory filter'),
@@ -509,13 +509,13 @@ server.registerTool(
 );
 
 // CMD-01: Run a slash command inside an OpenCode session (e.g. /compact, /clear).
-// Calls POST /session/:id/command. Same response shape as opencode_run:
+// Calls POST /session/:id/command. Same response shape as prefect_run:
 // { info: AssistantMessage, parts: Part[] }. Note that `model` here is a plain
 // string (e.g. "anthropic/claude-3-5-sonnet"), NOT a { providerID, modelID }
 // object — this is deliberate; the OpenCode command endpoint accepts a single
 // model string, unlike the prompt endpoint.
 server.registerTool(
-  'opencode_session_command',
+  'prefect_session_command',
   {
     description:
       'Run a slash command inside an OpenCode session (e.g. compact, clear). Returns { info: AssistantMessage, parts: Part[] } as JSON. Use this for session-level operations that have no equivalent SDK method.',
@@ -559,10 +559,10 @@ server.registerTool(
 // On timeout: aborts the session and returns isError:true (D-05).
 // Session kept alive after completion — caller decides when to delete (D-06).
 server.registerTool(
-  'opencode_delegate',
+  'prefect_delegate',
   {
     description:
-      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call opencode_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded.',
+      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call prefect_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded.',
     inputSchema: z.object({
       prompt: z.string().describe('The coding task or instruction to execute'),
       title: z.string().optional().describe('Optional display title for the created session'),
@@ -595,7 +595,7 @@ server.registerTool(
           await client.session.abort({ path: { id: sessionId } }).catch(() => {});
         }
         return {
-          content: [{ type: 'text', text: `opencode_delegate timed out after ${TIMEOUT_MS / 1000}s${sessionId ? ` — session ${sessionId} aborted` : ' — during session creation'}` }],
+          content: [{ type: 'text', text: `prefect_delegate timed out after ${TIMEOUT_MS / 1000}s${sessionId ? ` — session ${sessionId} aborted` : ' — during session creation'}` }],
           isError: true,
         };
       }
@@ -605,13 +605,13 @@ server.registerTool(
 );
 
 // WORKFLOW-03: Non-blocking composite — createSession → promptAsync → return { sessionId }.
-// Returns immediately; session runs in background. Use opencode_await or
-// opencode_inspect to track progress. Same model/agent/system fields as opencode_run.
+// Returns immediately; session runs in background. Use prefect_await or
+// prefect_inspect to track progress. Same model/agent/system fields as prefect_run.
 server.registerTool(
-  'opencode_dispatch',
+  'prefect_dispatch',
   {
     description:
-      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use opencode_await to poll for completion or opencode_inspect to check status.',
+      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use prefect_await to poll for completion or prefect_inspect to check status.',
     inputSchema: z.object({
       prompt: z.string().describe('The coding task or instruction to execute'),
       title: z.string().optional().describe('Optional display title for the created session'),
@@ -651,10 +651,10 @@ server.registerTool(
 // session.todo() (requires path.id), session.diff() (mapped to { file, additions, deletions }
 // only — no patch content per D-10).
 server.registerTool(
-  'opencode_inspect',
+  'prefect_inspect',
   {
     description:
-      'Return a compact snapshot { status, todos, changedFiles } for a session. Faster than fetching full message history. changedFiles contains { file, additions, deletions } — use opencode_get_diff for full patch content.',
+      'Return a compact snapshot { status, todos, changedFiles } for a session. Faster than fetching full message history. changedFiles contains { file, additions, deletions } — use prefect_get_diff for full patch content.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID to inspect'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
@@ -692,12 +692,12 @@ server.registerTool(
 // Undefined status entry (session not in map) is treated as idle — OpenCode may have
 // already completed and removed the session from the status map before first poll.
 server.registerTool(
-  'opencode_await',
+  'prefect_await',
   {
     description:
-      'Poll a dispatched session until it reaches idle state, then return { result: { info, parts }, diff }. Use after opencode_dispatch. Accepts pollIntervalMs (default 2000) and timeoutMs (default PREFECT_TIMEOUT_MS).',
+      'Poll a dispatched session until it reaches idle state, then return { result: { info, parts }, diff }. Use after prefect_dispatch. Accepts pollIntervalMs (default 2000) and timeoutMs (default PREFECT_TIMEOUT_MS).',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID from opencode_dispatch'),
+      sessionId: z.string().describe('Session ID from prefect_dispatch'),
       pollIntervalMs: z.number().int().positive().optional().describe('Milliseconds between status polls. Default: 2000.'),
       timeoutMs: z.number().int().positive().optional().describe('Maximum milliseconds to wait. Default: PREFECT_TIMEOUT_MS env var (default 120000).'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
@@ -716,7 +716,7 @@ server.registerTool(
         if (!statusEntry || statusEntry.type === 'idle') break;
         if (Date.now() >= deadline) {
           return {
-            content: [{ type: 'text', text: JSON.stringify({ error: `opencode_await timed out after ${timeoutMs}ms`, sessionId }) }],
+            content: [{ type: 'text', text: JSON.stringify({ error: `prefect_await timed out after ${timeoutMs}ms`, sessionId }) }],
             isError: true,
           };
         }
@@ -729,16 +729,16 @@ server.registerTool(
       ]);
       if (messagesResult.error) throw new Error(JSON.stringify(messagesResult.error));
       if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
-      // D-12: find last assistant message — same shape as opencode_run result
+      // D-12: find last assistant message — same shape as prefect_run result
       const msgs = messagesResult.data ?? [];
       const last = [...msgs].reverse().find((m) => (m.info as { role?: string }).role === 'assistant');
-      if (!last) throw new Error('opencode_await: no assistant message found in session after idle');
+      if (!last) throw new Error('prefect_await: no assistant message found in session after idle');
       const validatedParts = PartSchema.array().parse(last.parts);
       const diff = (diffResult.data ?? []).map((d) => ({
         ...d,
         patch: createPatch(d.file, d.before, d.after),
       }));
-      // D-13: return shape matches opencode_delegate for easy substitution
+      // D-13: return shape matches prefect_delegate for easy substitution
       return { content: [{ type: 'text', text: JSON.stringify({ result: { info: last.info, parts: validatedParts }, diff }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -748,9 +748,9 @@ server.registerTool(
 
 // API-01: List OpenCode agents (Phase 8)
 server.registerTool(
-  'opencode_list_agents',
+  'prefect_list_agents',
   {
-    description: 'List the agents available in the connected OpenCode instance. Returns Array<{ name, description?, mode }>. Use the returned name (e.g. "build", "general") as the agent param when calling opencode_run. Pass directory to scope to a specific project root.',
+    description: 'List the agents available in the connected OpenCode instance. Returns Array<{ name, description?, mode }>. Use the returned name (e.g. "build", "general") as the agent param when calling prefect_run. Pass directory to scope to a specific project root.',
     inputSchema: z.object({
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
@@ -776,9 +776,9 @@ server.registerTool(
 
 // API-02: List OpenCode providers and their models (Phase 8)
 server.registerTool(
-  'opencode_list_providers',
+  'prefect_list_providers',
   {
-    description: 'List the providers configured in the connected OpenCode instance and their available models. Returns Array<{ id, name, models: Array<{ id, name }> }>. Use returned provider.id + model.id as providerID/modelID params for opencode_run. Pass directory to scope to a specific project root.',
+    description: 'List the providers configured in the connected OpenCode instance and their available models. Returns Array<{ id, name, models: Array<{ id, name }> }>. Use returned provider.id + model.id as providerID/modelID params for prefect_run. Pass directory to scope to a specific project root.',
     inputSchema: z.object({
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
@@ -804,7 +804,7 @@ server.registerTool(
 
 // API-03: Find workspace symbols by query (Phase 8)
 server.registerTool(
-  'opencode_find_symbol',
+  'prefect_find_symbol',
   {
     description: 'Search the OpenCode workspace for symbols matching a query string (e.g. function or class names). Returns Array<{ name, kind, path, range }> where path is project-root-relative when a directory is resolved (via directory param or OPENCODE_DEFAULT_PROJECT), absolute otherwise. kind is the LSP SymbolKind number.',
     inputSchema: z.object({
