@@ -112,9 +112,9 @@ server.registerTool(
         url: z.string(),
       })).optional()
         .describe('File attachments to include as context. Each file requires mime type and url (use file:// URIs for local paths).'),
-      // RUN-07: message resume
+      // RUN-07: message ID assignment (idempotency key for user message creation)
       messageID: z.string().optional()
-        .describe('Resume the session from this message ID rather than appending to the end.'),
+        .describe('Assign a specific ID to the new user message being created. If a message with this ID already exists in the session, OpenCode returns the cached response (idempotency — useful for safe retries). Omit to auto-generate. For branching a conversation at a prior message point, use prefect_fork instead.'),
       // RUN-08: structured agent part input (distinct from the top-level agent string override)
       agentInput: z.object({
         type: z.literal('agent'),
@@ -190,9 +190,9 @@ server.registerTool(
         url: z.string(),
       })).optional()
         .describe('File attachments to include as context. Each file requires mime type and url (use file:// URIs for local paths).'),
-      // RUN-07: message resume
+      // RUN-07: message ID assignment (idempotency key for user message creation)
       messageID: z.string().optional()
-        .describe('Resume the session from this message ID rather than appending to the end.'),
+        .describe('Assign a specific ID to the new user message being created. If a message with this ID already exists in the session, OpenCode returns the cached response (idempotency — useful for safe retries). Omit to auto-generate. For branching a conversation at a prior message point, use prefect_fork instead.'),
       // RUN-08: structured agent part input (distinct from the top-level agent string override)
       agentInput: z.object({
         type: z.literal('agent'),

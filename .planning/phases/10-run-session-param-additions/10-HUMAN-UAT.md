@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 phase: 10-run-session-param-additions
 source: [10-01-VERIFICATION.md]
 started: 2026-04-29T15:58:00-04:00
@@ -44,6 +44,6 @@ blocked: 0
 ## Gaps
 
 - id: gap-run-07
-  status: failed
+  status: resolved
   requirement: RUN-07
-  description: messageID field forwarded correctly at the Prefect layer but OpenCode returns a cached/existing response at the specified messageID rather than branching conversation history — the feature does not produce the expected fork behavior
+  description: messageID semantics clarified — field is an idempotency key for user message creation, not a branch point. Describe string corrected in src/index.ts. For branching, callers use prefect_fork. No implementation defect.

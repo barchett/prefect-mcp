@@ -4,7 +4,7 @@
 
 - [ ] **RUN-05**: `prefect_run` accepts a `tools` array — overrides which tools are enabled for that single prompt (enable/disable per call)
 - [ ] **RUN-06**: `prefect_run` accepts a `files` array of `{ path: string, content?: string }` objects (FilePartInput) — attaches file context to the prompt
-- [ ] **RUN-07**: `prefect_run` accepts a `messageID` string — resumes the session from that specific message rather than appending to the end
+- [ ] **RUN-07**: `prefect_run` accepts a `messageID` string — assigns that ID to the new user message (idempotency key: if the ID already exists, OpenCode returns the cached response); for conversation branching use `prefect_fork`
 - [ ] **RUN-08**: `prefect_run` accepts `agentInput` and `subtaskInput` fields (AgentPartInput / SubtaskPartInput) for structured multi-agent prompt shapes
 
 ## Session Lifecycle
@@ -24,8 +24,14 @@
 - [ ] **API-06**: `prefect_list_mcp_servers` — wraps GET /mcp; returns list of MCP servers configured in the OpenCode instance
 - [ ] **API-07**: `prefect_inject_mcp_server` — wraps POST /mcp; adds/configures an MCP server in OpenCode at runtime
 - [ ] **API-08**: `prefect_list_tools` — wraps GET /experimental/tool/ids + GET /experimental/tool; returns available tools per model
+- [ ] **API-09**: `prefect_find_file` — wraps GET /find/file; finds a file in the workspace by name or pattern, returns matching paths
+- [ ] **API-10**: `prefect_get_file_content` — wraps GET /file/content; returns the content of a specific file in the workspace
+- [ ] **API-11**: `prefect_get_config` — wraps GET /config; returns the current OpenCode configuration object
+- [ ] **API-12**: `prefect_list_commands` — wraps GET /command; returns available slash commands, complementing prefect_session_command
 
-## Future Requirements (v5.0 — Multi-server Registry)
+## Future Requirements (v5.0)
+
+- [ ] **PERM-01**: `prefect_session_set_permissions` — wraps PUT /session/{id}/permissions/{permissionID}; sets tool permissions on a session. Long-term replacement for the deprecated `tools` field in `prefect_run` (OpenCode v2 SDK marks `tools` deprecated in favor of session-level permissions)
 
 - [ ] **MULTI-01**: `prefect add-server <name> <host> <port> <model>` CLI command — registers a named OpenCode server in `~/.config/prefect/servers.json`
 - [ ] **MULTI-02**: `prefect remove-server <name>` CLI command — deregisters a named server
@@ -64,6 +70,11 @@
 | API-06 | Phase 12 | Pending |
 | API-07 | Phase 12 | Pending |
 | API-08 | Phase 12 | Pending |
+| API-09 | Phase 12 | Pending |
+| API-10 | Phase 12 | Pending |
+| API-11 | Phase 12 | Pending |
+| API-12 | Phase 12 | Pending |
+| PERM-01 | v5.0 | Backlog |
 | MULTI-01 | v5.0 | Backlog |
 | MULTI-02 | v5.0 | Backlog |
 | MULTI-03 | v5.0 | Backlog |

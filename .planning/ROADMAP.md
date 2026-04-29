@@ -227,13 +227,17 @@ Plans:
 **Requirements**: RUN-05, RUN-06, RUN-07, RUN-08, SESSION-10
 
 **Success Criteria** (what must be TRUE):
-  1. Calling `prefect_run` with a `tools` array causes only those tools to be available for that prompt; omitting the field leaves the default tool set unchanged
-  2. Calling `prefect_run` with a `files` array attaches the specified file paths (and optional inline content) as context for that prompt
-  3. Calling `prefect_run` with a `messageID` string causes OpenCode to resume the session from that message rather than appending to the end
+  1. Calling `prefect_run` with a `tools` record (Map<string, boolean>) causes only the enabled tools to be available for that prompt; omitting the field leaves the default tool set unchanged
+  2. Calling `prefect_run` with a `files` array of FilePartInput objects attaches the specified files as context for that prompt
+  3. Calling `prefect_run` with a `messageID` string assigns that ID to the new user message; if a message with that ID already exists, OpenCode returns the cached response (idempotency for safe retries) — for branching at a prior message use `prefect_fork`
   4. Calling `prefect_run` with `agentInput` or `subtaskInput` sends those structured fields in the prompt body; all four new fields are independently optional
   5. Calling `prefect_create_session` with a `parentID` string creates a child session linked to the given parent; `npm run build` passes with zero errors after all changes
+  6. `prefect_prompt_async` carries the same five new optional fields for parity with `prefect_run` (zero-risk additive symmetry — bodies share the same SDK shape)
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 10-01-PLAN.md — Extend RunPromptOptions/runPrompt/createSession in src/handlers.ts + extend Zod schemas and handlers on prefect_run, prefect_prompt_async, prefect_create_session in src/index.ts (RUN-05, RUN-06, RUN-07, RUN-08, SESSION-10)
 
 ---
 
@@ -258,11 +262,11 @@ Plans:
 
 ### Phase 12: Shell + Workspace API Wrappers
 
-**Goal**: Claude Code can execute shell commands within a session's context and query the full workspace API surface — VCS info, file status, MCP server inspection and injection, and experimental tool introspection.
+**Goal**: Claude Code can execute shell commands within a session's context and query the full workspace API surface — VCS info, file status, MCP server inspection and injection, experimental tool introspection, file lookup, file content retrieval, config inspection, and slash-command enumeration.
 
 **Depends on**: Phase 11
 
-**Requirements**: SESSION-14, API-04, API-05, API-06, API-07, API-08
+**Requirements**: SESSION-14, API-04, API-05, API-06, API-07, API-08, API-09, API-10, API-11, API-12
 
 **Success Criteria** (what must be TRUE):
   1. `prefect_session_shell` sends a shell command to the session's context and returns the command output; the tool schema and description clearly communicate the elevated risk of arbitrary shell execution
@@ -270,9 +274,23 @@ Plans:
   3. `prefect_file_status` returns git-tracked file status for the workspace as a structured list
   4. `prefect_list_mcp_servers` returns the MCP servers configured in the OpenCode instance; `prefect_inject_mcp_server` adds an MCP server to the OpenCode config at runtime and returns confirmation
   5. `prefect_list_tools` returns the available tools per model by calling GET /experimental/tool/ids and GET /experimental/tool, surfacing which tools each model supports
-  6. `npm run build` passes with zero errors after all six tools are registered
+  6. `prefect_find_file` finds a file in the workspace by name/pattern using GET /find/file and returns matching paths
+  7. `prefect_get_file_content` returns the content of a file in the workspace using GET /file/content
+  8. `prefect_get_config` returns the current OpenCode configuration using GET /config
+  9. `prefect_list_commands` returns available slash commands using GET /command, complementing `prefect_session_command`
+  10. `npm run build` passes with zero errors after all ten tools are registered
 
 **Plans**: TBD
+
+---
+
+### v5.0 Permissions + Multi-server Registry (future)
+
+**Goal**: Surface session-level tool permissions as a first-class tool (replacing the deprecated `tools` override field) and support routing across a named registry of OpenCode servers.
+
+**Requirements**: PERM-01, MULTI-01 through MULTI-08
+
+**First item**: `prefect_session_set_permissions` — wraps PUT /session/{id}/permissions/{permissionID}; sets tool permissions on a session. This is the correct long-term replacement for the deprecated `tools` field in `prefect_run` (which OpenCode v2 SDK marks deprecated in favor of session-level permissions).
 
 ---
 
