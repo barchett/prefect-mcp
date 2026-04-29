@@ -28,7 +28,7 @@ function errorFetch(delay = 0): (req: Request) => Promise<Response> {
 
 // ── Remote-host guard ────────────────────────────────────────────────────────
 
-test('ensureOpencodeRunning throws immediately for non-local OPENCODE_URL', async () => {
+test('ensureOpencodeRunning throws immediately for non-local PREFECT_SERVER_URL', async () => {
   // BASE_URL is a module-level constant read at import time, so we cannot
   // override it via process.env in this test. The remote-guard behavior is
   // covered by the dedicated ?v= isolated module instance test below.
@@ -37,8 +37,8 @@ test('ensureOpencodeRunning throws immediately for non-local OPENCODE_URL', asyn
   // requires a different BASE_URL value baked in at module init, which can
   // only be achieved via a fresh module load. All other tests use the shared
   // module instance (localhost) and _resetStartPromise() for state isolation.
-  const origUrl = process.env.OPENCODE_URL;
-  process.env.OPENCODE_URL = 'http://192.168.1.100:4096';
+  const origUrl = process.env.PREFECT_SERVER_URL;
+  process.env.PREFECT_SERVER_URL = 'http://192.168.1.100:4096';
 
   try {
     const { ensureOpencodeRunning: ensureRemote } =
@@ -55,8 +55,8 @@ test('ensureOpencodeRunning throws immediately for non-local OPENCODE_URL', asyn
       },
     );
   } finally {
-    if (origUrl === undefined) delete process.env.OPENCODE_URL;
-    else process.env.OPENCODE_URL = origUrl;
+    if (origUrl === undefined) delete process.env.PREFECT_SERVER_URL;
+    else process.env.PREFECT_SERVER_URL = origUrl;
   }
 });
 
@@ -114,8 +114,8 @@ test('ensureOpencodeRunning throws when OpenCode does not become healthy within 
 // ── authFetch integration: health poll uses authenticated fetch ───────────────
 
 test('ensureOpencodeRunning health poll uses authFetch (injects auth header when password set)', async () => {
-  const prevPw = process.env.OPENCODE_SERVER_PASSWORD;
-  process.env.OPENCODE_SERVER_PASSWORD = 'healthtest';
+  const prevPw = process.env.PREFECT_SERVER_PASSWORD;
+  process.env.PREFECT_SERVER_PASSWORD = 'healthtest';
 
   const origFetch = globalThis.fetch;
   let capturedAuth: string | null = null;
@@ -130,7 +130,7 @@ test('ensureOpencodeRunning health poll uses authFetch (injects auth header when
     assert.equal(capturedAuth, expected, 'health poll should inject Authorization header');
   } finally {
     (globalThis as unknown as Record<string, unknown>).fetch = origFetch;
-    if (prevPw === undefined) delete process.env.OPENCODE_SERVER_PASSWORD;
-    else process.env.OPENCODE_SERVER_PASSWORD = prevPw;
+    if (prevPw === undefined) delete process.env.PREFECT_SERVER_PASSWORD;
+    else process.env.PREFECT_SERVER_PASSWORD = prevPw;
   }
 });

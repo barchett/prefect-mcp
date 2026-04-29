@@ -4,51 +4,51 @@ import { buildAuthHeader, authFetch } from './auth.js';
 
 // ── buildAuthHeader tests ───────────────────────────────────────────────────
 
-test('buildAuthHeader returns {} when OPENCODE_SERVER_PASSWORD is not set', () => {
-  delete process.env.OPENCODE_SERVER_PASSWORD;
-  delete process.env.OPENCODE_SERVER_USERNAME;
+test('buildAuthHeader returns {} when PREFECT_SERVER_PASSWORD is not set', () => {
+  delete process.env.PREFECT_SERVER_PASSWORD;
+  delete process.env.PREFECT_SERVER_USERNAME;
   const result = buildAuthHeader();
   assert.deepEqual(result, {});
 });
 
-test('buildAuthHeader returns Authorization header when OPENCODE_SERVER_PASSWORD is set', () => {
-  const prev = process.env.OPENCODE_SERVER_PASSWORD;
-  process.env.OPENCODE_SERVER_PASSWORD = 'secret';
-  delete process.env.OPENCODE_SERVER_USERNAME;
+test('buildAuthHeader returns Authorization header when PREFECT_SERVER_PASSWORD is set', () => {
+  const prev = process.env.PREFECT_SERVER_PASSWORD;
+  process.env.PREFECT_SERVER_PASSWORD = 'secret';
+  delete process.env.PREFECT_SERVER_USERNAME;
   try {
     const result = buildAuthHeader();
     // Buffer.from('opencode:secret').toString('base64') === 'b3BlbmNvZGU6c2VjcmV0'
     const expected = Buffer.from('opencode:secret').toString('base64');
     assert.deepEqual(result, { Authorization: `Basic ${expected}` });
   } finally {
-    if (prev === undefined) delete process.env.OPENCODE_SERVER_PASSWORD;
-    else process.env.OPENCODE_SERVER_PASSWORD = prev;
+    if (prev === undefined) delete process.env.PREFECT_SERVER_PASSWORD;
+    else process.env.PREFECT_SERVER_PASSWORD = prev;
   }
 });
 
-test('buildAuthHeader uses OPENCODE_SERVER_USERNAME when provided', () => {
-  const prevPw = process.env.OPENCODE_SERVER_PASSWORD;
-  const prevUser = process.env.OPENCODE_SERVER_USERNAME;
-  process.env.OPENCODE_SERVER_PASSWORD = 'pw';
-  process.env.OPENCODE_SERVER_USERNAME = 'alice';
+test('buildAuthHeader uses PREFECT_SERVER_USERNAME when provided', () => {
+  const prevPw = process.env.PREFECT_SERVER_PASSWORD;
+  const prevUser = process.env.PREFECT_SERVER_USERNAME;
+  process.env.PREFECT_SERVER_PASSWORD = 'pw';
+  process.env.PREFECT_SERVER_USERNAME = 'alice';
   try {
     const result = buildAuthHeader();
     // Buffer.from('alice:pw').toString('base64') === 'YWxpY2U6cHc='
     const expected = Buffer.from('alice:pw').toString('base64');
     assert.deepEqual(result, { Authorization: `Basic ${expected}` });
   } finally {
-    if (prevPw === undefined) delete process.env.OPENCODE_SERVER_PASSWORD;
-    else process.env.OPENCODE_SERVER_PASSWORD = prevPw;
-    if (prevUser === undefined) delete process.env.OPENCODE_SERVER_USERNAME;
-    else process.env.OPENCODE_SERVER_USERNAME = prevUser;
+    if (prevPw === undefined) delete process.env.PREFECT_SERVER_PASSWORD;
+    else process.env.PREFECT_SERVER_PASSWORD = prevPw;
+    if (prevUser === undefined) delete process.env.PREFECT_SERVER_USERNAME;
+    else process.env.PREFECT_SERVER_USERNAME = prevUser;
   }
 });
 
 // ── authFetch tests ─────────────────────────────────────────────────────────
 
 test('authFetch forwards request unchanged when no password set', async () => {
-  delete process.env.OPENCODE_SERVER_PASSWORD;
-  delete process.env.OPENCODE_SERVER_USERNAME;
+  delete process.env.PREFECT_SERVER_PASSWORD;
+  delete process.env.PREFECT_SERVER_USERNAME;
 
   let capturedRequest: Request | undefined;
   const mockFetch = (req: Request) => {
@@ -70,10 +70,10 @@ test('authFetch forwards request unchanged when no password set', async () => {
   }
 });
 
-test('authFetch injects Authorization header when OPENCODE_SERVER_PASSWORD is set', async () => {
-  const prevPw = process.env.OPENCODE_SERVER_PASSWORD;
-  process.env.OPENCODE_SERVER_PASSWORD = 'secret';
-  delete process.env.OPENCODE_SERVER_USERNAME;
+test('authFetch injects Authorization header when PREFECT_SERVER_PASSWORD is set', async () => {
+  const prevPw = process.env.PREFECT_SERVER_PASSWORD;
+  process.env.PREFECT_SERVER_PASSWORD = 'secret';
+  delete process.env.PREFECT_SERVER_USERNAME;
 
   let capturedRequest: Request | undefined;
   const mockFetch = (req: Request) => {
@@ -92,7 +92,7 @@ test('authFetch injects Authorization header when OPENCODE_SERVER_PASSWORD is se
     assert.equal(capturedRequest!.headers.get('Authorization'), expected);
   } finally {
     (globalThis as unknown as Record<string, unknown>).fetch = origFetch;
-    if (prevPw === undefined) delete process.env.OPENCODE_SERVER_PASSWORD;
-    else process.env.OPENCODE_SERVER_PASSWORD = prevPw;
+    if (prevPw === undefined) delete process.env.PREFECT_SERVER_PASSWORD;
+    else process.env.PREFECT_SERVER_PASSWORD = prevPw;
   }
 });
