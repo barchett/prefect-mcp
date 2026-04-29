@@ -4,7 +4,14 @@ import { resolveDirectory } from './config.js';
 
 // INFRA-07 + INFRA-09: Base URL and port for spawning and health-checking OpenCode.
 // Read at module init (same as BASE_URL in index.ts — stable for the process lifetime).
-const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
+const BASE_URL =
+  process.env.PREFECT_SERVER_URL ??
+  (() => {
+    const old = process.env.OPENCODE_URL;
+    if (old) console.error('[Prefect] OPENCODE_URL is deprecated, use PREFECT_SERVER_URL');
+    return old;
+  })() ??
+  'http://localhost:4096';
 
 const POLL_INTERVAL_MS = 500; // D-12: hardcoded — fast enough for local startup
 
@@ -61,21 +68,21 @@ async function waitForHealth(): Promise<void> {
  *        so a crashed OpenCode can be re-spawned without restarting the MCP server.
  * D-08: stdio ['ignore','ignore','inherit'] — stdout/stdin silenced to protect
  *        the MCP JSON-RPC pipe; stderr inherited so startup errors surface.
- * D-09: cwd = resolveDirectory(undefined) — OPENCODE_DEFAULT_PROJECT if set,
+ * D-09: cwd = resolveDirectory(undefined) — PREFECT_DEFAULT_PROJECT if set,
  *        otherwise undefined (OpenCode uses its own cwd).
- * D-10: Port parsed from OPENCODE_URL; falls back to 4096.
+ * D-10: Port parsed from PREFECT_SERVER_URL; falls back to 4096.
  * INFRA-10: waitForHealth() uses buildAuthHeader — auth-protected servers detected healthy.
  */
 export async function ensureOpencodeRunning(): Promise<void> {
   if (startPromise) return startPromise;
 
-  // Fail fast if OPENCODE_URL points to a remote host — spawning locally would
+  // Fail fast if PREFECT_SERVER_URL points to a remote host — spawning locally would
   // start the wrong process and then time out polling a machine we didn't touch.
   try {
     const { hostname } = new URL(BASE_URL);
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
       throw new Error(
-        `[Prefect] Auto-start skipped — OPENCODE_URL points to remote host '${hostname}'. ` +
+        `[Prefect] Auto-start skipped — PREFECT_SERVER_URL points to remote host '${hostname}'. ` +
           `Start OpenCode manually on that machine.`,
       );
     }

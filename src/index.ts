@@ -10,8 +10,15 @@ import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
 
-// CORE-08: Base URL from OPENCODE_URL env var, default http://localhost:4096
-const BASE_URL = process.env.OPENCODE_URL ?? 'http://localhost:4096';
+// CORE-08: Base URL from PREFECT_SERVER_URL env var (OPENCODE_URL accepted with deprecation warning)
+const BASE_URL =
+  process.env.PREFECT_SERVER_URL ??
+  (() => {
+    const old = process.env.OPENCODE_URL;
+    if (old) console.error('[Prefect] OPENCODE_URL is deprecated, use PREFECT_SERVER_URL');
+    return old;
+  })() ??
+  'http://localhost:4096';
 const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '', 10) || 120_000;
 const client = createOpencodeClient({ baseUrl: BASE_URL, fetch: fetchWithAuth });
 
@@ -110,7 +117,7 @@ server.registerTool(
           content: [
             {
               type: 'text',
-              text: `prefect_run timed out after ${TIMEOUT_MS / 1000}s — check OPENCODE_URL and model endpoint`,
+              text: `prefect_run timed out after ${TIMEOUT_MS / 1000}s — check PREFECT_SERVER_URL and model endpoint`,
             },
           ],
           isError: true,
