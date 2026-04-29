@@ -4,20 +4,31 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Resolve absolute path to build/index.js (the MCP server) from this CLI's
-// own location. Both files live side-by-side in the build/ output dir, so the
-// MCP server is at the same directory as this CLI.
+// own location. Both files live side-by-side in the build/ output dir.
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const mcpServerPath = resolve(__dirname, 'index.js');
+
+// DIST-05: detect global vs local install via path-segment check.
+// Node resolves symlinks before computing import.meta.url, so __dirname is
+// always the real file path inside node_modules/<pkg>/build/ for global installs.
+// Normalize backslashes for Windows path support.
+const isGlobal = __dirname.replace(/\\/g, '/').includes('/node_modules/prefect-mcp/');
 
 // Template for the prefect entry written into .mcp.json mcpServers.prefect.
-// Uses node + absolute path because relative paths break when Claude Code
-// resolves the spawn command from a working directory other than the project root.
-const PREFECT_ENTRY = {
-  type: 'stdio',
-  command: 'node',
-  args: [mcpServerPath],
-  env: {},
-} as const;
+// Global: use the prefect-mcp PATH bin (added as a second bin entry in package.json).
+// Local: use node + absolute path so Claude Code can spawn from any cwd.
+const PREFECT_ENTRY = isGlobal
+  ? {
+      type: 'stdio',
+      command: 'prefect-mcp',
+      args: [],
+      env: {},
+    } as const
+  : {
+      type: 'stdio',
+      command: 'node',
+      args: [resolve(__dirname, 'index.js')],
+      env: {},
+    } as const;
 
 function usageAndExit(): never {
   console.error('Usage: prefect init [--force]');
