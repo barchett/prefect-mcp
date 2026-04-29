@@ -44,7 +44,7 @@ Full archive: `.planning/milestones/v3.0-ROADMAP.md`
 
 ### v4.0 API Completeness (Phases 10–12)
 
-- [ ] **Phase 10: Run + Session Param Additions** — RUN-05..08 body field additions to `prefect_run` + SESSION-10 parentID param on `prefect_create_session`
+- [x] **Phase 10: Run + Session Param Additions** — RUN-05..08 body field additions to `prefect_run` + SESSION-10 parentID param on `prefect_create_session` (completed 2026-04-29)
 - [ ] **Phase 11: Session Lifecycle Tools** — SESSION-11 summarize, SESSION-12 todo, SESSION-13 init, SESSION-15 share, SESSION-16 unshare
 - [ ] **Phase 12: Shell + Workspace API Wrappers** — SESSION-14 shell, API-04 vcs_info, API-05 file_status, API-06 list_mcp_servers, API-07 inject_mcp_server, API-08 list_tools
 
@@ -237,7 +237,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 10-01-PLAN.md — Extend RunPromptOptions/runPrompt/createSession in src/handlers.ts + extend Zod schemas and handlers on prefect_run, prefect_prompt_async, prefect_create_session in src/index.ts (RUN-05, RUN-06, RUN-07, RUN-08, SESSION-10)
+- [x] 10-01-PLAN.md — Extend RunPromptOptions/runPrompt/createSession in src/handlers.ts + extend Zod schemas and handlers on prefect_run, prefect_prompt_async, prefect_create_session in src/index.ts (RUN-05, RUN-06, RUN-07, RUN-08, SESSION-10)
 
 ---
 
@@ -307,6 +307,6 @@ Plans:
 | 7. Composite Tools | v3.0 | 2/2 | Complete | 2026-04-28 |
 | 8. Read-only API Wrappers | v3.0 | 1/1 | Complete | 2026-04-28 |
 | 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
-| 10. Run + Session Param Additions | v4.0 | 0/TBD | Not started | — |
+| 10. Run + Session Param Additions | v4.0 | 1/1 | Complete    | 2026-04-29 |
 | 11. Session Lifecycle Tools | v4.0 | 0/TBD | Not started | — |
 | 12. Shell + Workspace API Wrappers | v4.0 | 0/TBD | Not started | — |

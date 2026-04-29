@@ -2,14 +2,14 @@
 
 ## Run Enhancements
 
-- [ ] **RUN-05**: `prefect_run` accepts a `tools` array — overrides which tools are enabled for that single prompt (enable/disable per call)
-- [ ] **RUN-06**: `prefect_run` accepts a `files` array of `{ path: string, content?: string }` objects (FilePartInput) — attaches file context to the prompt
-- [ ] **RUN-07**: `prefect_run` accepts a `messageID` string — assigns that ID to the new user message (idempotency key: if the ID already exists, OpenCode returns the cached response); for conversation branching use `prefect_fork`
-- [ ] **RUN-08**: `prefect_run` accepts `agentInput` and `subtaskInput` fields (AgentPartInput / SubtaskPartInput) for structured multi-agent prompt shapes
+- [x] **RUN-05**: `prefect_run` accepts a `tools` array — overrides which tools are enabled for that single prompt (enable/disable per call)
+- [x] **RUN-06**: `prefect_run` accepts a `files` array of `{ path: string, content?: string }` objects (FilePartInput) — attaches file context to the prompt
+- [x] **RUN-07**: `prefect_run` accepts a `messageID` string — assigns that ID to the new user message (idempotency key: if the ID already exists, OpenCode returns the cached response); for conversation branching use `prefect_fork`
+- [x] **RUN-08**: `prefect_run` accepts `agentInput` and `subtaskInput` fields (AgentPartInput / SubtaskPartInput) for structured multi-agent prompt shapes
 
 ## Session Lifecycle
 
-- [ ] **SESSION-10**: `prefect_create_session` accepts an optional `parentID` string param — creates a child session linked to the given parent for hierarchy tracking
+- [x] **SESSION-10**: `prefect_create_session` accepts an optional `parentID` string param — creates a child session linked to the given parent for hierarchy tracking
 - [ ] **SESSION-11**: `prefect_session_summarize` — wraps POST /session/:id/summarize; triggers OpenCode summary generation for a session
 - [ ] **SESSION-12**: `prefect_session_todo` — wraps GET /session/:id/todo; returns the current todo list for a session
 - [ ] **SESSION-13**: `prefect_session_init` — wraps POST /session/:id/init; generates an AGENTS.md file for the session's project
@@ -54,11 +54,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RUN-05 | Phase 10 | Pending |
-| RUN-06 | Phase 10 | Pending |
-| RUN-07 | Phase 10 | Pending |
-| RUN-08 | Phase 10 | Pending |
-| SESSION-10 | Phase 10 | Pending |
+| RUN-05 | Phase 10 | Complete |
+| RUN-06 | Phase 10 | Complete |
+| RUN-07 | Phase 10 | Complete |
+| RUN-08 | Phase 10 | Complete |
+| SESSION-10 | Phase 10 | Complete |
 | SESSION-11 | Phase 11 | Pending |
 | SESSION-12 | Phase 11 | Pending |
 | SESSION-13 | Phase 11 | Pending |
