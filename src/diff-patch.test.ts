@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createPatch } from 'diff';
 
 // SURF-01 behavior tests for createPatch integration.
-// These verify the exact behavior the opencode_get_diff handler depends on.
+// These verify the exact behavior the prefect_get_diff handler depends on.
 
 test('SURF-01: createPatch returns a string for a simple change', () => {
   const patch = createPatch('a.ts', 'old\n', 'new\n');
