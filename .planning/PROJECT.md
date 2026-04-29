@@ -55,10 +55,11 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02) — Phase 7 complete
 - ✓ opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03) — Phase 7 complete
 - ✓ opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04) — Phase 7 complete
-- [ ] npm publish + npm install -g prefect-mcp install pathway
-- [ ] GET /agent — list available agents
-- [ ] GET /provider — list configured providers and models
-- [ ] GET /find/symbol — LSP-backed workspace symbol search
+- ✓ npm publish + `npm install -g prefect-mcp` install pathway — Phase 9 complete — v3.0
+- ✓ Tool names renamed: all 25 `opencode_*` → `prefect_*`; env vars `OPENCODE_*` → `PREFECT_*` with soft-migration fallback — Phase 9 complete — v3.0
+- ✓ GET /agent — list available agents (`prefect_list_agents`) — Phase 8 complete — v3.0
+- ✓ GET /provider — list configured providers and models (`prefect_list_providers`) — Phase 8 complete — v3.0
+- ✓ GET /find/symbol — LSP-backed workspace symbol search (`prefect_find_symbol`) — Phase 8 complete — v3.0
 
 ### Active (v4.0 targets)
 
@@ -94,12 +95,14 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - Shipped v2.0 with 1,221 LOC TypeScript, 69 commits — 18 tools total (up from 7)
 - Phase 6 complete (2026-04-28): HTTP Basic Auth injection + auto-start of opencode serve — unified via src/fetch.ts SDK hook covering all 18 tools
 - Phase 7 complete (2026-04-28): Four composite tools (opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await) + handler extraction refactor (src/handlers.ts) — 22 tools total
+- Phase 8 complete (2026-04-28): Three read-only API wrappers (prefect_list_agents, prefect_list_providers, prefect_find_symbol) — 25 tools total
+- Phase 9 complete (2026-04-29): All 25 tool names renamed opencode_* → prefect_*; env vars OPENCODE_* → PREFECT_* with soft-migration fallback; npm publishing manifest added (prefect-mcp); global install detection in cli.ts; package ready for `npm publish --access public`
 
 ## Constraints
 
 - **Language**: TypeScript — MCP SDK is idiomatic TS, already have a ~200-line reference implementation
 - **Runtime**: Node.js — MCP server runs as a stdio subprocess spawned by Claude Code
-- **Scope**: Personal use only — no auth, no multi-tenant concerns, no npm publish pipeline
+- **Scope**: Personal use only — no auth, no multi-tenant concerns
 - **OpenCode API**: HTTP only — SSE-based permission loop deliberately out of scope
 
 ## Key Decisions
@@ -123,4 +126,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-28 — Phase 7 complete*
+*Last updated: 2026-04-29 — Phase 9 complete — v3.0 milestone done; package ready for npm publish*
