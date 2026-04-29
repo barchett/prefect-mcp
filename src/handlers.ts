@@ -9,6 +9,12 @@ export interface RunPromptOptions {
   model?: { providerID: string; modelID: string };
   agent?: string;
   system?: string;
+  // New in Phase 10:
+  tools?: { [key: string]: boolean };                                                       // RUN-05
+  files?: Array<{ type: 'file'; mime: string; filename?: string; url: string }>;            // RUN-06
+  messageID?: string;                                                                        // RUN-07
+  agentInput?: { type: 'agent'; name: string };                                             // RUN-08
+  subtaskInput?: { type: 'subtask'; prompt: string; description: string; agent: string };   // RUN-08
 }
 
 /**
@@ -20,9 +26,13 @@ export async function createSession(
   client: OpencodeClient,
   title: string | undefined,
   directory: string | undefined,
+  parentID?: string,                                       // NEW — SESSION-10 (trailing optional, existing 3-arg callers unaffected)
 ): Promise<{ id: string; [key: string]: unknown }> {
   const { data, error } = await client.session.create({
-    body: { title },
+    body: {
+      title,
+      ...(parentID ? { parentID } : {}),                   // NEW — only included when provided
+    },
     query: directory ? { directory } : undefined,
   });
   if (error) throw new Error(JSON.stringify(error));
@@ -45,13 +55,26 @@ export async function runPrompt(
   directory: string | undefined,
   signal: AbortSignal,
 ): Promise<{ info: unknown; parts: z.infer<typeof PartSchema>[] }> {
+  const parts: Array<
+    | { type: 'text'; text: string }
+    | { type: 'file'; mime: string; filename?: string; url: string }
+    | { type: 'agent'; name: string }
+    | { type: 'subtask'; prompt: string; description: string; agent: string }
+  > = [
+    { type: 'text', text: prompt },
+    ...(opts.files ?? []),
+    ...(opts.agentInput ? [opts.agentInput] : []),
+    ...(opts.subtaskInput ? [opts.subtaskInput] : []),
+  ];
   const { data, error } = await client.session.prompt({
     path: { id: sessionId },
     body: {
-      parts: [{ type: 'text', text: prompt }],
+      parts,
       ...(opts.model ? { model: opts.model } : {}),
       ...(opts.agent ? { agent: opts.agent } : {}),
       ...(opts.system ? { system: opts.system } : {}),
+      ...(opts.tools ? { tools: opts.tools } : {}),
+      ...(opts.messageID ? { messageID: opts.messageID } : {}),
     },
     query: directory ? { directory } : undefined,
     signal,
