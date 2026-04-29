@@ -201,8 +201,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Code rename (opencode_* → prefect_*) in src/*.ts + env var soft migration in src/index.ts, src/auth.ts, src/config.ts, src/autostart.ts + test files updated to PREFECT_* names + package.json publishing fields with dual bin entries; gate: `npm test` passes (DIST-01, DIST-02, DIST-03, DIST-07, DIST-08, DIST-12)
-- [ ] 09-02-PLAN.md — Docs rename (CLAUDE.md, README.md, examples/test-task.md) + add directory-arg instruction to CLAUDE.md canonical loop + add global install pathway to README + global install detection in src/cli.ts + `npm pack --dry-run` verification (DIST-04, DIST-05, DIST-06, DIST-07, DIST-09, DIST-10, DIST-11, DIST-12)
+- [x] 09-01-PLAN.md — Code rename (opencode_* → prefect_*) in src/*.ts + env var soft migration in src/index.ts, src/auth.ts, src/config.ts, src/autostart.ts + test files updated to PREFECT_* names + package.json publishing fields with dual bin entries; gate: `npm test` passes (DIST-01, DIST-02, DIST-03, DIST-07, DIST-08, DIST-12)
+- [x] 09-02-PLAN.md — Docs rename (CLAUDE.md, README.md, examples/test-task.md) + add directory-arg instruction to CLAUDE.md canonical loop + add global install pathway to README + global install detection in src/cli.ts + `npm pack --dry-run` verification (DIST-04, DIST-05, DIST-06, DIST-07, DIST-09, DIST-10, DIST-11, DIST-12)
 
 ---
 
