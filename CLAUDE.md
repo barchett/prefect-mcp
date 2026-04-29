@@ -18,25 +18,25 @@ Do NOT use the prefect tools for:
 
 Always follow this exact sequence. Do not improvise step ordering.
 
-1. **CREATE SESSION.** Call `opencode_create_session({title: "<short task name>"})`. Save the returned `id` as your session ID for the rest of the loop. If OpenCode was not started from this project's root, also pass `directory: process.cwd()` (the absolute path) so the session writes files in the right place.
-2. **RUN PROMPT.** Call `opencode_run({sessionId, prompt: "<task description>"})`. This blocks until the agent finishes (default timeout 120 seconds; controlled by `PREFECT_TIMEOUT_MS`).
-3. **GET DIFF.** Call `opencode_get_diff({sessionId})`. Inspect the returned `FileDiff[]` to see what OpenCode changed.
+1. **CREATE SESSION.** Call `prefect_create_session({title: "<short task name>", directory: "<absolute path to your project>"})`. Save the returned `id` as your session ID for the rest of the loop. **Always pass `directory` explicitly** - never rely on the server's default working directory. The same applies to `prefect_delegate` and `prefect_dispatch`: pass `directory` on every call so OpenCode edits the right project.
+2. **RUN PROMPT.** Call `prefect_run({sessionId, prompt: "<task description>"})`. This blocks until the agent finishes (default timeout 120 seconds; controlled by `PREFECT_TIMEOUT_MS`).
+3. **GET DIFF.** Call `prefect_get_diff({sessionId})`. Inspect the returned `FileDiff[]` to see what OpenCode changed.
 4. **REVIEW.** Read the diff. Read any modified files yourself if you need more context than the diff shows.
 5. **TEST.** Use the Bash tool to run the project's test/build commands (e.g. `npm run build`, `npm test` if it exists, or any task-specific verification). Do NOT delegate this to OpenCode — you run tests, you decide.
 6. **DECIDE.** Based on the diff and test results, choose ONE:
    - **Tests pass + diff is good** -> `git add <files> && git commit -m "<message>"`. Done.
-   - **Tests fail or diff needs tweaks** -> `opencode_run({sessionId, prompt: "correct: <specific feedback>"})`. Go back to step 3.
-   - **Session is off-rails (wrong files touched, model is confused)** -> `opencode_fork({sessionId, messageID: <id of last good message>})` to get a clean copy at a safe point, then go to step 2 with the new session ID.
-   - **Single bad message to undo** -> `opencode_revert({sessionId, messageID: <bad message id>})`, then go to step 2.
+   - **Tests fail or diff needs tweaks** -> `prefect_run({sessionId, prompt: "correct: <specific feedback>"})`. Go back to step 3.
+   - **Session is off-rails (wrong files touched, model is confused)** -> `prefect_fork({sessionId, messageID: <id of last good message>})` to get a clean copy at a safe point, then go to step 2 with the new session ID.
+   - **Single bad message to undo** -> `prefect_revert({sessionId, messageID: <bad message id>})`, then go to step 2.
    - **Give up entirely** -> `git checkout -- .` to reset the working tree; discard the session.
-7. **ABORT IF STUCK.** If `opencode_run` is taking too long and you want to stop it before the timeout, call `opencode_abort({sessionId})`.
+7. **ABORT IF STUCK.** If `prefect_run` is taking too long and you want to stop it before the timeout, call `prefect_abort({sessionId})`.
 
 ## Permission Handling
 
 OpenCode's local config (`~/.config/opencode/opencode.json`) has all permissions set to `allow` (`bash`, `edit`, `write`, `webfetch`). This means OpenCode does NOT pause to ask for permission during normal operation.
 
-`opencode_approve_permission` is therefore an **emergency-only tool**. Use it only if:
-- OpenCode's config has been changed to require permissions (you'd see a `permissionId` in the run output — pass it as the `permissionId` argument to `opencode_approve_permission`), OR
+`prefect_approve_permission` is therefore an **emergency-only tool**. Use it only if:
+- OpenCode's config has been changed to require permissions (you'd see a `permissionId` in the run output — pass it as the `permissionId` argument to `prefect_approve_permission`), OR
 - You explicitly want to deny a specific operation that did slip through.
 
 The default response is `once`, `always`, or `reject` (NOT `allow`/`deny`/`allow_always` — those are wrong despite some old docs).
@@ -45,13 +45,13 @@ The default response is `once`, `always`, or `reject` (NOT `allow`/`deny`/`allow
 
 | Tool | Required Args | When to Call |
 |------|---------------|--------------|
-| `opencode_create_session` | `{title?: string, directory?: string}` | Once at the start of each task. Pass `directory` if OpenCode wasn't started from this project root. |
-| `opencode_run` | `{sessionId, prompt}` | To send a task or correction. Blocks until OpenCode finishes (up to 120s). |
-| `opencode_get_diff` | `{sessionId, messageID?}` | After every `opencode_run` to see what changed. |
-| `opencode_abort` | `{sessionId}` | Emergency stop — when `opencode_run` is stuck. |
-| `opencode_fork` | `{sessionId, messageID?}` | Session went off-rails — fork at a safe point and continue. |
-| `opencode_revert` | `{sessionId, messageID, partID?}` | Undo a single bad message. |
-| `opencode_approve_permission` | `{sessionId, permissionId, response: 'once' \| 'always' \| 'reject'}` | Emergency only — auto-approve is the default. |
+| `prefect_create_session` | `{title?: string, directory?: string}` | Once at the start of each task. Always pass `directory` explicitly — never rely on the server's default working directory. |
+| `prefect_run` | `{sessionId, prompt}` | To send a task or correction. Blocks until OpenCode finishes (up to 120s). |
+| `prefect_get_diff` | `{sessionId, messageID?}` | After every `prefect_run` to see what changed. |
+| `prefect_abort` | `{sessionId}` | Emergency stop — when `prefect_run` is stuck. |
+| `prefect_fork` | `{sessionId, messageID?}` | Session went off-rails — fork at a safe point and continue. |
+| `prefect_revert` | `{sessionId, messageID, partID?}` | Undo a single bad message. |
+| `prefect_approve_permission` | `{sessionId, permissionId, response: 'once' \| 'always' \| 'reject'}` | Emergency only — auto-approve is the default. |
 
 ## Git Contract
 
@@ -61,8 +61,9 @@ The default response is `once`, `always`, or `reject` (NOT `allow`/`deny`/`allow
 
 ## Environment
 
-- The MCP server reads `OPENCODE_URL` (default `http://localhost:4096`) and `PREFECT_TIMEOUT_MS` (default `120000`).
+- The MCP server reads `PREFECT_SERVER_URL` (default `http://localhost:4096`) and `PREFECT_TIMEOUT_MS` (default `120000`). Old `OPENCODE_URL` name still works but emits a deprecation warning — migrate to `PREFECT_SERVER_URL`.
 - For long-running tasks, set `PREFECT_TIMEOUT_MS` higher in the `env` field of `.mcp.json` and restart Claude Code.
+- HTTP Basic Auth: set `PREFECT_SERVER_PASSWORD` (and optionally `PREFECT_SERVER_USERNAME`, default `opencode`) in your shell profile. Do NOT put `PREFECT_SERVER_PASSWORD` in `.mcp.json` — that file is committed to version control. Old `OPENCODE_SERVER_PASSWORD` / `OPENCODE_SERVER_USERNAME` names still work but emit deprecation warnings.
 - OpenCode must be running: `opencode serve --port 4096`. Health check: `curl http://localhost:4096/global/health`.
 
 ## Validation

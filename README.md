@@ -8,17 +8,70 @@ A TypeScript MCP server that exposes OpenCode's headless HTTP API as Claude Code
 
 7 MCP tools wrapping OpenCode's session API:
 
-- `opencode_create_session` — start a new coding session
-- `opencode_run` — send a prompt, block until the agent finishes
-- `opencode_get_diff` — inspect what OpenCode changed
-- `opencode_fork` — fork a session at a safe point (escape hatch for off-rails sessions)
-- `opencode_revert` — undo a single bad message
-- `opencode_abort` — stop a running session before timeout
-- `opencode_approve_permission` — respond to a permission request (emergency only)
+- `prefect_create_session` — start a new coding session
+- `prefect_run` — send a prompt, block until the agent finishes
+- `prefect_get_diff` — inspect what OpenCode changed
+- `prefect_fork` — fork a session at a safe point (escape hatch for off-rails sessions)
+- `prefect_revert` — undo a single bad message
+- `prefect_abort` — stop a running session before timeout
+- `prefect_approve_permission` — respond to a permission request (emergency only)
 
 Also included:
 - Project-scoped Claude Code registration (`.mcp.json`) so any clone of this repo automatically picks up the tools.
 - End-to-end validation task (`examples/test-task.md`).
+
+## Install
+
+### Option 1: Global install (recommended)
+
+```bash
+npm install -g prefect-mcp
+cd /your/project
+prefect init
+```
+
+`prefect init` auto-detects the global install and writes a `.mcp.json` entry:
+
+```json
+{
+  "mcpServers": {
+    "prefect": {
+      "type": "stdio",
+      "command": "prefect-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+Use `prefect init --force` to overwrite an existing `prefect` entry.
+
+### Option 2: Local clone (development / contributing)
+
+```bash
+git clone <repo-url>
+cd prefect-mcp
+npm install
+npm run build
+cd /your/project
+/path/to/prefect-mcp/build/cli.js init
+```
+
+`prefect init` (run from a local clone) detects the absence of the `node_modules/prefect-mcp/` path segment and writes:
+
+```json
+{
+  "mcpServers": {
+    "prefect": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/abs/path/to/prefect-mcp/build/index.js"],
+      "env": {}
+    }
+  }
+}
+```
 
 ## Prerequisites
 
@@ -85,7 +138,7 @@ OpenCode's config lives at `~/.config/opencode/opencode.json`. Example for a loc
 }
 ```
 
-The `permission: allow` block is intentional — Prefect treats git as the safety net. If you want manual permission prompts, see `opencode_approve_permission` in `CLAUDE.md` (emergency tool).
+The `permission: allow` block is intentional — Prefect treats git as the safety net. If you want manual permission prompts, see `prefect_approve_permission` in `CLAUDE.md` (emergency tool).
 
 Auth file (placeholder is required even for local models):
 
@@ -98,9 +151,9 @@ Adjust the provider key (`vllm`) and path if you use Ollama, OpenAI, etc.
 
 ### 4. Start OpenCode headless
 
-Prefect auto-starts OpenCode on the first tool call if it isn't already running, so this step is optional for most setups. Auto-start spawns `opencode serve --port <N>` where `<N>` is the port from `OPENCODE_URL` (default 4096). The process is spawned in `OPENCODE_DEFAULT_PROJECT` if set, otherwise in Prefect's own working directory.
+Prefect auto-starts OpenCode on the first tool call if it isn't already running, so this step is optional for most setups. Auto-start spawns `opencode serve --port <N>` where `<N>` is the port from `PREFECT_SERVER_URL` (default 4096). The process is spawned in `PREFECT_DEFAULT_PROJECT` if set, otherwise in Prefect's own working directory.
 
-> **Auto-start only works when `OPENCODE_URL` is local** (`localhost` or `127.0.0.1`). If `OPENCODE_URL` points to a remote host (e.g. a Windows host IP from WSL2), auto-start will spawn a local process that cannot satisfy the remote health check and will time out. Start OpenCode manually on the remote machine instead.
+> **Auto-start only works when `PREFECT_SERVER_URL` is local** (`localhost` or `127.0.0.1`). If `PREFECT_SERVER_URL` points to a remote host (e.g. a Windows host IP from WSL2), auto-start will spawn a local process that cannot satisfy the remote health check and will time out. Start OpenCode manually on the remote machine instead.
 
 If you prefer to manage the process yourself, start it manually **from your project root** in a dedicated terminal:
 
@@ -109,9 +162,9 @@ cd /path/to/your-project
 opencode serve --port 4096
 ```
 
-> **Run from your project root, not from `~` or elsewhere.** OpenCode sets the working directory for all sessions to wherever `opencode serve` was launched. Manual start from the wrong directory causes `opencode_run` to create files there.
+> **Run from your project root, not from `~` or elsewhere.** OpenCode sets the working directory for all sessions to wherever `opencode serve` was launched. Manual start from the wrong directory causes `prefect_run` to create files there.
 
-> **Use `--port 4096`** (or whatever port is in `OPENCODE_URL`). The default OpenCode port is `0` (random).
+> **Use `--port 4096`** (or whatever port is in `PREFECT_SERVER_URL`). The default OpenCode port is `0` (random).
 
 Health check:
 
@@ -147,16 +200,18 @@ With everything wired up, follow `examples/test-task.md` to confirm the full cre
 
 | Env Var | Default | Purpose |
 |---------|---------|---------|
-| `OPENCODE_URL` | `http://localhost:4096` | Base URL for OpenCode API; port is also used when auto-starting (`opencode serve --port <N>`) |
-| `PREFECT_TIMEOUT_MS` | `120000` | Max wait for `opencode_run` to return (ms) |
+| `PREFECT_SERVER_URL` | `http://localhost:4096` | Base URL for OpenCode API; port is also used when auto-starting (`opencode serve --port <N>`) |
+| `PREFECT_TIMEOUT_MS` | `120000` | Max wait for `prefect_run` to return (ms) |
 | `PREFECT_AUTOSTART_TIMEOUT_MS` | `30000` | Max wait for OpenCode to become healthy after auto-start spawn (ms) |
-| `OPENCODE_DEFAULT_PROJECT` | _(unset)_ | Working directory passed to `opencode serve` on auto-start; defaults to Prefect's own cwd |
-| `OPENCODE_SERVER_PASSWORD` | _(unset)_ | HTTP Basic Auth password for OpenCode server (read at every tool call) |
-| `OPENCODE_SERVER_USERNAME` | `opencode` | HTTP Basic Auth username (only used when `OPENCODE_SERVER_PASSWORD` is set) |
+| `PREFECT_DEFAULT_PROJECT` | _(unset)_ | Working directory passed to `opencode serve` on auto-start; defaults to Prefect's own cwd |
+| `PREFECT_SERVER_PASSWORD` | _(unset)_ | HTTP Basic Auth password for OpenCode server (read at every tool call) |
+| `PREFECT_SERVER_USERNAME` | `opencode` | HTTP Basic Auth username (only used when `PREFECT_SERVER_PASSWORD` is set) |
 
-> **Security (INFRA-06):** Do NOT put `OPENCODE_SERVER_PASSWORD` in the `.mcp.json` `env` block.
+> **Deprecated names:** Old `OPENCODE_URL`, `OPENCODE_SERVER_PASSWORD`, `OPENCODE_SERVER_USERNAME`, and `OPENCODE_DEFAULT_PROJECT` env var names still work but emit a stderr deprecation warning on first use. Migrate to the `PREFECT_*` names above. Old names will be removed in v4.0.
+
+> **Security (INFRA-06):** Do NOT put `PREFECT_SERVER_PASSWORD` in the `.mcp.json` `env` block.
 > `.mcp.json` is committed to version control — storing credentials there leaks them.
-> Set `OPENCODE_SERVER_PASSWORD` in your shell profile (e.g., `~/.bashrc` or `~/.zshrc`)
+> Set `PREFECT_SERVER_PASSWORD` in your shell profile (e.g., `~/.bashrc` or `~/.zshrc`)
 > or in a `.env` file that is gitignored. The MCP server reads it at call time from the
 > shell environment, not from `.mcp.json`.
 
@@ -164,7 +219,7 @@ To override per-project, edit the `env` field of `.mcp.json`:
 
 ```json
 "env": {
-  "OPENCODE_URL": "http://192.168.x.x:4096",
+  "PREFECT_SERVER_URL": "http://192.168.x.x:4096",
   "PREFECT_TIMEOUT_MS": "300000"
 }
 ```
@@ -175,9 +230,9 @@ See `CLAUDE.md` for the canonical create -> run -> diff -> test -> correct loop.
 
 ## WSL Note
 
-If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4096` works as expected. If OpenCode is on the Windows host and you're using WSL2 default NAT networking, point `OPENCODE_URL` at the Windows host IP instead of `localhost`.
+If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4096` works as expected. If OpenCode is on the Windows host and you're using WSL2 default NAT networking, point `PREFECT_SERVER_URL` at the Windows host IP instead of `localhost`.
 
-> **Auto-start does not work when `OPENCODE_URL` is non-local.** Auto-start spawns `opencode serve` on the same machine as the MCP server, then health-polls `OPENCODE_URL`. If `OPENCODE_URL` points to a remote host (e.g. a Windows host IP from WSL2), the local spawn cannot satisfy the remote health check and auto-start will time out. Start OpenCode manually on the remote machine in this case.
+> **Auto-start does not work when `PREFECT_SERVER_URL` is non-local.** Auto-start spawns `opencode serve` on the same machine as the MCP server, then health-polls `PREFECT_SERVER_URL`. If `PREFECT_SERVER_URL` points to a remote host (e.g. a Windows host IP from WSL2), the local spawn cannot satisfy the remote health check and auto-start will time out. Start OpenCode manually on the remote machine in this case.
 
 ## Project Layout
 
@@ -198,8 +253,8 @@ If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `/mcp` shows prefect as failed | `build/` missing | `npm run build` then restart Claude Code |
-| `opencode_create_session` returns connection error | Auto-start failed (opencode not on PATH, or startup exceeded `PREFECT_AUTOSTART_TIMEOUT_MS`) | Check that `opencode` is on PATH; increase `PREFECT_AUTOSTART_TIMEOUT_MS` if slow to start; or start manually: `opencode serve --port 4096` from project root |
-| `opencode_get_diff` returns files in wrong directory | OpenCode started from wrong directory | Stop and restart `opencode serve --port 4096` from the project root |
-| `opencode_run` times out | Default 120s exceeded | Increase `PREFECT_TIMEOUT_MS` in `.mcp.json` env |
-| `opencode_get_diff` returns `[]` | Prompt didn't ask OpenCode to write files | Re-prompt explicitly asking for a file write (see `examples/test-task.md` for a known-good prompt) |
+| `prefect_create_session` returns connection error | Auto-start failed (opencode not on PATH, or startup exceeded `PREFECT_AUTOSTART_TIMEOUT_MS`) | Check that `opencode` is on PATH; increase `PREFECT_AUTOSTART_TIMEOUT_MS` if slow to start; or start manually: `opencode serve --port 4096` from project root |
+| `prefect_get_diff` returns files in wrong directory | OpenCode started from wrong directory | Stop and restart `opencode serve --port 4096` from the project root |
+| `prefect_run` times out | Default 120s exceeded | Increase `PREFECT_TIMEOUT_MS` in `.mcp.json` env |
+| `prefect_get_diff` returns `[]` | Prompt didn't ask OpenCode to write files | Re-prompt explicitly asking for a file write (see `examples/test-task.md` for a known-good prompt) |
 | Tools missing in fresh Claude session | `.mcp.json` not committed or wrong scope | `claude mcp add --scope project prefect -- node build/index.js` |
