@@ -4,17 +4,14 @@
 
 A TypeScript MCP server that exposes OpenCode's headless HTTP API as Claude Code tools. Claude Code orchestrates at the task/spec level (decompose, review, correct) while delegating actual file edits to a local model (Qwen or similar) running in OpenCode. The result lands in git history; Claude Code sees diffs and runs tests independently.
 
-## Current Milestone: v3.0 Daily Driver
+## Current Milestone: v4.0 API Completeness
 
-**Goal:** Make Prefect meaningfully better for daily use — infrastructure fixes, high-leverage workflow shortcuts, semantic tooling, and proper distribution.
+**Goal:** Expand Prefect's tool surface with run enhancements, session lifecycle tools, and workspace API wrappers — completing coverage of OpenCode's HTTP API.
 
 **Target features:**
-- Infrastructure: directory param on all tools, `OPENCODE_DEFAULT_PROJECT` env var, auto-start opencode serve
-- Workflow shortcuts: `opencode_delegate`, `opencode_dispatch`, `opencode_inspect`, `opencode_await`
-- npm distribution: npm publish + `npm install -g` pathway
-- `GET /agent` — list available agents
-- `GET /provider` — list configured providers and models
-- `GET /find/symbol` — LSP-backed workspace symbol search
+- `prefect_run` enhancements: tools override, FilePartInput (file attachments), messageID (resume), AgentPartInput/SubtaskPartInput
+- Session lifecycle: `parentID` (hierarchies), summarize, todo, init (AGENTS.md), shell, share/unshare
+- Workspace API wrappers: VCS info, file/status, MCP inspect+inject, experimental/tool
 
 ## Core Value
 
@@ -46,16 +43,15 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ opencode_session_command — POST /session/:id/command for slash command execution — v2.0
 
 
-### Active (v3.0 targets)
+### Validated (v3.0)
 
-- [ ] directory param on all tools (currently only on opencode_create_session)
-- [ ] **INFRA-XX**: `OPENCODE_DEFAULT_PROJECT` env var — fallback directory resolution order: per-tool `directory` param → `OPENCODE_DEFAULT_PROJECT` → `process.cwd()`. Documented in README and `.mcp.json` env table. Implement in the same plan as directory-param propagation.
+- ✓ directory param on all 18 tools via `resolveDirectory()` + `PREFECT_DEFAULT_PROJECT` env var — Phase 5 complete — v3.0
 - ✓ auto-start opencode serve if not running — Phase 6 complete — v3.0
-- ✓ opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01) — Phase 7 complete
-- ✓ opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02) — Phase 7 complete
-- ✓ opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03) — Phase 7 complete
-- ✓ opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04) — Phase 7 complete
-- ✓ npm publish + `npm install -g prefect-mcp` install pathway — Phase 9 complete — v3.0
+- ✓ opencode_delegate — blocking create+run+diff in one call (WORKFLOW-01) — Phase 7 complete — v3.0
+- ✓ opencode_dispatch — non-blocking fire-and-forget create+prompt_async (WORKFLOW-02) — Phase 7 complete — v3.0
+- ✓ opencode_inspect — compact progress snapshot: status+todo+changed files (WORKFLOW-03) — Phase 7 complete — v3.0
+- ✓ opencode_await — poll a dispatch session to completion, return full result (WORKFLOW-04) — Phase 7 complete — v3.0
+- ✓ npm publish + `npm install -g @lbarchett/prefect-mcp` install pathway — Phase 9 complete — v3.0
 - ✓ Tool names renamed: all 25 `opencode_*` → `prefect_*`; env vars `OPENCODE_*` → `PREFECT_*` with soft-migration fallback — Phase 9 complete — v3.0
 - ✓ GET /agent — list available agents (`prefect_list_agents`) — Phase 8 complete — v3.0
 - ✓ GET /provider — list configured providers and models (`prefect_list_providers`) — Phase 8 complete — v3.0
@@ -63,11 +59,11 @@ Claude Code can delegate implementation to a local model and review/correct the 
 
 ### Active (v4.0 targets)
 
-- [ ] opencode_run tools override (enable/disable per prompt)
-- [ ] opencode_run FilePartInput (file attachments as context)
-- [ ] opencode_run messageID (resume from specific message)
-- [ ] opencode_run AgentPartInput / SubtaskPartInput
-- [ ] opencode_create_session parentID (session hierarchies)
+- [ ] `prefect_run` tools override (enable/disable per prompt)
+- [ ] `prefect_run` FilePartInput (file attachments as context)
+- [ ] `prefect_run` messageID (resume from specific message)
+- [ ] `prefect_run` AgentPartInput / SubtaskPartInput
+- [ ] `prefect_create_session` parentID (session hierarchies)
 - [ ] session.summarize — POST /session/:id/summarize
 - [ ] session.todo — GET /session/:id/todo
 - [ ] session.init — POST /session/:id/init (generate AGENTS.md)
@@ -77,6 +73,17 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - [ ] GET /file/status — structured git-tracked file status
 - [ ] GET /mcp + POST /mcp — inspect and inject MCP servers
 - [ ] GET /experimental/tool/ids + GET /experimental/tool — inspect available tools per model
+
+### Future (v5.0 targets — Multi-server Registry)
+
+- [ ] MULTI-01: `prefect add-server <name> <host> <port> <model>` CLI command
+- [ ] MULTI-02: `prefect remove-server <name>` CLI command
+- [ ] MULTI-03: `prefect list-servers` CLI command
+- [ ] MULTI-04: Server registry persisted to `~/.config/prefect/servers.json`
+- [ ] MULTI-05: All composite + session tools accept optional `server:` param for routing
+- [ ] MULTI-06: `ensureOpencodeRunning()` server-aware auto-start
+- [ ] MULTI-07: CLAUDE.md server registry section for Claude Code routing decisions
+- [ ] MULTI-08: `prefect init` prompts for first server registration
 
 ### Out of Scope
 
@@ -126,4 +133,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-29 — Phase 9 complete — v3.0 milestone done; package ready for npm publish*
+*Last updated: 2026-04-29 — v4.0 milestone started; v3.0 fully validated; v5.0 multi-server registry scoped*
