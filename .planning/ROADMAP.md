@@ -4,7 +4,8 @@
 
 - **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
 - **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
-- **v3.0 Daily Driver** — Phases 5–9 (in progress)
+- **v3.0 Daily Driver** — Phases 5–9 (shipped 2026-04-29)
+- **v4.0 API Completeness** — Phases 10–12 (in progress)
 
 ## Phases
 
@@ -28,13 +29,24 @@ Full archive: `.planning/milestones/v2.0-ROADMAP.md`
 
 </details>
 
-### v3.0 Daily Driver (Phases 5–9)
+<details>
+<summary>v3.0 Daily Driver (Phases 5–9) — SHIPPED 2026-04-29</summary>
 
 - [x] **Phase 5: Directory Infrastructure** — `resolveDirectory()` helper + directory param on all 18 existing tools + `OPENCODE_DEFAULT_PROJECT` env var (completed 2026-04-28)
-- [ ] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling
-- [ ] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await
+- [x] **Phase 6: Auth + Auto-start** — HTTP Basic Auth fetch wrapper + automatic `opencode serve` startup with health polling (completed 2026-04-28)
+- [x] **Phase 7: Composite Tools** — Handler extraction refactor then opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await (completed 2026-04-28)
 - [x] **Phase 8: Read-only API Wrappers** — opencode_list_agents, opencode_list_providers, opencode_find_symbol (completed 2026-04-28)
-- [ ] **Phase 9: npm Distribution** — tool rename (`opencode_*` → `prefect_*`), env var rename (`OPENCODE_*` → `PREFECT_*`), package.json fields, pack verification, global install pathway, README + CLAUDE.md docs
+- [x] **Phase 9: npm Distribution** — tool rename (`opencode_*` → `prefect_*`), env var rename (`OPENCODE_*` → `PREFECT_*`), package.json fields, pack verification, global install pathway, README + CLAUDE.md docs (completed 2026-04-29)
+
+Full archive: `.planning/milestones/v3.0-ROADMAP.md`
+
+</details>
+
+### v4.0 API Completeness (Phases 10–12)
+
+- [ ] **Phase 10: Run + Session Param Additions** — RUN-05..08 body field additions to `prefect_run` + SESSION-10 parentID param on `prefect_create_session`
+- [ ] **Phase 11: Session Lifecycle Tools** — SESSION-11 summarize, SESSION-12 todo, SESSION-13 init, SESSION-15 share, SESSION-16 unshare
+- [ ] **Phase 12: Shell + Workspace API Wrappers** — SESSION-14 shell, API-04 vcs_info, API-05 file_status, API-06 list_mcp_servers, API-07 inject_mcp_server, API-08 list_tools
 
 ---
 
@@ -206,6 +218,64 @@ Plans:
 
 ---
 
+### Phase 10: Run + Session Param Additions
+
+**Goal**: `prefect_run` accepts the full set of prompt body fields (tools override, file attachments, message resume, structured agent inputs) and `prefect_create_session` accepts a parentID for session hierarchies.
+
+**Depends on**: Phase 9 (stable v3.0 baseline with prefect_* naming)
+
+**Requirements**: RUN-05, RUN-06, RUN-07, RUN-08, SESSION-10
+
+**Success Criteria** (what must be TRUE):
+  1. Calling `prefect_run` with a `tools` array causes only those tools to be available for that prompt; omitting the field leaves the default tool set unchanged
+  2. Calling `prefect_run` with a `files` array attaches the specified file paths (and optional inline content) as context for that prompt
+  3. Calling `prefect_run` with a `messageID` string causes OpenCode to resume the session from that message rather than appending to the end
+  4. Calling `prefect_run` with `agentInput` or `subtaskInput` sends those structured fields in the prompt body; all four new fields are independently optional
+  5. Calling `prefect_create_session` with a `parentID` string creates a child session linked to the given parent; `npm run build` passes with zero errors after all changes
+
+**Plans**: TBD
+
+---
+
+### Phase 11: Session Lifecycle Tools
+
+**Goal**: Claude Code can trigger session summarization, inspect the session todo list, generate an AGENTS.md file, and share or unshare a session — completing the non-shell session lifecycle surface.
+
+**Depends on**: Phase 10
+
+**Requirements**: SESSION-11, SESSION-12, SESSION-13, SESSION-15, SESSION-16
+
+**Success Criteria** (what must be TRUE):
+  1. `prefect_session_summarize` triggers summary generation for a session and returns the result without error
+  2. `prefect_session_todo` returns the current todo list for a session as a structured response
+  3. `prefect_session_init` triggers AGENTS.md generation for the session's project and returns confirmation
+  4. `prefect_session_share` makes a session shareable and returns the share URL or confirmation; `prefect_session_unshare` removes sharing and returns confirmation
+  5. `npm run build` passes with zero errors after all five tools are registered
+
+**Plans**: TBD
+
+---
+
+### Phase 12: Shell + Workspace API Wrappers
+
+**Goal**: Claude Code can execute shell commands within a session's context and query the full workspace API surface — VCS info, file status, MCP server inspection and injection, and experimental tool introspection.
+
+**Depends on**: Phase 11
+
+**Requirements**: SESSION-14, API-04, API-05, API-06, API-07, API-08
+
+**Success Criteria** (what must be TRUE):
+  1. `prefect_session_shell` sends a shell command to the session's context and returns the command output; the tool schema and description clearly communicate the elevated risk of arbitrary shell execution
+  2. `prefect_vcs_info` returns structured VCS/git info for the workspace (branch, commit, dirty status) without requiring any shell calls from the caller
+  3. `prefect_file_status` returns git-tracked file status for the workspace as a structured list
+  4. `prefect_list_mcp_servers` returns the MCP servers configured in the OpenCode instance; `prefect_inject_mcp_server` adds an MCP server to the OpenCode config at runtime and returns confirmation
+  5. `prefect_list_tools` returns the available tools per model by calling GET /experimental/tool/ids and GET /experimental/tool, surfacing which tools each model supports
+  6. `npm run build` passes with zero errors after all six tools are registered
+
+**Plans**: TBD
+
+---
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -214,8 +284,11 @@ Plans:
 | 2. Wiring & Validation | v1.0 | 2/2 | Complete | 2026-04-26 |
 | 3. Session Management Tools | v2.0 | 2/2 | Complete | 2026-04-27 |
 | 4. Run Options + Structured Responses + Infrastructure | v2.0 | 4/4 | Complete | 2026-04-27 |
-| 5. Directory Infrastructure | v3.0 | 1/1 | Complete    | 2026-04-28 |
-| 6. Auth + Auto-start | v3.0 | 0/3 | Not started | — |
-| 7. Composite Tools | v3.0 | 0/2 | Not started | — |
-| 8. Read-only API Wrappers | v3.0 | 0/1 | Not started | — |
-| 9. npm Distribution | v3.0 | 0/2 | Not started | — |
+| 5. Directory Infrastructure | v3.0 | 1/1 | Complete | 2026-04-28 |
+| 6. Auth + Auto-start | v3.0 | 3/3 | Complete | 2026-04-28 |
+| 7. Composite Tools | v3.0 | 2/2 | Complete | 2026-04-28 |
+| 8. Read-only API Wrappers | v3.0 | 1/1 | Complete | 2026-04-28 |
+| 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
+| 10. Run + Session Param Additions | v4.0 | 0/TBD | Not started | — |
+| 11. Session Lifecycle Tools | v4.0 | 0/TBD | Not started | — |
+| 12. Shell + Workspace API Wrappers | v4.0 | 0/TBD | Not started | — |

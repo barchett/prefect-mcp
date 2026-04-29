@@ -48,22 +48,22 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RUN-05 | TBD | Pending |
-| RUN-06 | TBD | Pending |
-| RUN-07 | TBD | Pending |
-| RUN-08 | TBD | Pending |
-| SESSION-10 | TBD | Pending |
-| SESSION-11 | TBD | Pending |
-| SESSION-12 | TBD | Pending |
-| SESSION-13 | TBD | Pending |
-| SESSION-14 | TBD | Pending |
-| SESSION-15 | TBD | Pending |
-| SESSION-16 | TBD | Pending |
-| API-04 | TBD | Pending |
-| API-05 | TBD | Pending |
-| API-06 | TBD | Pending |
-| API-07 | TBD | Pending |
-| API-08 | TBD | Pending |
+| RUN-05 | Phase 10 | Pending |
+| RUN-06 | Phase 10 | Pending |
+| RUN-07 | Phase 10 | Pending |
+| RUN-08 | Phase 10 | Pending |
+| SESSION-10 | Phase 10 | Pending |
+| SESSION-11 | Phase 11 | Pending |
+| SESSION-12 | Phase 11 | Pending |
+| SESSION-13 | Phase 11 | Pending |
+| SESSION-14 | Phase 12 | Pending |
+| SESSION-15 | Phase 11 | Pending |
+| SESSION-16 | Phase 11 | Pending |
+| API-04 | Phase 12 | Pending |
+| API-05 | Phase 12 | Pending |
+| API-06 | Phase 12 | Pending |
+| API-07 | Phase 12 | Pending |
+| API-08 | Phase 12 | Pending |
 | MULTI-01 | v5.0 | Backlog |
 | MULTI-02 | v5.0 | Backlog |
 | MULTI-03 | v5.0 | Backlog |
