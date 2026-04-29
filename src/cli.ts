@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Node resolves symlinks before computing import.meta.url, so __dirname is
 // always the real file path inside node_modules/<pkg>/build/ for global installs.
 // Normalize backslashes for Windows path support.
-const isGlobal = __dirname.replace(/\\/g, '/').includes('/node_modules/prefect-mcp/');
+const isGlobal = __dirname.replace(/\\/g, '/').includes('/node_modules/@lbarchett/prefect-mcp/');
 
 // Template for the prefect entry written into .mcp.json mcpServers.prefect.
 // Global: use the prefect-mcp PATH bin (added as a second bin entry in package.json).
