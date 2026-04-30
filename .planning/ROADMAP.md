@@ -6,6 +6,7 @@
 - **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
 - **v3.0 Daily Driver** — Phases 5–9 (shipped 2026-04-29)
 - **v4.0 API Completeness** — Phases 10–12 (shipped 2026-04-30)
+- **v5.0 Multi-Server Registry** — Phases 13–15 (in progress)
 
 ## Phases
 
@@ -42,11 +43,22 @@ Full archive: `.planning/milestones/v3.0-ROADMAP.md`
 
 </details>
 
-### v4.0 API Completeness (Phases 10–12)
+<details>
+<summary>v4.0 API Completeness (Phases 10–12) — SHIPPED 2026-04-30</summary>
 
 - [x] **Phase 10: Run + Session Param Additions** — RUN-05..08 body field additions to `prefect_run` + SESSION-10 parentID param on `prefect_create_session` (completed 2026-04-29)
 - [x] **Phase 11: Session Lifecycle Tools** — SESSION-11 summarize, SESSION-12 todo, SESSION-13 init, SESSION-15 share, SESSION-16 unshare (completed 2026-04-30)
 - [x] **Phase 12: Shell + Workspace API Wrappers** — SESSION-14 shell, API-04 vcs_info, API-05 file_status, API-06 list_mcp_servers, API-07 inject_mcp_server, API-08 list_tools (completed 2026-04-30)
+
+Full archive: `.planning/milestones/v4.0-ROADMAP.md`
+
+</details>
+
+### v5.0 Multi-Server Registry (Phases 13–15)
+
+- [ ] **Phase 13: Server Registry** — MULTI-01..04: CLI add-server/remove-server/list-servers commands + `~/.config/prefect/servers.json` persistence
+- [ ] **Phase 14: Session-Server Routing** — MULTI-05..07: `server` param on 3 entry points, session→server map in `~/.config/prefect/sessions.json`, stale-session handling, server-aware `ensureOpencodeRunning()`
+- [ ] **Phase 15: Onboarding + Session Reuse** — MULTI-08..10: CLAUDE.md server registry docs, `prefect init` first-server prompt, optional `sessionId` on delegate/dispatch
 
 ---
 
@@ -259,7 +271,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 11-01-PLAN.md — Five session lifecycle tools registered in src/index.ts: prefect_session_summarize, prefect_session_todo, prefect_session_init, prefect_session_share, prefect_session_unshare (SESSION-11, SESSION-12, SESSION-13, SESSION-15, SESSION-16)
+- [x] 11-01-PLAN.md — Five session lifecycle tools registered in src/index.ts: prefect_session_summarize, prefect_session_todo, prefect_session_init, prefect_session_share, prefect_session_unshare (SESSION-11, SESSION-12, SESSION-13, SESSION-15, SESSION-16)
 
 ---
 
@@ -290,13 +302,60 @@ Plans:
 
 ---
 
-### v5.0 Permissions + Multi-server Registry (future)
+### Phase 13: Server Registry
 
-**Goal**: Surface session-level tool permissions as a first-class tool (replacing the deprecated `tools` override field) and support routing across a named registry of OpenCode servers.
+**Goal**: Users can register, remove, and list named OpenCode servers via CLI commands, with the registry persisted to `~/.config/prefect/servers.json` and read at every invocation.
 
-**Requirements**: PERM-01, MULTI-01 through MULTI-08
+**Depends on**: Phase 12 (v4.0 stable baseline)
 
-**First item**: `prefect_session_set_permissions` — wraps PUT /session/{id}/permissions/{permissionID}; sets tool permissions on a session. This is the correct long-term replacement for the deprecated `tools` field in `prefect_run` (which OpenCode v2 SDK marks deprecated in favor of session-level permissions).
+**Requirements**: MULTI-01, MULTI-02, MULTI-03, MULTI-04
+
+**Success Criteria** (what must be TRUE):
+  1. Running `prefect add-server <name> <host> <port> <model>` registers the server and the entry is visible in `~/.config/prefect/servers.json` immediately
+  2. Running `prefect remove-server <name>` removes the entry from the registry; attempting to remove a name that does not exist produces a clear error message, not a silent no-op
+  3. Running `prefect list-servers` prints a tabular view of all registered servers (name, host, port, model) — empty registry prints an informative message rather than an error
+  4. The registry file is read fresh on every CLI invocation — restarting the MCP server is not required for registry changes to take effect
+  5. `npm run build` passes with zero errors after all three CLI subcommands are added
+
+**Plans**: TBD
+
+---
+
+### Phase 14: Session-Server Routing
+
+**Goal**: Tool calls are routed to the correct named server transparently — `server` param on the three entry points, session→server map in `sessions.json`, stale-session cleanup, and server-aware auto-start.
+
+**Depends on**: Phase 13 (server registry must exist before routing can look servers up)
+
+**Requirements**: MULTI-05, MULTI-06, MULTI-07
+
+**Success Criteria** (what must be TRUE):
+  1. Calling `prefect_create_session`, `prefect_delegate`, or `prefect_dispatch` with a `server` param routes the call to that named server; omitting `server` falls back to the first registered server, then to `PREFECT_SERVER_URL`
+  2. After a session is created (by any of the three entry points), the sessionId→server mapping is immediately written to `~/.config/prefect/sessions.json` so subsequent tool calls on that session find the right server after an MCP restart
+  3. When a tool call on a stored sessionId receives a 404 from OpenCode (server was restarted), the stale entry is removed from `sessions.json` and the error surfaced to the caller describes the situation and next action (create a new session)
+  4. `ensureOpencodeRunning()` starts the correct OpenCode instance — using host and port from the named server's registry entry rather than the global default — when the targeted server is not reachable
+  5. `npm run build` passes with zero errors after all routing changes
+
+**Plans**: TBD
+
+---
+
+### Phase 15: Onboarding + Session Reuse
+
+**Goal**: CLAUDE.md documents the server registry for informed routing, `prefect init` guides first-server registration, and `prefect_delegate`/`prefect_dispatch` accept an optional `sessionId` for multi-pass session reuse.
+
+**Depends on**: Phase 14 (routing infrastructure must be in place before session reuse is safe)
+
+**Requirements**: MULTI-08, MULTI-09, MULTI-10
+
+**Success Criteria** (what must be TRUE):
+  1. CLAUDE.md contains a "Server Registry" section that lists available worker servers so Claude Code can decide which server to route work to without reading config files directly
+  2. Running `prefect init` in a fresh project prompts the user to register a first server; if a model-related env var is already set, the model field is pre-populated rather than left blank
+  3. Calling `prefect_delegate` or `prefect_dispatch` with an existing `sessionId` reuses that session on its already-registered server — the `server` param is ignored and no new session is created
+  4. Calling `prefect_delegate` or `prefect_dispatch` without `sessionId` requires `server` and creates a new session on that server, as before
+  5. `npm run build` passes and `examples/test-task.md` is updated to reflect the new `sessionId` reuse capability
+
+**Plans**: TBD
 
 ---
 
@@ -313,6 +372,9 @@ Plans:
 | 7. Composite Tools | v3.0 | 2/2 | Complete | 2026-04-28 |
 | 8. Read-only API Wrappers | v3.0 | 1/1 | Complete | 2026-04-28 |
 | 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
-| 10. Run + Session Param Additions | v4.0 | 1/1 | Complete    | 2026-04-29 |
+| 10. Run + Session Param Additions | v4.0 | 1/1 | Complete | 2026-04-29 |
 | 11. Session Lifecycle Tools | v4.0 | 1/1 | Complete | 2026-04-30 |
-| 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete    | 2026-04-30 |
+| 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete | 2026-04-30 |
+| 13. Server Registry | v5.0 | 0/TBD | Not started | - |
+| 14. Session-Server Routing | v5.0 | 0/TBD | Not started | - |
+| 15. Onboarding + Session Reuse | v5.0 | 0/TBD | Not started | - |

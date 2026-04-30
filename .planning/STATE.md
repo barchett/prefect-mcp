@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Multi-Server Registry
-status: defining_requirements
-stopped_at: v5.0 milestone started — requirements defined, roadmap pending
+status: roadmap_ready
+stopped_at: Roadmap created — Phase 13 is next
 last_updated: "2026-04-30"
-last_activity: 2026-04-30 -- Milestone v5.0 started
+last_activity: 2026-04-30 -- Roadmap written for v5.0 (Phases 13-15)
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-30 for v5.0 milestone)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** Defining roadmap for v5.0 Multi-Server Registry
+**Current focus:** Phase 13 — Server Registry (MULTI-01..04)
 
 ## Current Position
 
-Phase: Not started
+Phase: 13 (not started)
 Plan: —
-Status: Defining roadmap
+Status: Roadmap ready, planning next
 Last activity: 2026-04-30
 
-Progress: [__________] 0%
+Progress: [__________] 0%  (0/3 phases complete)
 
 ## Accumulated Context
 
@@ -39,7 +39,7 @@ Progress: [__________] 0%
 See PROJECT.md Key Decisions for full log.
 Key decisions for v5.0:
 
-- `server` param on 3 entry points only (prefect_create_session, prefect_delegate, prefect_dispatch) — does NOT proliferate to all 25+ tools
+- `server` param on 3 entry points only (prefect_create_session, prefect_delegate, prefect_dispatch) — does NOT proliferate to all 40 tools
 - Session→server map is the keystone — composite tools must register sessionId→server at internal session creation, not just prefect_create_session
 - File-backed sessions map (~/.config/prefect/sessions.json) from day one — in-memory only is insufficient across MCP server restarts
 - Stale session handling: OpenCode restart drops sessions → 404 on stale sessionId → remove from map, surface clear error
@@ -63,4 +63,4 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-30
-Stopped at: v5.0 milestone started — requirements written, roadmap pending
+Stopped at: Roadmap created — 3 phases (13-15) covering MULTI-01..10; Phase 13 is next
