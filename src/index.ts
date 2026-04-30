@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
 import { createPatch } from 'diff';
 import path from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { fetchWithAuth } from './fetch.js';
 import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
@@ -966,7 +967,7 @@ server.registerTool(
 server.registerTool(
   'prefect_session_init',
   {
-    description: 'Analyze the session\'s project and generate an AGENTS.md file. Returns true when the operation was accepted. Optionally override the model used for analysis (providerID + modelID) and/or resume from a specific message context (messageID).',
+    description: 'Analyze the session\'s project and generate an AGENTS.md file. If AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<current content>", generated: "<new content>" } so the caller can merge — the endpoint will have overwritten the file. If AGENTS.md does not exist, proceeds normally and returns { existed: false, accepted: true }. When directory cannot be resolved, proceeds without conflict detection.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
       providerID: z.string().optional().describe('Override provider for AGENTS.md generation. Requires modelID.'),
@@ -986,13 +987,33 @@ server.registerTool(
               ...(messageID ? { messageID } : {}),
             }
           : undefined;
+
+      // Read existing AGENTS.md before the endpoint overwrites it
+      let existingContent: string | null = null;
+      const agentsPath = dir ? path.join(dir, 'AGENTS.md') : null;
+      if (agentsPath && existsSync(agentsPath)) {
+        existingContent = readFileSync(agentsPath, 'utf8');
+      }
+
       const { data, error } = await client.session.init({
         path: { id: sessionId },
         body: body as { modelID: string; providerID: string; messageID: string } | undefined,
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+
+      // If the file existed before, read the generated version and surface both for caller-side merge
+      if (existingContent !== null && agentsPath) {
+        const generatedContent = existsSync(agentsPath) ? readFileSync(agentsPath, 'utf8') : null;
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ existed: true, existing: existingContent, generated: generatedContent }),
+          }],
+        };
+      }
+
+      return { content: [{ type: 'text', text: JSON.stringify({ existed: false, accepted: data }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
