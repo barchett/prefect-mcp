@@ -1064,6 +1064,121 @@ server.registerTool(
   }
 );
 
+// API-04: prefect_vcs_info — get VCS/git info for the workspace
+server.registerTool(
+  'prefect_vcs_info',
+  {
+    description: 'Get VCS/git info for the OpenCode workspace. Returns { branch: string } with the current git branch name. Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.vcs.get({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-05: prefect_file_status — get git-tracked file status for the workspace
+server.registerTool(
+  'prefect_file_status',
+  {
+    description: 'Get git-tracked file status for the OpenCode workspace. Returns Array<{ path: string, added: number, removed: number, status: "added"|"deleted"|"modified" }>. Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.file.status({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-06: prefect_list_mcp_servers — list MCP servers configured in OpenCode
+server.registerTool(
+  'prefect_list_mcp_servers',
+  {
+    description: 'List the MCP servers configured in the connected OpenCode instance. Returns { [serverName: string]: McpStatus } where McpStatus has a status field of "connected" | "disabled" | "failed" | "needs_auth" | "needs_client_registration". Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.mcp.status({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-11: prefect_get_config — get the current OpenCode configuration
+server.registerTool(
+  'prefect_get_config',
+  {
+    description: 'Get the current OpenCode configuration object. Returns the full Config as JSON. The response may contain API keys or provider credentials — treat as sensitive. Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.config.get({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-12: prefect_list_commands — list available slash commands
+server.registerTool(
+  'prefect_list_commands',
+  {
+    description: 'List available slash commands in the OpenCode instance. Returns Array<{ name: string, description?: string, agent?: string, model?: string, template: string, subtask?: boolean }>. Complements prefect_session_command which executes a named command. Pass directory to scope to a specific project root.',
+    inputSchema: z.object({
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.command.list({
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
