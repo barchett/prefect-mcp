@@ -12,7 +12,7 @@ Phase 11 adds five new MCP tools that wrap OpenCode session lifecycle endpoints 
 
 The implementation pattern is purely additive and structurally identical to Phase 3 session tools: Zod input schema, async handler calling `client.session.<method>()`, error check with `throw new Error(JSON.stringify(error))`, and `{ content: [{ type: 'text', text: JSON.stringify(data) }] }` return. The SDK abstracts HTTP method differences (GET vs POST vs DELETE) so the TypeScript implementation looks uniform across all five.
 
-`SessionSummarizeData` and `SessionInitData` both have non-trivial request bodies. **Despite being typed `body?: {...}` in the SDK, the server rejects calls that omit the body or send an empty one — `providerID` and `modelID` are required at runtime for both endpoints** (confirmed by UAT 2026-04-29). `SessionInitData` additionally accepts an optional `messageID`. All other tools have `body?: never`. Both share and unshare return the full `Session` object. Summarize and init return `boolean`. Todo returns `Array<Todo>` where `Todo` has `{ id, content, status, priority }`.
+`SessionSummarizeData` and `SessionInitData` both have non-trivial request bodies. **Despite being typed `body?: {...}` in the SDK, the server rejects calls that omit the body or send an empty one — `providerID` and `modelID` are required at runtime for both endpoints, and `messageID` is also required for `session.init()` specifically** (all confirmed by UAT 2026-04-29). `session.init()` write is asynchronous — the endpoint returns `true` immediately but AGENTS.md may take a moment to appear on disk. All other tools have `body?: never`. Both share and unshare return the full `Session` object. Summarize and init return `boolean`. Todo returns `Array<Todo>` where `Todo` has `{ id, content, status, priority }`.
 
 **Primary recommendation:** Implement all five tools in a single plan file (`11-01-PLAN.md`) — they share the same file targets (`src/index.ts` only), are all simple pass-throughs, and have no ordering dependencies between them.
 
@@ -221,9 +221,9 @@ body: {
 **Response:** `200: boolean` — returns `true` on success
 **Errors:** 400, 404
 
-**MCP tool schema:** sessionId (required string) + **required** providerID + **required** modelID + optional messageID + optional directory + optional force
+**MCP tool schema:** sessionId (required string) + **required** providerID + **required** modelID + **required** messageID + optional directory + optional force
 
-**⚠ UAT finding (2026-04-29):** SDK types the entire body as `body?: {...}` and all three fields as `string` (implying optional when body absent). In practice the server returns `{ path: ["providerID"], ... }` / `{ path: ["modelID"], ... }` errors when the body is absent or empty. `providerID` and `modelID` must always be provided. `messageID` status TBD pending a focused test.
+**⚠ UAT finding (2026-04-29):** SDK types the entire body as `body?: {...}` and all three fields as `string` (implying optional when body absent). In practice the server rejects calls without any of them: `providerID`, `modelID`, and `messageID` are all required at runtime (server returns a Zod validation error if `messageID` is omitted). The file write is asynchronous — the endpoint returns `true` immediately but AGENTS.md may take a moment to appear on disk.
 
 ### SESSION-15: prefect_session_share
 
@@ -468,7 +468,7 @@ server.registerTool(
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | The optional body fields for `init` (`modelID`, `providerID`, `messageID`) can be sent as a partial object when only some are provided | Code Examples — session_init | If all three are required together, callers who provide only one get a 400 from OpenCode; mitigation: make the tool description say "all three or none" |
+| A1 | ~~The optional body fields for `init` (`modelID`, `providerID`, `messageID`) can be sent as a partial object when only some are provided~~ **INVALIDATED by UAT 2026-04-29** — all three fields are required together; server rejects calls missing any of them | Code Examples — session_init | N/A — tool schema now marks all three as required |
 | A2 | Passing `body: undefined` (rather than omitting the `body` key) to `client.session.summarize()` and `client.session.init()` when no model override is given is safe | Code Examples | If SDK serializes `body: undefined` as `{}` and OpenCode rejects empty bodies, summarize/init with no model args would fail; low risk given SDK generated code handles this |
 
 **All other claims verified directly from installed SDK types.**
@@ -481,13 +481,13 @@ server.registerTool(
    - What we know: The `SessionSummarizeData.body` type is `body?: { providerID: string; modelID: string }` — both are non-optional within the body object, but the entire body is optional.
    - What's unclear: Whether OpenCode returns 400 if only one is provided.
    - Recommendation: In the tool description, say "both providerID and modelID are required together" (same pattern as `prefect_run` model override). In the code, only include the body when both are present.
-   - **RESOLVED:** For `prefect_session_summarize`, providerID + modelID are required together — body is only sent when both are present. For `prefect_session_init`, any subset of `{ modelID, providerID, messageID }` is accepted; body is sent whenever at least one field is provided.
+   - **RESOLVED (updated by UAT 2026-04-29):** For `prefect_session_summarize`, providerID + modelID are required together. For `prefect_session_init`, all three of `{ modelID, providerID, messageID }` are required — the server rejects omission of any one of them with a Zod validation error.
 
 2. **Does `session.init()` produce the AGENTS.md file synchronously or asynchronously?**
    - What we know: SDK return is `200: boolean` — no async task ID is returned.
    - What's unclear: Whether the file is written before the HTTP response returns, or triggered in the background.
    - Recommendation: Document as "triggers AGENTS.md generation" rather than "creates AGENTS.md" — lets the caller handle uncertainty without blocking on it.
-   - **RESOLVED:** Tool description uses "triggers AGENTS.md generation" language — callers should not assume synchronous file creation. The boolean return only confirms the request was accepted by OpenCode.
+   - **RESOLVED (confirmed by UAT 2026-04-29):** File write is asynchronous — the endpoint returns `true` immediately but AGENTS.md appears on disk after a short delay. Tool description now explicitly states this.
 
 ---
 
