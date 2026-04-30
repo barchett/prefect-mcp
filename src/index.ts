@@ -909,6 +909,146 @@ server.registerTool(
   }
 );
 
+// SESSION-11: Trigger session summary generation
+server.registerTool(
+  'prefect_session_summarize',
+  {
+    description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. Optionally override the model used for summarization by passing both providerID AND modelID together (passing only one is ignored).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      providerID: z.string().optional().describe('Override provider for summarization (e.g. "anthropic"). Requires modelID.'),
+      modelID: z.string().optional().describe('Override model for summarization (e.g. "claude-3-5-haiku-20241022"). Requires providerID.'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ sessionId, providerID, modelID, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.session.summarize({
+        path: { id: sessionId },
+        body: (providerID && modelID) ? { providerID, modelID } : undefined,
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-12: Get the current todo list for a session
+server.registerTool(
+  'prefect_session_todo',
+  {
+    description: 'Get the current todo list for an OpenCode session. Returns Array<{ id, content, status, priority }> where status is one of pending/in_progress/completed/cancelled and priority is high/medium/low.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.session.todo({
+        path: { id: sessionId },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-13: Generate AGENTS.md for the session's project
+server.registerTool(
+  'prefect_session_init',
+  {
+    description: 'Analyze the session\'s project and generate an AGENTS.md file. Returns true when the operation was accepted. Optionally override the model used for analysis (providerID + modelID) and/or resume from a specific message context (messageID).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID'),
+      providerID: z.string().optional().describe('Override provider for AGENTS.md generation. Requires modelID.'),
+      modelID: z.string().optional().describe('Override model for AGENTS.md generation. Requires providerID.'),
+      messageID: z.string().optional().describe('Resume analysis from a specific message context.'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ sessionId, providerID, modelID, messageID, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const body: { modelID?: string; providerID?: string; messageID?: string } | undefined =
+        (providerID || modelID || messageID)
+          ? {
+              ...(providerID ? { providerID } : {}),
+              ...(modelID ? { modelID } : {}),
+              ...(messageID ? { messageID } : {}),
+            }
+          : undefined;
+      const { data, error } = await client.session.init({
+        path: { id: sessionId },
+        body: body as { modelID: string; providerID: string; messageID: string } | undefined,
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-15: Make a session publicly shareable
+server.registerTool(
+  'prefect_session_share',
+  {
+    description: 'Make an OpenCode session publicly shareable. Returns the full Session object — after sharing, the share URL is available at session.share.url in the returned Session.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to share'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.session.share({
+        path: { id: sessionId },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// SESSION-16: Remove sharing from a session
+server.registerTool(
+  'prefect_session_unshare',
+  {
+    description: 'Remove public sharing from an OpenCode session. Returns the updated Session object with the share field cleared (session.share will be absent/undefined).',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID to unshare'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ sessionId, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.session.unshare({
+        path: { id: sessionId },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
