@@ -962,11 +962,11 @@ server.registerTool(
   }
 );
 
-// SESSION-13: Generate or augment AGENTS.md for the session's project
+// SESSION-13: Generate or rewrite AGENTS.md for the session's project
 server.registerTool(
   'prefect_session_init',
   {
-    description: 'Inject the OpenCode /init command into the session. The model scans the project and writes project-specific hints into AGENTS.md. Whether it writes at all is model-driven: on an empty or featureless directory it may write nothing; if AGENTS.md already exists and the model judges it complete, it may not augment. Returns { accepted: true } when the command was accepted — this does not guarantee a file was written or changed. providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message.',
+    description: 'Inject the OpenCode /init command into the session. The model scans the project and writes AGENTS.md with project-specific hints. Behavior is model-driven: if the directory has no meaningful content it may write nothing; if AGENTS.md already exists the model rewrites it, preserving sections it judges worth keeping and dropping others — custom content (e.g. hand-written blocks) can be lost. A second call on an already-complete file is typically a no-op. Returns { accepted: true } when the command was accepted — this does not guarantee a file was written or changed. providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
       providerID: z.string().describe('Required. Provider ID (e.g. "anthropic"). No server-side default — omitting causes a 400 error.'),
