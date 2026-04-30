@@ -914,11 +914,11 @@ server.registerTool(
 server.registerTool(
   'prefect_session_summarize',
   {
-    description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. Optionally override the model used for summarization by passing both providerID AND modelID together (passing only one is ignored).',
+    description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. providerID and modelID are required — the endpoint does not have a default model fallback (e.g. providerID: "anthropic", modelID: "claude-haiku-4-5-20251001").',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().optional().describe('Override provider for summarization (e.g. "anthropic"). Requires modelID.'),
-      modelID: z.string().optional().describe('Override model for summarization (e.g. "claude-3-5-haiku-20241022"). Requires providerID.'),
+      providerID: z.string().describe('Provider to use for summarization (e.g. "anthropic").'),
+      modelID: z.string().describe('Model to use for summarization (e.g. "claude-haiku-4-5-20251001").'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -927,7 +927,7 @@ server.registerTool(
     try {
       const { data, error } = await client.session.summarize({
         path: { id: sessionId },
-        ...(providerID && modelID ? { body: { providerID, modelID } } : {}),
+        body: { providerID, modelID },
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -967,11 +967,11 @@ server.registerTool(
 server.registerTool(
   'prefect_session_init',
   {
-    description: 'Analyze the session\'s project and generate an AGENTS.md file. Safe by default: if AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<content>", generated: null } WITHOUT calling the endpoint — nothing is written. Pass force: true to overwrite explicitly; on forced overwrite returns { existed: true, accepted: true }. When directory cannot be resolved, skips conflict detection and proceeds. If the file does not exist, calls the endpoint and returns { existed: false, accepted: true }.',
+    description: 'Analyze the session\'s project and generate an AGENTS.md file. providerID and modelID are required — the endpoint does not have a default model fallback. Safe by default: if AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<content>", generated: null } WITHOUT calling the endpoint — nothing is written. Pass force: true to overwrite explicitly; on forced overwrite returns { existed: true, accepted: true }. When directory cannot be resolved, skips conflict detection and proceeds. If the file does not exist, calls the endpoint and returns { existed: false, accepted: true }.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().optional().describe('Override provider for AGENTS.md generation. Requires modelID.'),
-      modelID: z.string().optional().describe('Override model for AGENTS.md generation. Requires providerID.'),
+      providerID: z.string().describe('Provider to use for AGENTS.md generation (e.g. "anthropic").'),
+      modelID: z.string().describe('Model to use for AGENTS.md generation (e.g. "claude-haiku-4-5-20251001").'),
       messageID: z.string().optional().describe('Resume analysis from a specific message context.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
       force: z.boolean().optional().describe('Overwrite an existing AGENTS.md without prompting. Default false — returns the existing content instead of writing.'),
@@ -993,16 +993,13 @@ server.registerTool(
         };
       }
 
-      const bodyFields = {
-        ...(providerID ? { providerID } : {}),
-        ...(modelID ? { modelID } : {}),
-        ...(messageID ? { messageID } : {}),
-      };
       const { data, error } = await client.session.init({
         path: { id: sessionId },
-        ...(Object.keys(bodyFields).length > 0
-          ? { body: bodyFields as { modelID: string; providerID: string; messageID: string } }
-          : {}),
+        body: {
+          providerID,
+          modelID,
+          ...(messageID ? { messageID } : {}),
+        } as { modelID: string; providerID: string; messageID: string },
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
