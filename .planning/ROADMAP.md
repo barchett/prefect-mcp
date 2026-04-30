@@ -46,7 +46,7 @@ Full archive: `.planning/milestones/v3.0-ROADMAP.md`
 
 - [x] **Phase 10: Run + Session Param Additions** — RUN-05..08 body field additions to `prefect_run` + SESSION-10 parentID param on `prefect_create_session` (completed 2026-04-29)
 - [ ] **Phase 11: Session Lifecycle Tools** — SESSION-11 summarize, SESSION-12 todo, SESSION-13 init, SESSION-15 share, SESSION-16 unshare
-- [ ] **Phase 12: Shell + Workspace API Wrappers** — SESSION-14 shell, API-04 vcs_info, API-05 file_status, API-06 list_mcp_servers, API-07 inject_mcp_server, API-08 list_tools
+- [x] **Phase 12: Shell + Workspace API Wrappers** — SESSION-14 shell, API-04 vcs_info, API-05 file_status, API-06 list_mcp_servers, API-07 inject_mcp_server, API-08 list_tools (completed 2026-04-30)
 
 ---
 
@@ -286,7 +286,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 12-01-PLAN.md — Ten tools: prefect_session_shell, prefect_vcs_info, prefect_file_status, prefect_list_mcp_servers, prefect_inject_mcp_server, prefect_list_tools, prefect_find_file, prefect_get_file_content, prefect_get_config, prefect_list_commands (SESSION-14, API-04..API-12)
+- [x] 12-01-PLAN.md — Ten tools: prefect_session_shell, prefect_vcs_info, prefect_file_status, prefect_list_mcp_servers, prefect_inject_mcp_server, prefect_list_tools, prefect_find_file, prefect_get_file_content, prefect_get_config, prefect_list_commands (SESSION-14, API-04..API-12)
 
 ---
 
@@ -315,4 +315,4 @@ Plans:
 | 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
 | 10. Run + Session Param Additions | v4.0 | 1/1 | Complete    | 2026-04-29 |
 | 11. Session Lifecycle Tools | v4.0 | 0/1 | Planned | — |
-| 12. Shell + Workspace API Wrappers | v4.0 | 0/1 | Planned | — |
+| 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete    | 2026-04-30 |

@@ -13,21 +13,21 @@
 - [ ] **SESSION-11**: `prefect_session_summarize` — wraps POST /session/:id/summarize; triggers OpenCode summary generation for a session
 - [ ] **SESSION-12**: `prefect_session_todo` — wraps GET /session/:id/todo; returns the current todo list for a session
 - [ ] **SESSION-13**: `prefect_session_init` — wraps POST /session/:id/init; generates an AGENTS.md file for the session's project
-- [ ] **SESSION-14**: `prefect_session_shell` — wraps POST /session/:id/shell; executes a shell command within the session's context
+- [x] **SESSION-14**: `prefect_session_shell` — wraps POST /session/:id/shell; executes a shell command within the session's context
 - [ ] **SESSION-15**: `prefect_session_share` — wraps POST /session/:id/share; makes a session shareable
 - [ ] **SESSION-16**: `prefect_session_unshare` — wraps DELETE /session/:id/share; removes sharing from a session
 
 ## Workspace API Wrappers
 
-- [ ] **API-04**: `prefect_vcs_info` — wraps GET /vcs; returns structured VCS/git info for the workspace
-- [ ] **API-05**: `prefect_file_status` — wraps GET /file/status; returns git-tracked file status for the workspace
-- [ ] **API-06**: `prefect_list_mcp_servers` — wraps GET /mcp; returns list of MCP servers configured in the OpenCode instance
-- [ ] **API-07**: `prefect_inject_mcp_server` — wraps POST /mcp; adds/configures an MCP server in OpenCode at runtime
-- [ ] **API-08**: `prefect_list_tools` — wraps GET /experimental/tool/ids + GET /experimental/tool; returns available tools per model
-- [ ] **API-09**: `prefect_find_file` — wraps GET /find/file; finds a file in the workspace by name or pattern, returns matching paths
-- [ ] **API-10**: `prefect_get_file_content` — wraps GET /file/content; returns the content of a specific file in the workspace
-- [ ] **API-11**: `prefect_get_config` — wraps GET /config; returns the current OpenCode configuration object
-- [ ] **API-12**: `prefect_list_commands` — wraps GET /command; returns available slash commands, complementing prefect_session_command
+- [x] **API-04**: `prefect_vcs_info` — wraps GET /vcs; returns structured VCS/git info for the workspace
+- [x] **API-05**: `prefect_file_status` — wraps GET /file/status; returns git-tracked file status for the workspace
+- [x] **API-06**: `prefect_list_mcp_servers` — wraps GET /mcp; returns list of MCP servers configured in the OpenCode instance
+- [x] **API-07**: `prefect_inject_mcp_server` — wraps POST /mcp; adds/configures an MCP server in OpenCode at runtime
+- [x] **API-08**: `prefect_list_tools` — wraps GET /experimental/tool/ids + GET /experimental/tool; returns available tools per model
+- [x] **API-09**: `prefect_find_file` — wraps GET /find/file; finds a file in the workspace by name or pattern, returns matching paths
+- [x] **API-10**: `prefect_get_file_content` — wraps GET /file/content; returns the content of a specific file in the workspace
+- [x] **API-11**: `prefect_get_config` — wraps GET /config; returns the current OpenCode configuration object
+- [x] **API-12**: `prefect_list_commands` — wraps GET /command; returns available slash commands, complementing prefect_session_command
 
 ## Future Requirements (v5.0)
 
@@ -62,18 +62,18 @@
 | SESSION-11 | Phase 11 | Pending |
 | SESSION-12 | Phase 11 | Pending |
 | SESSION-13 | Phase 11 | Pending |
-| SESSION-14 | Phase 12 | Pending |
+| SESSION-14 | Phase 12 | Complete |
 | SESSION-15 | Phase 11 | Pending |
 | SESSION-16 | Phase 11 | Pending |
-| API-04 | Phase 12 | Pending |
-| API-05 | Phase 12 | Pending |
-| API-06 | Phase 12 | Pending |
-| API-07 | Phase 12 | Pending |
-| API-08 | Phase 12 | Pending |
-| API-09 | Phase 12 | Pending |
-| API-10 | Phase 12 | Pending |
-| API-11 | Phase 12 | Pending |
-| API-12 | Phase 12 | Pending |
+| API-04 | Phase 12 | Complete |
+| API-05 | Phase 12 | Complete |
+| API-06 | Phase 12 | Complete |
+| API-07 | Phase 12 | Complete |
+| API-08 | Phase 12 | Complete |
+| API-09 | Phase 12 | Complete |
+| API-10 | Phase 12 | Complete |
+| API-11 | Phase 12 | Complete |
+| API-12 | Phase 12 | Complete |
 | PERM-01 | v5.0 | Backlog |
 | MULTI-01 | v5.0 | Backlog |
 | MULTI-02 | v5.0 | Backlog |
