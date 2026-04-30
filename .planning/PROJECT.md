@@ -4,9 +4,9 @@
 
 A TypeScript MCP server that exposes OpenCode's headless HTTP API as Claude Code tools. Claude Code orchestrates at the task/spec level (decompose, review, correct) while delegating actual file edits to a local model (Qwen or similar) running in OpenCode. The result lands in git history; Claude Code sees diffs and runs tests independently.
 
-## Current Milestone: v4.0 API Completeness
+## Current Milestone: v4.0 API Completeness — COMPLETE
 
-**Goal:** Expand Prefect's tool surface with run enhancements, session lifecycle tools, and workspace API wrappers — completing coverage of OpenCode's HTTP API.
+**Goal:** Expand Prefect's tool surface with run enhancements, session lifecycle tools, and workspace API wrappers — completing coverage of OpenCode's HTTP API. ✓ Achieved 2026-04-30 — 40 tools total.
 
 **Target features:**
 - `prefect_run` enhancements: tools override, FilePartInput (file attachments), messageID (resume), AgentPartInput/SubtaskPartInput
@@ -57,22 +57,27 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ GET /provider — list configured providers and models (`prefect_list_providers`) — Phase 8 complete — v3.0
 - ✓ GET /find/symbol — LSP-backed workspace symbol search (`prefect_find_symbol`) — Phase 8 complete — v3.0
 
-### Active (v4.0 targets)
+### Validated (v4.0)
 
-- [ ] `prefect_run` tools override (enable/disable per prompt)
-- [ ] `prefect_run` FilePartInput (file attachments as context)
-- [ ] `prefect_run` messageID (resume from specific message)
-- [ ] `prefect_run` AgentPartInput / SubtaskPartInput
-- [ ] `prefect_create_session` parentID (session hierarchies)
-- [ ] session.summarize — POST /session/:id/summarize
-- [ ] session.todo — GET /session/:id/todo
-- [ ] session.init — POST /session/:id/init (generate AGENTS.md)
-- [ ] session.shell — POST /session/:id/shell
-- [ ] session.share / session.unshare — POST+DELETE /session/:id/share
-- [ ] GET /vcs — structured VCS info
-- [ ] GET /file/status — structured git-tracked file status
-- [ ] GET /mcp + POST /mcp — inspect and inject MCP servers
-- [ ] GET /experimental/tool/ids + GET /experimental/tool — inspect available tools per model
+- ✓ `prefect_run` tools override (enable/disable per prompt) — Phase 10 complete — v4.0
+- ✓ `prefect_run` FilePartInput (file attachments as context) — Phase 10 complete — v4.0
+- ✓ `prefect_run` messageID (resume from specific message) — Phase 10 complete — v4.0
+- ✓ `prefect_run` AgentPartInput / SubtaskPartInput — Phase 10 complete — v4.0
+- ✓ `prefect_create_session` parentID (session hierarchies) — Phase 10 complete — v4.0
+- ✓ session.summarize — POST /session/:id/summarize — Phase 11 complete — v4.0
+- ✓ session.todo — GET /session/:id/todo — Phase 11 complete — v4.0
+- ✓ session.init — POST /session/:id/init (generate AGENTS.md) — Phase 11 complete — v4.0
+- ✓ session.share / session.unshare — POST+DELETE /session/:id/share — Phase 11 complete — v4.0
+- ✓ `prefect_session_shell` — POST /session/:id/shell (SESSION-14) — Phase 12 complete — v4.0
+- ✓ `prefect_vcs_info` — GET /vcs structured VCS info (API-04) — Phase 12 complete — v4.0
+- ✓ `prefect_file_status` — GET /file/status git-tracked file status (API-05) — Phase 12 complete — v4.0
+- ✓ `prefect_list_mcp_servers` — GET /mcp inspect MCP servers (API-06) — Phase 12 complete — v4.0
+- ✓ `prefect_inject_mcp_server` — POST /mcp inject MCP servers (API-07) — Phase 12 complete — v4.0
+- ✓ `prefect_list_tools` — dual-endpoint tool discovery (API-08) — Phase 12 complete — v4.0
+- ✓ `prefect_find_file` — GET /find/file workspace file search (API-09) — Phase 12 complete — v4.0
+- ✓ `prefect_get_file_content` — GET /file/content file reader (API-10) — Phase 12 complete — v4.0
+- ✓ `prefect_get_config` — GET /config full config object (API-11) — Phase 12 complete — v4.0
+- ✓ `prefect_list_commands` — GET /command slash commands (API-12) — Phase 12 complete — v4.0
 
 ### Future (v5.0 targets — Multi-server Registry)
 
@@ -104,6 +109,9 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - Phase 7 complete (2026-04-28): Four composite tools (opencode_delegate, opencode_dispatch, opencode_inspect, opencode_await) + handler extraction refactor (src/handlers.ts) — 22 tools total
 - Phase 8 complete (2026-04-28): Three read-only API wrappers (prefect_list_agents, prefect_list_providers, prefect_find_symbol) — 25 tools total
 - Phase 9 complete (2026-04-29): All 25 tool names renamed opencode_* → prefect_*; env vars OPENCODE_* → PREFECT_* with soft-migration fallback; npm publishing manifest added (prefect-mcp); global install detection in cli.ts; package ready for `npm publish --access public`
+- Phase 10 complete (2026-04-29): prefect_run enhancements — tools override, FilePartInput, messageID, AgentPartInput/SubtaskPartInput, parentID on prefect_create_session — 30 tools total
+- Phase 11 complete (2026-04-30): Session lifecycle tools — prefect_session_summarize, prefect_session_todo, prefect_session_init, prefect_session_share, prefect_session_unshare — 30 tools total (lifecycle tools added to existing session handlers)
+- Phase 12 complete (2026-04-30): Shell + workspace API wrappers — 10 new tools covering GET /vcs, GET /file/status, GET+POST /mcp, dual-endpoint /experimental/tool, GET /find/file, GET /file/content, GET /config, GET /command, POST /session/:id/shell — **40 tools total; v4.0 milestone complete**
 
 ## Constraints
 
@@ -133,4 +141,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-29 — v4.0 milestone started; v3.0 fully validated; v5.0 multi-server registry scoped*
+*Last updated: 2026-04-30 — v4.0 milestone complete (40 tools); v5.0 multi-server registry is next*
