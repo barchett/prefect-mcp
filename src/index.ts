@@ -914,11 +914,11 @@ server.registerTool(
 server.registerTool(
   'prefect_session_summarize',
   {
-    description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. providerID and modelID are required — the endpoint does not have a default model fallback (e.g. providerID: "anthropic", modelID: "claude-haiku-4-5-20251001").',
+    description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. providerID and modelID are required — the endpoint has no default fallback. providerID must match a provider configured in the OpenCode server (e.g. "vllm" or "anthropic"); using an unconfigured provider returns ProviderModelNotFoundError.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().describe('Required. Provider ID for summarization (e.g. "anthropic"). The endpoint has no default fallback — omitting this field causes a 400 error.'),
-      modelID: z.string().describe('Required. Model ID for summarization (e.g. "claude-haiku-4-5-20251001"). Must match a model available under the specified providerID.'),
+      providerID: z.string().describe('Required. Provider ID for summarization — must match a provider configured in the OpenCode server (e.g. "vllm"). Using an unconfigured provider returns ProviderModelNotFoundError.'),
+      modelID: z.string().describe('Required. Model ID for summarization. Must be available under the specified providerID.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -983,9 +983,9 @@ server.registerTool(
 providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message. accepted: true confirms the command was accepted, not that the file was written or changed.`,
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().describe('Required. Provider ID (e.g. "anthropic"). No server-side default — omitting causes a 400 error.'),
-      modelID: z.string().describe('Required. Model ID (e.g. "claude-haiku-4-5-20251001"). Must be available under providerID.'),
-      messageID: z.string().describe('Required. The ID assigned to the new user message created by this call. Pass any unique string (e.g. a UUID). Not a reference to an existing message.'),
+      providerID: z.string().describe('Required. Provider ID — must match a provider configured in the OpenCode server (e.g. "vllm"). Using an unconfigured provider returns ProviderModelNotFoundError.'),
+      modelID: z.string().describe('Required. Model ID. Must be available under the specified providerID.'),
+      messageID: z.string().describe('Required. The ID assigned to the new user message created by this call. Must start with "msg" (e.g. "msg_" + Date.now(), or "msg" + a random suffix). UUID format is rejected. Not a reference to an existing message.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
       force: z.boolean().optional().describe('Skip the existence guard and always call the endpoint. OpenCode will rewrite AGENTS.md — custom content can be lost. Use when explicitly re-initializing.'),
     }),
