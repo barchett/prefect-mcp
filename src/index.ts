@@ -927,7 +927,7 @@ server.registerTool(
     try {
       const { data, error } = await client.session.summarize({
         path: { id: sessionId },
-        body: (providerID && modelID) ? { providerID, modelID } : undefined,
+        ...(providerID && modelID ? { body: { providerID, modelID } } : {}),
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
