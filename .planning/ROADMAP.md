@@ -5,7 +5,7 @@
 - **v1.0 MVP** — Phases 1–2 (shipped 2026-04-26)
 - **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
 - **v3.0 Daily Driver** — Phases 5–9 (shipped 2026-04-29)
-- **v4.0 API Completeness** — Phases 10–12 (in progress)
+- **v4.0 API Completeness** — Phases 10–12 (shipped 2026-04-30)
 
 ## Phases
 
@@ -45,7 +45,7 @@ Full archive: `.planning/milestones/v3.0-ROADMAP.md`
 ### v4.0 API Completeness (Phases 10–12)
 
 - [x] **Phase 10: Run + Session Param Additions** — RUN-05..08 body field additions to `prefect_run` + SESSION-10 parentID param on `prefect_create_session` (completed 2026-04-29)
-- [ ] **Phase 11: Session Lifecycle Tools** — SESSION-11 summarize, SESSION-12 todo, SESSION-13 init, SESSION-15 share, SESSION-16 unshare
+- [x] **Phase 11: Session Lifecycle Tools** — SESSION-11 summarize, SESSION-12 todo, SESSION-13 init, SESSION-15 share, SESSION-16 unshare (completed 2026-04-30)
 - [x] **Phase 12: Shell + Workspace API Wrappers** — SESSION-14 shell, API-04 vcs_info, API-05 file_status, API-06 list_mcp_servers, API-07 inject_mcp_server, API-08 list_tools (completed 2026-04-30)
 
 ---
@@ -314,5 +314,5 @@ Plans:
 | 8. Read-only API Wrappers | v3.0 | 1/1 | Complete | 2026-04-28 |
 | 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
 | 10. Run + Session Param Additions | v4.0 | 1/1 | Complete    | 2026-04-29 |
-| 11. Session Lifecycle Tools | v4.0 | 0/1 | Planned | — |
+| 11. Session Lifecycle Tools | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete    | 2026-04-30 |
