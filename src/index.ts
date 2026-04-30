@@ -1235,18 +1235,24 @@ server.registerTool(
   async ({ name, configType, commandArgs, environment, url, headers, enabled, timeout, directory }) => {
     const dir = resolveDirectory(directory);
     try {
+      if (configType === 'local' && (!commandArgs || commandArgs.length === 0)) {
+        throw new Error('prefect_inject_mcp_server: commandArgs is required when configType is "local"');
+      }
+      if (configType === 'remote' && !url) {
+        throw new Error('prefect_inject_mcp_server: url is required when configType is "remote"');
+      }
       const config: import('@opencode-ai/sdk').McpLocalConfig | import('@opencode-ai/sdk').McpRemoteConfig =
         configType === 'local'
           ? {
               type: 'local',
-              command: commandArgs ?? [],
+              command: commandArgs!,
               ...(environment ? { environment } : {}),
               ...(enabled !== undefined ? { enabled } : {}),
               ...(timeout !== undefined ? { timeout } : {}),
             }
           : {
               type: 'remote',
-              url: url ?? '',
+              url: url!,
               ...(headers ? { headers } : {}),
               ...(enabled !== undefined ? { enabled } : {}),
             };
@@ -1276,6 +1282,9 @@ server.registerTool(
   async ({ provider, model, directory }) => {
     const dir = resolveDirectory(directory);
     try {
+      if ((provider && !model) || (!provider && model)) {
+        throw new Error('prefect_list_tools: provider and model must be supplied together; omit both for tool IDs only');
+      }
       if (provider && model) {
         // GET /experimental/tool — requires BOTH provider + model (non-optional in SDK types)
         const { data, error } = await client.tool.list({
