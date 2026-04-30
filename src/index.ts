@@ -966,7 +966,7 @@ server.registerTool(
 server.registerTool(
   'prefect_session_init',
   {
-    description: 'Inject the OpenCode /init command into the session, which analyzes the project and writes or augments AGENTS.md. If AGENTS.md already exists, OpenCode augments it rather than overwriting. providerID, modelID, and messageID are all required. messageID is the ID that will be assigned to the new user message created by this call — pass any unique string (e.g. a UUID). The operation is asynchronous: the endpoint returns true immediately, but AGENTS.md may take a moment to appear or update on disk.',
+    description: 'Inject the OpenCode /init command into the session. The model scans the project and writes project-specific hints into AGENTS.md. Whether it writes at all is model-driven: on an empty or featureless directory it may write nothing; if AGENTS.md already exists and the model judges it complete, it may not augment. Returns { accepted: true } when the command was accepted — this does not guarantee a file was written or changed. providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
       providerID: z.string().describe('Required. Provider ID (e.g. "anthropic"). No server-side default — omitting causes a 400 error.'),
