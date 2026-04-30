@@ -917,8 +917,8 @@ server.registerTool(
     description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. providerID and modelID are required — the endpoint does not have a default model fallback (e.g. providerID: "anthropic", modelID: "claude-haiku-4-5-20251001").',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().describe('Provider to use for summarization (e.g. "anthropic").'),
-      modelID: z.string().describe('Model to use for summarization (e.g. "claude-haiku-4-5-20251001").'),
+      providerID: z.string().describe('Required. Provider ID for summarization (e.g. "anthropic"). The endpoint has no default fallback — omitting this field causes a 400 error.'),
+      modelID: z.string().describe('Required. Model ID for summarization (e.g. "claude-haiku-4-5-20251001"). Must match a model available under the specified providerID.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -970,8 +970,8 @@ server.registerTool(
     description: 'Analyze the session\'s project and generate an AGENTS.md file. providerID and modelID are required — the endpoint does not have a default model fallback. Safe by default: if AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<content>", generated: null } WITHOUT calling the endpoint — nothing is written. Pass force: true to overwrite explicitly; on forced overwrite returns { existed: true, accepted: true }. When directory cannot be resolved, skips conflict detection and proceeds. If the file does not exist, calls the endpoint and returns { existed: false, accepted: true }.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().describe('Provider to use for AGENTS.md generation (e.g. "anthropic").'),
-      modelID: z.string().describe('Model to use for AGENTS.md generation (e.g. "claude-haiku-4-5-20251001").'),
+      providerID: z.string().describe('Required. Provider ID for AGENTS.md generation (e.g. "anthropic"). The endpoint has no default fallback — omitting this field causes a 400 error.'),
+      modelID: z.string().describe('Required. Model ID for AGENTS.md generation (e.g. "claude-haiku-4-5-20251001"). Must match a model available under the specified providerID.'),
       messageID: z.string().optional().describe('Resume analysis from a specific message context.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
       force: z.boolean().optional().describe('Overwrite an existing AGENTS.md without prompting. Default false — returns the existing content instead of writing.'),

@@ -12,7 +12,7 @@ Phase 11 adds five new MCP tools that wrap OpenCode session lifecycle endpoints 
 
 The implementation pattern is purely additive and structurally identical to Phase 3 session tools: Zod input schema, async handler calling `client.session.<method>()`, error check with `throw new Error(JSON.stringify(error))`, and `{ content: [{ type: 'text', text: JSON.stringify(data) }] }` return. The SDK abstracts HTTP method differences (GET vs POST vs DELETE) so the TypeScript implementation looks uniform across all five.
 
-`SessionInitData` is the only tool with a non-trivial request body: it accepts an optional `{ modelID, providerID, messageID }` body (all strings). All others have `body?: never` (no request body needed). Both share and unshare return the full `Session` object. Summarize and init return `boolean`. Todo returns `Array<Todo>` where `Todo` has `{ id, content, status, priority }`.
+`SessionSummarizeData` and `SessionInitData` both have non-trivial request bodies. **Despite being typed `body?: {...}` in the SDK, the server rejects calls that omit the body or send an empty one — `providerID` and `modelID` are required at runtime for both endpoints** (confirmed by UAT 2026-04-29). `SessionInitData` additionally accepts an optional `messageID`. All other tools have `body?: never`. Both share and unshare return the full `Session` object. Summarize and init return `boolean`. Todo returns `Array<Todo>` where `Todo` has `{ id, content, status, priority }`.
 
 **Primary recommendation:** Implement all five tools in a single plan file (`11-01-PLAN.md`) — they share the same file targets (`src/index.ts` only), are all simple pass-throughs, and have no ordering dependencies between them.
 
@@ -23,9 +23,9 @@ The implementation pattern is purely additive and structurally identical to Phas
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| SESSION-11 | `prefect_session_summarize` — wraps POST /session/:id/summarize; triggers OpenCode summary generation for a session | `client.session.summarize()` exists in SDK; body is optional `{ providerID, modelID }`; returns `boolean` |
+| SESSION-11 | `prefect_session_summarize` — wraps POST /session/:id/summarize; triggers OpenCode summary generation for a session | `client.session.summarize()` exists in SDK; **body required** `{ providerID, modelID }` (server rejects absent/empty body despite SDK typing `body?: {...}`); returns `boolean` |
 | SESSION-12 | `prefect_session_todo` — wraps GET /session/:id/todo; returns the current todo list for a session | `client.session.todo()` exists in SDK; no body; returns `Array<Todo>` |
-| SESSION-13 | `prefect_session_init` — wraps POST /session/:id/init; generates an AGENTS.md file for the session's project | `client.session.init()` exists in SDK; body is optional `{ modelID, providerID, messageID }`; returns `boolean` |
+| SESSION-13 | `prefect_session_init` — wraps POST /session/:id/init; generates an AGENTS.md file for the session's project | `client.session.init()` exists in SDK; **body required**: `providerID` and `modelID` required (server rejects absent/empty body); `messageID` optional; returns `boolean` |
 | SESSION-15 | `prefect_session_share` — wraps POST /session/:id/share; makes a session shareable | `client.session.share()` exists in SDK; no body; returns `Session` (with `share?: { url: string }` field) |
 | SESSION-16 | `prefect_session_unshare` — wraps DELETE /session/:id/share; removes sharing from a session | `client.session.unshare()` exists in SDK; no body; returns `Session` |
 </phase_requirements>
@@ -172,17 +172,19 @@ All type information verified directly from the installed SDK at:
 
 **SDK method:** `client.session.summarize(options)`
 **HTTP:** POST /session/:id/summarize
-**Request body (optional):**
+**Request body (required at runtime):**
 ```typescript
-body?: {
-  providerID: string;  // optional — override model for summary generation
-  modelID: string;
+body: {
+  providerID: string;  // REQUIRED — SDK types as optional but server rejects calls without it
+  modelID: string;     // REQUIRED — same
 }
 ```
 **Response:** `200: boolean` — returns `true` on success
 **Errors:** 400 (BadRequestError), 404 (NotFoundError)
 
-**MCP tool schema:** sessionId (required string) + optional providerID + optional modelID + optional directory
+**MCP tool schema:** sessionId (required string) + **required** providerID + **required** modelID + optional directory
+
+**⚠ UAT finding (2026-04-29):** SDK types `body` as `body?: { providerID: string; modelID: string }` implying optional, but the server returns `{ path: ["providerID"], message: "Invalid input: expected string, received undefined" }` when the body is absent or empty. `providerID` and `modelID` must always be provided.
 
 ### SESSION-12: prefect_session_todo
 
@@ -208,20 +210,20 @@ type Todo = {
 
 **SDK method:** `client.session.init(options)`
 **HTTP:** POST /session/:id/init
-**Request body (optional):**
+**Request body (providerID + modelID required at runtime):**
 ```typescript
-body?: {
-  modelID: string;    // override model for AGENTS.md generation
-  providerID: string;
-  messageID: string;  // resume from a specific message context
+body: {
+  providerID: string;  // REQUIRED — server rejects absent/empty body
+  modelID: string;     // REQUIRED — same
+  messageID?: string;  // optional — resume from a specific message context
 }
 ```
 **Response:** `200: boolean` — returns `true` on success
 **Errors:** 400, 404
 
-**MCP tool schema:** sessionId (required string) + optional providerID + optional modelID + optional messageID + optional directory
+**MCP tool schema:** sessionId (required string) + **required** providerID + **required** modelID + optional messageID + optional directory + optional force
 
-**Note:** SDK JSDoc says "Analyze the app and create an AGENTS.md file". The body fields are all optional (the entire `body` is `body?: {...}`) — call without body to use session defaults.
+**⚠ UAT finding (2026-04-29):** SDK types the entire body as `body?: {...}` and all three fields as `string` (implying optional when body absent). In practice the server returns `{ path: ["providerID"], ... }` / `{ path: ["modelID"], ... }` errors when the body is absent or empty. `providerID` and `modelID` must always be provided. `messageID` status TBD pending a focused test.
 
 ### SESSION-15: prefect_session_share
 
@@ -265,12 +267,12 @@ body?: {
 **How to avoid:** `JSON.stringify(data)` will produce `"true"` for these — that is correct. Add to tool description that the `true` return means the operation was accepted/triggered.
 **Warning signs:** Runtime error accessing properties on a boolean.
 
-### Pitfall 3: Confusing the optional body structure for init/summarize
+### Pitfall 3: Treating providerID/modelID as optional for summarize and init
 
-**What goes wrong:** Making body fields required in the Zod schema when they are all optional.
-**Why it happens:** `SessionInitData.body` and `SessionSummarizeData.body` both have `body?: { ... }` — the entire body is optional, AND each field within it is required only if the body is provided.
-**How to avoid:** Make providerID, modelID, and messageID all `z.string().optional()` in the Zod schema. Pass the body conditionally — only include it when at least one field is present.
-**Warning signs:** Callers must supply model fields they don't want to specify.
+**What goes wrong:** Calling `prefect_session_summarize` or `prefect_session_init` without `providerID` and `modelID` — the server returns 400 with `{ path: ["providerID"], message: "Invalid input: expected string, received undefined" }`.
+**Why it happens:** The SDK types `body` as `body?: { providerID: string; modelID: string }` suggesting the body is optional. In practice the server validates these fields as required. Any absent or empty body triggers the same validation error. Confirmed by UAT 2026-04-29.
+**How to avoid:** Mark `providerID` and `modelID` as `z.string()` (no `.optional()`) in the Zod schema. Always pass `body: { providerID, modelID }` to the SDK call. Claude Code callers should use their current OpenCode provider/model (e.g. `"anthropic"` / `"claude-sonnet-4-6"`).
+**Warning signs:** `{ "error": [{ "path": ["providerID"], "message": "Invalid input: expected string, received undefined" }] }` in the tool response.
 
 ### Pitfall 4: Missing the share URL in description
 
@@ -473,17 +475,19 @@ server.registerTool(
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Are providerID + modelID required together for summarize/init, or can they be sent independently?**
    - What we know: The `SessionSummarizeData.body` type is `body?: { providerID: string; modelID: string }` — both are non-optional within the body object, but the entire body is optional.
    - What's unclear: Whether OpenCode returns 400 if only one is provided.
    - Recommendation: In the tool description, say "both providerID and modelID are required together" (same pattern as `prefect_run` model override). In the code, only include the body when both are present.
+   - **RESOLVED:** For `prefect_session_summarize`, providerID + modelID are required together — body is only sent when both are present. For `prefect_session_init`, any subset of `{ modelID, providerID, messageID }` is accepted; body is sent whenever at least one field is provided.
 
 2. **Does `session.init()` produce the AGENTS.md file synchronously or asynchronously?**
    - What we know: SDK return is `200: boolean` — no async task ID is returned.
    - What's unclear: Whether the file is written before the HTTP response returns, or triggered in the background.
    - Recommendation: Document as "triggers AGENTS.md generation" rather than "creates AGENTS.md" — lets the caller handle uncertainty without blocking on it.
+   - **RESOLVED:** Tool description uses "triggers AGENTS.md generation" language — callers should not assume synchronous file creation. The boolean return only confirms the request was accepted by OpenCode.
 
 ---
 
