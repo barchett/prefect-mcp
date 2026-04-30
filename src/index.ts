@@ -1179,6 +1179,186 @@ server.registerTool(
   }
 );
 
+// SESSION-14: prefect_session_shell — execute a shell command in a session context
+server.registerTool(
+  'prefect_session_shell',
+  {
+    description: 'WARNING: Executes an arbitrary shell command in the context of an OpenCode session. The command runs in the session\'s working directory with the session\'s environment. Returns AssistantMessage containing command output. Use with caution — there is no sandboxing at the Prefect layer. sessionId, agent, and command are all required. model override is optional.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('Session ID in which to execute the command'),
+      command: z.string().describe('Shell command to execute in the session\'s context'),
+      agent: z.string().describe('Required. Agent context for command execution (e.g. "general"). Must match a configured agent name.'),
+      model: z.object({
+        providerID: z.string(),
+        modelID: z.string(),
+      }).optional().describe('Optional model override. Both providerID and modelID required together if provided.'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ sessionId, command, agent, model, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.session.shell({
+        path: { id: sessionId },
+        body: {
+          agent,
+          command,
+          ...(model ? { model } : {}),
+        },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-07: prefect_inject_mcp_server — add an MCP server to OpenCode at runtime
+server.registerTool(
+  'prefect_inject_mcp_server',
+  {
+    description: 'Add an MCP server to the OpenCode instance at runtime. For local stdio servers, pass configType: "local" with commandArgs as an array (e.g. ["node", "/path/to/server.js"]). For remote HTTP/SSE servers, pass configType: "remote" with url. Returns the updated MCP server map { [serverName]: McpStatus }.',
+    inputSchema: z.object({
+      name: z.string().describe('Unique name for this MCP server in the OpenCode MCP registry'),
+      configType: z.enum(['local', 'remote']).describe('"local" for stdio subprocess MCP servers; "remote" for HTTP/SSE MCP servers'),
+      commandArgs: z.array(z.string()).optional().describe('Required when configType is "local". Command and arguments as an array (e.g. ["node", "/path/to/server.js"]).'),
+      environment: z.record(z.string(), z.string()).optional().describe('Environment variables to set when running a local MCP server'),
+      url: z.string().optional().describe('Required when configType is "remote". URL of the remote MCP server'),
+      headers: z.record(z.string(), z.string()).optional().describe('Optional HTTP headers for remote MCP server requests'),
+      enabled: z.boolean().optional().describe('Whether to enable this MCP server. Defaults to true.'),
+      timeout: z.number().int().positive().optional().describe('Timeout in ms for fetching tools from the MCP server (local only). Default: 5000.'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ name, configType, commandArgs, environment, url, headers, enabled, timeout, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      const config: import('@opencode-ai/sdk').McpLocalConfig | import('@opencode-ai/sdk').McpRemoteConfig =
+        configType === 'local'
+          ? {
+              type: 'local',
+              command: commandArgs ?? [],
+              ...(environment ? { environment } : {}),
+              ...(enabled !== undefined ? { enabled } : {}),
+              ...(timeout !== undefined ? { timeout } : {}),
+            }
+          : {
+              type: 'remote',
+              url: url ?? '',
+              ...(headers ? { headers } : {}),
+              ...(enabled !== undefined ? { enabled } : {}),
+            };
+      const { data, error } = await client.mcp.add({
+        body: { name, config },
+        query: dir ? { directory: dir } : undefined,
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-08: prefect_list_tools — list available tools per model (dual-endpoint)
+server.registerTool(
+  'prefect_list_tools',
+  {
+    description: 'List tools available in the OpenCode instance. When provider and model are both omitted, returns all tool IDs (Array<string>) via GET /experimental/tool/ids. When both provider and model are supplied, returns tool details (Array<{ id, description, parameters }>) for that specific model via GET /experimental/tool. Both provider and model are required together when using the detailed endpoint.',
+    inputSchema: z.object({
+      provider: z.string().optional().describe('Provider ID (e.g. "anthropic"). Required when model is provided.'),
+      model: z.string().optional().describe('Model ID (e.g. "claude-sonnet-4-6"). Required when provider is provided.'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async ({ provider, model, directory }) => {
+    const dir = resolveDirectory(directory);
+    try {
+      if (provider && model) {
+        // GET /experimental/tool — requires BOTH provider + model (non-optional in SDK types)
+        const { data, error } = await client.tool.list({
+          query: {
+            provider,
+            model,
+            ...(dir ? { directory: dir } : {}),
+          },
+        });
+        if (error) throw new Error(JSON.stringify(error));
+        return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      } else {
+        // GET /experimental/tool/ids — no required params
+        const { data, error } = await client.tool.ids({
+          query: dir ? { directory: dir } : undefined,
+        });
+        if (error) throw new Error(JSON.stringify(error));
+        return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      }
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-09: prefect_find_file — find files in the workspace by name or pattern
+server.registerTool(
+  'prefect_find_file',
+  {
+    description: 'Find files in the OpenCode workspace matching a query string. Returns Array<string> of matching file paths. Optionally include directories in results via dirs param. Pass directory to scope the search to a project root.',
+    inputSchema: z.object({
+      query: z.string().describe('Filename or pattern to search for'),
+      dirs: z.enum(['true', 'false']).optional().describe('Whether to include directory paths in results. Defaults to "false". Must be the string "true" or "false", not a boolean.'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async (args) => {
+    const { query: fileQuery, dirs, directory } = args;
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.find.files({
+        query: {
+          query: fileQuery,
+          ...(dirs ? { dirs } : {}),
+          ...(dir ? { directory: dir } : {}),
+        },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
+// API-10: prefect_get_file_content — get the content of a file in the workspace
+server.registerTool(
+  'prefect_get_file_content',
+  {
+    description: 'Get the content of a file in the OpenCode workspace. Returns { type: "text"|"binary", content: string, diff?, patch?, encoding?, mimeType? }. path is the file path — absolute or relative to directory if provided.',
+    inputSchema: z.object({
+      path: z.string().describe('File path to read (absolute, or relative to the directory param if provided)'),
+      directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+    }),
+  },
+  async (args) => {
+    const { path: filePath, directory } = args;
+    const dir = resolveDirectory(directory);
+    try {
+      const { data, error } = await client.file.read({
+        query: {
+          path: filePath,
+          ...(dir ? { directory: dir } : {}),
+        },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+    } catch (err) {
+      return { content: [{ type: 'text', text: String(err) }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
