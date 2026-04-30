@@ -256,7 +256,10 @@ Plans:
   4. `prefect_session_share` makes a session shareable and returns the share URL or confirmation; `prefect_session_unshare` removes sharing and returns confirmation
   5. `npm run build` passes with zero errors after all five tools are registered
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 11-01-PLAN.md — Five session lifecycle tools registered in src/index.ts: prefect_session_summarize, prefect_session_todo, prefect_session_init, prefect_session_share, prefect_session_unshare (SESSION-11, SESSION-12, SESSION-13, SESSION-15, SESSION-16)
 
 ---
 
@@ -308,5 +311,5 @@ Plans:
 | 8. Read-only API Wrappers | v3.0 | 1/1 | Complete | 2026-04-28 |
 | 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
 | 10. Run + Session Param Additions | v4.0 | 1/1 | Complete    | 2026-04-29 |
-| 11. Session Lifecycle Tools | v4.0 | 0/TBD | Not started | — |
+| 11. Session Lifecycle Tools | v4.0 | 0/1 | Planned | — |
 | 12. Shell + Workspace API Wrappers | v4.0 | 0/TBD | Not started | — |
