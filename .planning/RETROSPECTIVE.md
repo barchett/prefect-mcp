@@ -92,3 +92,16 @@
 
 1. Read SDK types from source before writing schemas — caught v1.0 enum bug and v2.0 discriminator risk before they shipped
 2. Keep requirements checkboxes current during execution — stale REQUIREMENTS.md creates false audit positives at milestone close
+
+### Research Lesson (surfaced v3.0 UAT, 2026-04-29)
+
+**SDK types describe wire format, not behavior.** For phases that wrap external APIs, SDK type inspection alone is insufficient. Three things were missed in Phase 11 research that only appeared during UAT:
+
+- `messageID` semantics: the SDK type shows `messageID: string` in the request body — research assumed it was a reference to an existing message. The server source shows it is the ID *assigned to the new outgoing message*. These look identical in a type definition.
+- Augment vs overwrite: research assumed the endpoint overwrites existing AGENTS.md. The official docs explicitly say "if a file already exists, it attempts to augment it." No SDK type can surface this.
+- Async file write: research hedged but never confirmed from source. The server injects a prompt and returns immediately; the agent runs asynchronously.
+
+**Required addition to research checklist for any phase wrapping an external HTTP API:**
+1. Check the official product docs for each endpoint (not just API reference — narrative docs describe behavior)
+2. Check the server source code for each endpoint handler — look at what the inputs are actually used for
+3. For any "returns boolean/true" endpoint, confirm whether the operation is sync or async before documenting it as a write
