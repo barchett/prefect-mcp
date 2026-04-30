@@ -283,7 +283,10 @@ Plans:
   9. `prefect_list_commands` returns available slash commands using GET /command, complementing `prefect_session_command`
   10. `npm run build` passes with zero errors after all ten tools are registered
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 12-01-PLAN.md — Ten tools: prefect_session_shell, prefect_vcs_info, prefect_file_status, prefect_list_mcp_servers, prefect_inject_mcp_server, prefect_list_tools, prefect_find_file, prefect_get_file_content, prefect_get_config, prefect_list_commands (SESSION-14, API-04..API-12)
 
 ---
 
@@ -312,4 +315,4 @@ Plans:
 | 9. npm Distribution | v3.0 | 2/2 | Complete | 2026-04-29 |
 | 10. Run + Session Param Additions | v4.0 | 1/1 | Complete    | 2026-04-29 |
 | 11. Session Lifecycle Tools | v4.0 | 0/1 | Planned | — |
-| 12. Shell + Workspace API Wrappers | v4.0 | 0/TBD | Not started | — |
+| 12. Shell + Workspace API Wrappers | v4.0 | 0/1 | Planned | — |
