@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
 import { createPatch } from 'diff';
 import path from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
 import { fetchWithAuth } from './fetch.js';
 import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
@@ -963,49 +962,29 @@ server.registerTool(
   }
 );
 
-// SESSION-13: Generate AGENTS.md for the session's project
+// SESSION-13: Generate or augment AGENTS.md for the session's project
 server.registerTool(
   'prefect_session_init',
   {
-    description: 'Analyze the session\'s project and generate an AGENTS.md file. providerID, modelID, and messageID are all required — the endpoint has no default fallback for any of these fields. The operation is accepted asynchronously: the endpoint returns true immediately, but AGENTS.md may take a moment to appear on disk after the call returns. Safe by default: if AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<content>", generated: null } WITHOUT calling the endpoint — nothing is written. Pass force: true to overwrite explicitly; on forced overwrite returns { existed: true, accepted: true }. When directory cannot be resolved, skips conflict detection and proceeds. If the file does not exist, calls the endpoint and returns { existed: false, accepted: true }.',
+    description: 'Inject the OpenCode /init command into the session, which analyzes the project and writes or augments AGENTS.md. If AGENTS.md already exists, OpenCode augments it rather than overwriting. providerID, modelID, and messageID are all required. messageID is the ID that will be assigned to the new user message created by this call — pass any unique string (e.g. a UUID). The operation is asynchronous: the endpoint returns true immediately, but AGENTS.md may take a moment to appear or update on disk.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
-      providerID: z.string().describe('Required. Provider ID for AGENTS.md generation (e.g. "anthropic"). The endpoint has no default fallback — omitting this field causes a 400 error.'),
-      modelID: z.string().describe('Required. Model ID for AGENTS.md generation (e.g. "claude-haiku-4-5-20251001"). Must match a model available under the specified providerID.'),
-      messageID: z.string().describe('Required. A message ID from the session to use as context for AGENTS.md generation. The endpoint rejects calls without this field.'),
+      providerID: z.string().describe('Required. Provider ID (e.g. "anthropic"). No server-side default — omitting causes a 400 error.'),
+      modelID: z.string().describe('Required. Model ID (e.g. "claude-haiku-4-5-20251001"). Must be available under providerID.'),
+      messageID: z.string().describe('Required. The ID to assign to the new user message created by this call. Pass any unique string (e.g. a UUID or timestamp). Not a reference to an existing message.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
-      force: z.boolean().optional().describe('Overwrite an existing AGENTS.md without prompting. Default false — returns the existing content instead of writing.'),
     }),
   },
-  async ({ sessionId, providerID, modelID, messageID, directory, force }) => {
+  async ({ sessionId, providerID, modelID, messageID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const agentsPath = dir ? path.join(dir, 'AGENTS.md') : null;
-
-      // Guard: return existing content without calling the endpoint unless force is set
-      if (agentsPath && existsSync(agentsPath) && !force) {
-        const existing = readFileSync(agentsPath, 'utf8');
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ existed: true, existing, generated: null }),
-          }],
-        };
-      }
-
       const { data, error } = await client.session.init({
         path: { id: sessionId },
-        body: {
-          providerID,
-          modelID,
-          ...(messageID ? { messageID } : {}),
-        } as { modelID: string; providerID: string; messageID: string },
+        body: { providerID, modelID, messageID } as { modelID: string; providerID: string; messageID: string },
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
-
-      const existed = agentsPath ? existsSync(agentsPath) && force : false;
-      return { content: [{ type: 'text', text: JSON.stringify({ existed: !!existed, accepted: data }) }] };
+      return { content: [{ type: 'text', text: JSON.stringify({ accepted: data }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
