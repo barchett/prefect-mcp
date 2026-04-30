@@ -313,7 +313,7 @@ server.registerTool(
     try {
       const { data, error } = await client.session.fork({
         path: { id: sessionId },
-        body: messageID ? { messageID } : undefined,
+        ...(messageID ? { body: { messageID } } : {}),
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -993,17 +993,16 @@ server.registerTool(
         };
       }
 
-      const body: { modelID?: string; providerID?: string; messageID?: string } | undefined =
-        (providerID || modelID || messageID)
-          ? {
-              ...(providerID ? { providerID } : {}),
-              ...(modelID ? { modelID } : {}),
-              ...(messageID ? { messageID } : {}),
-            }
-          : undefined;
+      const bodyFields = {
+        ...(providerID ? { providerID } : {}),
+        ...(modelID ? { modelID } : {}),
+        ...(messageID ? { messageID } : {}),
+      };
       const { data, error } = await client.session.init({
         path: { id: sessionId },
-        body: body as { modelID: string; providerID: string; messageID: string } | undefined,
+        ...(Object.keys(bodyFields).length > 0
+          ? { body: bodyFields as { modelID: string; providerID: string; messageID: string } }
+          : {}),
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
