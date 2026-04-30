@@ -967,18 +967,32 @@ server.registerTool(
 server.registerTool(
   'prefect_session_init',
   {
-    description: 'Analyze the session\'s project and generate an AGENTS.md file. If AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<current content>", generated: "<new content>" } so the caller can merge — the endpoint will have overwritten the file. If AGENTS.md does not exist, proceeds normally and returns { existed: false, accepted: true }. When directory cannot be resolved, proceeds without conflict detection.',
+    description: 'Analyze the session\'s project and generate an AGENTS.md file. Safe by default: if AGENTS.md already exists in the resolved directory, returns { existed: true, existing: "<content>", generated: null } WITHOUT calling the endpoint — nothing is written. Pass force: true to overwrite explicitly; on forced overwrite returns { existed: true, accepted: true }. When directory cannot be resolved, skips conflict detection and proceeds. If the file does not exist, calls the endpoint and returns { existed: false, accepted: true }.',
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID'),
       providerID: z.string().optional().describe('Override provider for AGENTS.md generation. Requires modelID.'),
       modelID: z.string().optional().describe('Override model for AGENTS.md generation. Requires providerID.'),
       messageID: z.string().optional().describe('Resume analysis from a specific message context.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
+      force: z.boolean().optional().describe('Overwrite an existing AGENTS.md without prompting. Default false — returns the existing content instead of writing.'),
     }),
   },
-  async ({ sessionId, providerID, modelID, messageID, directory }) => {
+  async ({ sessionId, providerID, modelID, messageID, directory, force }) => {
     const dir = resolveDirectory(directory);
     try {
+      const agentsPath = dir ? path.join(dir, 'AGENTS.md') : null;
+
+      // Guard: return existing content without calling the endpoint unless force is set
+      if (agentsPath && existsSync(agentsPath) && !force) {
+        const existing = readFileSync(agentsPath, 'utf8');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ existed: true, existing, generated: null }),
+          }],
+        };
+      }
+
       const body: { modelID?: string; providerID?: string; messageID?: string } | undefined =
         (providerID || modelID || messageID)
           ? {
@@ -987,14 +1001,6 @@ server.registerTool(
               ...(messageID ? { messageID } : {}),
             }
           : undefined;
-
-      // Read existing AGENTS.md before the endpoint overwrites it
-      let existingContent: string | null = null;
-      const agentsPath = dir ? path.join(dir, 'AGENTS.md') : null;
-      if (agentsPath && existsSync(agentsPath)) {
-        existingContent = readFileSync(agentsPath, 'utf8');
-      }
-
       const { data, error } = await client.session.init({
         path: { id: sessionId },
         body: body as { modelID: string; providerID: string; messageID: string } | undefined,
@@ -1002,18 +1008,8 @@ server.registerTool(
       });
       if (error) throw new Error(JSON.stringify(error));
 
-      // If the file existed before, read the generated version and surface both for caller-side merge
-      if (existingContent !== null && agentsPath) {
-        const generatedContent = existsSync(agentsPath) ? readFileSync(agentsPath, 'utf8') : null;
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ existed: true, existing: existingContent, generated: generatedContent }),
-          }],
-        };
-      }
-
-      return { content: [{ type: 'text', text: JSON.stringify({ existed: false, accepted: data }) }] };
+      const existed = agentsPath ? existsSync(agentsPath) && force : false;
+      return { content: [{ type: 'text', text: JSON.stringify({ existed: !!existed, accepted: data }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
