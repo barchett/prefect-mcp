@@ -1,11 +1,12 @@
 {
   "name": "@lbarchett/prefect-mcp",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "TypeScript MCP server that exposes OpenCode's HTTP API as Claude Code tools",
   "license": "MIT",
   "engines": { "node": ">=20" },
   "files": ["build/", "README.md"],
+  "repository": { "type": "git", "url": "https://github.com/barchett/prefect-mcp.git" },
   "publishConfig": { "access": "public" },
   "scripts": {
     "build": "tsc && chmod 755 build/index.js build/cli.js",

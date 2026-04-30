@@ -6,15 +6,72 @@ A TypeScript MCP server that exposes OpenCode's headless HTTP API as Claude Code
 
 ## What's in the Box
 
-7 MCP tools wrapping OpenCode's session API:
+40 MCP tools wrapping OpenCode's session API, organized by category:
 
-- `prefect_create_session` — start a new coding session
-- `prefect_run` — send a prompt, block until the agent finishes
-- `prefect_get_diff` — inspect what OpenCode changed
-- `prefect_fork` — fork a session at a safe point (escape hatch for off-rails sessions)
-- `prefect_revert` — undo a single bad message
-- `prefect_abort` — stop a running session before timeout
-- `prefect_approve_permission` — respond to a permission request (emergency only)
+**Core loop** — the canonical create → run → diff → correct cycle:
+
+| Tool | Purpose |
+|------|---------|
+| `prefect_create_session` | Start a new coding session |
+| `prefect_run` | Send a prompt, block until the agent finishes |
+| `prefect_get_diff` | Inspect what OpenCode changed |
+| `prefect_fork` | Fork a session at a safe point (escape hatch for off-rails sessions) |
+| `prefect_revert` | Undo a single bad message |
+| `prefect_abort` | Stop a running session before timeout |
+| `prefect_approve_permission` | Respond to a permission request (emergency only) |
+
+**Composite shortcuts** — collapse common multi-step patterns into one call:
+
+| Tool | Purpose |
+|------|---------|
+| `prefect_delegate` | Blocking: create session + run prompt + return diff in one call |
+| `prefect_dispatch` | Non-blocking: create session + fire prompt, returns `sessionId` immediately |
+| `prefect_await` | Poll a dispatched session until idle, then return result + diff |
+| `prefect_inspect` | Compact snapshot `{ status, todos, changedFiles }` — faster than full message fetch |
+| `prefect_prompt_async` | Fire a prompt to an existing session without blocking |
+
+**Session management** — read and mutate session state:
+
+| Tool | Purpose |
+|------|---------|
+| `prefect_session_list` | List all sessions, optionally filtered by project directory |
+| `prefect_session_get` | Fetch a single session by ID |
+| `prefect_session_status` | Real-time status map for all active sessions (idle / busy / retry) |
+| `prefect_session_messages` | Retrieve message history (with optional limit) |
+| `prefect_session_message` | Fetch a single message by ID |
+| `prefect_session_delete` | Permanently delete a session and its history |
+| `prefect_session_rename` | Rename a session |
+| `prefect_session_children` | List sessions forked from a given session |
+| `prefect_session_unrevert` | Undo a prior revert (restore removed messages) |
+| `prefect_session_command` | Run a slash command inside a session (e.g. `compact`) |
+| `prefect_session_summarize` | Trigger summary generation for a session |
+| `prefect_session_todo` | Get the current todo list for a session |
+| `prefect_session_init` | Initialize AGENTS.md for a session's project |
+| `prefect_session_share` | Make a session publicly shareable |
+| `prefect_session_unshare` | Remove public sharing from a session |
+| `prefect_session_shell` | Execute an arbitrary shell command in a session's working directory |
+
+**Discovery** — read-only inspection of the OpenCode workspace:
+
+| Tool | Purpose |
+|------|---------|
+| `prefect_list_agents` | List available agents (name, description, mode) |
+| `prefect_list_providers` | List configured providers and their models |
+| `prefect_list_mcp_servers` | List MCP servers configured in the OpenCode instance |
+| `prefect_list_commands` | List available slash commands |
+| `prefect_list_tools` | List tools available in the OpenCode instance |
+| `prefect_find_symbol` | Search workspace for symbols matching a query |
+| `prefect_find_file` | Find files matching a query string |
+| `prefect_get_file_content` | Read a file from the OpenCode workspace |
+| `prefect_get_config` | Get the full OpenCode configuration object |
+| `prefect_vcs_info` | Get VCS info (current branch) for the workspace |
+| `prefect_file_status` | Get git-tracked file status for the workspace |
+
+**Infrastructure:**
+
+| Tool | Purpose |
+|------|---------|
+| `prefect_inject_mcp_server` | Add an MCP server to the OpenCode instance at runtime |
 
 Also included:
 - Project-scoped Claude Code registration (`.mcp.json`) so any clone of this repo automatically picks up the tools.
@@ -50,7 +107,7 @@ Use `prefect init --force` to overwrite an existing `prefect` entry.
 ### Option 2: Local clone (development / contributing)
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/barchett/prefect-mcp.git
 cd prefect-mcp
 npm install
 npm run build
@@ -85,8 +142,8 @@ cd /your/project
 ### 1. Clone and build the MCP server
 
 ```bash
-git clone <repo-url>
-cd supervisor
+git clone https://github.com/barchett/prefect-mcp.git
+cd prefect-mcp
 npm install
 npm run build
 ```
@@ -207,7 +264,7 @@ With everything wired up, follow `examples/test-task.md` to confirm the full cre
 | `PREFECT_SERVER_PASSWORD` | _(unset)_ | HTTP Basic Auth password for OpenCode server (read at every tool call) |
 | `PREFECT_SERVER_USERNAME` | `opencode` | HTTP Basic Auth username (only used when `PREFECT_SERVER_PASSWORD` is set) |
 
-> **Deprecated names:** Old `OPENCODE_URL`, `OPENCODE_SERVER_PASSWORD`, `OPENCODE_SERVER_USERNAME`, and `OPENCODE_DEFAULT_PROJECT` env var names still work but emit a stderr deprecation warning on first use. Migrate to the `PREFECT_*` names above. Old names will be removed in v4.0.
+> **Deprecated names:** Old `OPENCODE_URL`, `OPENCODE_SERVER_PASSWORD`, `OPENCODE_SERVER_USERNAME`, and `OPENCODE_DEFAULT_PROJECT` env var names still work but emit a stderr deprecation warning on first use. Migrate to the `PREFECT_*` names above.
 
 > **Security (INFRA-06):** Do NOT put `PREFECT_SERVER_PASSWORD` in the `.mcp.json` `env` block.
 > `.mcp.json` is committed to version control — storing credentials there leaks them.
@@ -238,7 +295,7 @@ If Claude Code runs inside WSL2 and OpenCode also runs inside WSL2, `localhost:4
 
 ```
 .
-├── src/index.ts         # MCP server (7 tools)
+├── src/index.ts         # MCP server (40 tools)
 ├── build/               # Compiled output (gitignored)
 ├── .mcp.json            # Project-scoped Claude Code registration
 ├── CLAUDE.md            # Loop instructions for Claude Code
