@@ -4,14 +4,22 @@
 
 A TypeScript MCP server that exposes OpenCode's headless HTTP API as Claude Code tools. Claude Code orchestrates at the task/spec level (decompose, review, correct) while delegating actual file edits to a local model (Qwen or similar) running in OpenCode. The result lands in git history; Claude Code sees diffs and runs tests independently.
 
-## Current Milestone: v4.0 API Completeness — COMPLETE
+## Current Milestone: v5.0 Multi-Server Registry
 
-**Goal:** Expand Prefect's tool surface with run enhancements, session lifecycle tools, and workspace API wrappers — completing coverage of OpenCode's HTTP API. ✓ Achieved 2026-04-30 — 40 tools total.
+**Goal:** Route Claude Code tool calls across named OpenCode servers transparently — tracked per session, CLI registry, resilient stale-session handling.
 
 **Target features:**
-- `prefect_run` enhancements: tools override, FilePartInput (file attachments), messageID (resume), AgentPartInput/SubtaskPartInput
-- Session lifecycle: `parentID` (hierarchies), summarize, todo, init (AGENTS.md), shell, share/unshare
-- Workspace API wrappers: VCS info, file/status, MCP inspect+inject, experimental/tool
+- CLI registry: `prefect add-server / remove-server / list-servers` → `~/.config/prefect/servers.json`
+- `server` param on 3 entry points only: `prefect_create_session`, `prefect_delegate`, `prefect_dispatch`
+- Session→server map persisted to `~/.config/prefect/sessions.json`; stale entries cleared on 404
+- `prefect_delegate` + `prefect_dispatch` accept optional `sessionId` for session reuse
+- `ensureOpencodeRunning()` server-aware auto-start
+- CLAUDE.md server registry section
+- `prefect init` first-server onboarding with conditional env var pre-population
+
+## Previous Milestone: v4.0 API Completeness — COMPLETE
+
+**Goal:** Expand Prefect's tool surface with run enhancements, session lifecycle tools, and workspace API wrappers — completing coverage of OpenCode's HTTP API. ✓ Achieved 2026-04-30 — 40 tools total.
 
 ## Core Value
 
