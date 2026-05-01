@@ -317,7 +317,11 @@ Plans:
   4. The registry file is read fresh on every CLI invocation — restarting the MCP server is not required for registry changes to take effect
   5. `npm run build` passes with zero errors after all three CLI subcommands are added
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — registry.ts module with readRegistry/writeRegistry/addServer/removeServer/listServers + registry.test.ts (TDD; MULTI-01..04)
+- [ ] 13-02-PLAN.md — cli.ts subcommand dispatch (add-server / remove-server / list-servers) + updated usageAndExit + cli.test.ts integration tests (MULTI-01..04)
 
 ---
 
