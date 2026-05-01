@@ -3,7 +3,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createOpencodeClient } from '@opencode-ai/sdk';
-import { createPatch } from 'diff';
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { fetchWithAuth } from './fetch.js';
@@ -813,12 +812,11 @@ server.registerTool(
         await new Promise<void>((r) => setTimeout(r, pollIntervalMs));
       }
       // Reconstruct result from messages (last assistant message) and full diff
-      const [messagesResult, diffResult] = await Promise.all([
+      const [messagesResult, diff] = await Promise.all([
         client.session.messages({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
-        client.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        getDiff(client, sessionId, undefined, dir),
       ]);
       if (messagesResult.error) throw new Error(JSON.stringify(messagesResult.error));
-      if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
       // D-12: find last assistant message — same shape as prefect_run result
       const msgs = messagesResult.data ?? [];
       const last = [...msgs].reverse().find((m) => (m.info as { role?: string }).role === 'assistant');
@@ -828,10 +826,6 @@ server.registerTool(
         console.error('PartSchema validation warning (prefect_await):', awaitParseResult.error.message);
       }
       const validatedParts = awaitParseResult.success ? awaitParseResult.data : (last.parts as unknown[]);
-      const diff = (diffResult.data ?? []).map((d) => ({
-        ...d,
-        patch: createPatch(d.file, d.before, d.after),
-      }));
       // D-13: return shape matches prefect_delegate for easy substitution
       return { content: [{ type: 'text', text: JSON.stringify({ result: { info: last.info, parts: validatedParts }, diff }) }] };
     } catch (err) {
