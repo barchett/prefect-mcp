@@ -132,7 +132,7 @@ cd /your/project
 
 ## Prerequisites
 
-- **Node.js >= 18** (tested on Node 20). `node --version` to check.
+- **Node.js >= 20**. `node --version` to check.
 - **OpenCode CLI >= 1.14**. Install: `curl -fsSL https://opencode.ai/install | bash`. Verify: `opencode --version`.
 - **Claude Code CLI**. Verify: `claude --version`.
 - A model endpoint OpenCode can talk to (vllm, Ollama, OpenAI-compatible, etc.). Configured in `~/.config/opencode/opencode.json`.
