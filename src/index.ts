@@ -547,7 +547,7 @@ server.registerTool(
   {
     description: 'List all child sessions forked from this session. Returns an empty array if no forks have been made from this session. Use prefect_fork to create child sessions.',
     inputSchema: z.object({
-      sessionId: z.string().min(1).describe('Parent session ID — must be a session that was previously forked from'),
+      sessionId: z.string().min(1).describe('Parent session ID — the session that child forks were created from'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
   },
