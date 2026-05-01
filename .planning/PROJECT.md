@@ -87,12 +87,15 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ `prefect_get_config` — GET /config full config object (API-11) — Phase 12 complete — v4.0
 - ✓ `prefect_list_commands` — GET /command slash commands (API-12) — Phase 12 complete — v4.0
 
-### Future (v5.0 targets — Multi-server Registry)
+### Validated (v5.0 — Phase 13)
 
-- [ ] MULTI-01: `prefect add-server <name> <host> <port> <model>` CLI command
-- [ ] MULTI-02: `prefect remove-server <name>` CLI command
-- [ ] MULTI-03: `prefect list-servers` CLI command
-- [ ] MULTI-04: Server registry persisted to `~/.config/prefect/servers.json`
+- ✓ MULTI-01: `prefect add-server <name> <host> <port> <model>` CLI command — Phase 13 complete — v5.0
+- ✓ MULTI-02: `prefect remove-server <name>` CLI command — Phase 13 complete — v5.0
+- ✓ MULTI-03: `prefect list-servers` CLI command — Phase 13 complete — v5.0
+- ✓ MULTI-04: Server registry persisted to `~/.config/prefect/servers.json` via `src/registry.ts` — Phase 13 complete — v5.0
+
+### Future (v5.0 targets — Multi-server Routing)
+
 - [ ] MULTI-05: All composite + session tools accept optional `server:` param for routing
 - [ ] MULTI-06: `ensureOpencodeRunning()` server-aware auto-start
 - [ ] MULTI-07: CLAUDE.md server registry section for Claude Code routing decisions
@@ -120,6 +123,7 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - Phase 10 complete (2026-04-29): prefect_run enhancements — tools override, FilePartInput, messageID, AgentPartInput/SubtaskPartInput, parentID on prefect_create_session — 30 tools total
 - Phase 11 complete (2026-04-30): Session lifecycle tools — prefect_session_summarize, prefect_session_todo, prefect_session_init, prefect_session_share, prefect_session_unshare — 30 tools total (lifecycle tools added to existing session handlers)
 - Phase 12 complete (2026-04-30): Shell + workspace API wrappers — 10 new tools covering GET /vcs, GET /file/status, GET+POST /mcp, dual-endpoint /experimental/tool, GET /find/file, GET /file/content, GET /config, GET /command, POST /session/:id/shell — **40 tools total; v4.0 milestone complete**
+- Phase 13 complete (2026-05-01): Server registry CLI — `prefect add-server/remove-server/list-servers` subcommands + `src/registry.ts` persistence module + 17 new tests (56 total) — MULTI-01..04 satisfied; v5.0 Phase 1/3 complete
 
 ## Constraints
 
@@ -149,4 +153,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-30 — v4.0 milestone complete (40 tools); v5.0 multi-server registry is next*
+*Last updated: 2026-05-01 — Phase 13 complete (MULTI-01..04); v5.0 Phase 14 (session-server routing) is next*
