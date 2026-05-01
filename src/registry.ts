@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -17,12 +17,16 @@ const REGISTRY_DIR = join(homedir(), '.config', 'prefect');
 export const REGISTRY_PATH = join(REGISTRY_DIR, 'servers.json');
 
 export function readRegistry(registryPath: string = REGISTRY_PATH): Registry {
-  if (!existsSync(registryPath)) return { servers: [] };
   try {
-    return JSON.parse(readFileSync(registryPath, 'utf8')) as Registry;
+    const parsed = JSON.parse(readFileSync(registryPath, 'utf8'));
+    if (!parsed || !Array.isArray(parsed.servers)) {
+      throw new Error(`malformed registry at ${registryPath}: expected { servers: [...] }`);
+    }
+    return parsed as Registry;
   } catch (err) {
-    console.error(`Error: could not parse ${registryPath} — ${(err as Error).message}`);
-    process.exit(1);
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') return { servers: [] };
+    throw new Error(`could not parse ${registryPath}: ${(err as Error).message}`);
   }
 }
 
@@ -48,8 +52,7 @@ export function removeServer(name: string, registryPath: string = REGISTRY_PATH)
   const before = reg.servers.length;
   reg.servers = reg.servers.filter((s) => s.name !== name);
   if (reg.servers.length === before) {
-    console.error(`Error: no server named '${name}' in registry.`);
-    process.exit(1);
+    throw new Error(`no server named '${name}' in registry`);
   }
   writeRegistry(reg, registryPath);
   console.error(`Removed server '${name}'.`);

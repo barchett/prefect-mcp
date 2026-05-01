@@ -65,7 +65,12 @@ function handleRemoveServer(handlerArgs: string[]): never {
     console.error('Usage: prefect remove-server <name>');
     process.exit(1);
   }
-  removeServer(name);
+  try {
+    removeServer(name);
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
+    process.exit(1);
+  }
   process.exit(0);
 }
 
