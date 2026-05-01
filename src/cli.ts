@@ -127,13 +127,10 @@ switch (subcommand) {
   }
   case 'add-server':
     handleAddServer(args.slice(1));
-    break;  // unreachable — handler exits
   case 'remove-server':
     handleRemoveServer(args.slice(1));
-    break;
   case 'list-servers':
     handleListServers();
-    break;
   default:
     usageAndExit();
 }
