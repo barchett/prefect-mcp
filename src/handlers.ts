@@ -10,7 +10,7 @@ export interface RunPromptOptions {
   agent?: string;
   system?: string;
   // New in Phase 10:
-  tools?: { [key: string]: boolean };                                                       // RUN-05
+  tools?: Record<string, boolean>;                                                          // RUN-05
   files?: Array<{ type: 'file'; mime: string; filename?: string; url: string }>;            // RUN-06
   messageID?: string;                                                                        // RUN-07
   agentInput?: { type: 'agent'; name: string };                                             // RUN-08
