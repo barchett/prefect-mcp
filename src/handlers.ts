@@ -30,7 +30,7 @@ export async function createSession(
 ): Promise<{ id: string; [key: string]: unknown }> {
   const { data, error } = await client.session.create({
     body: {
-      title,
+      ...(title !== undefined ? { title } : {}),
       ...(parentID ? { parentID } : {}),                   // NEW — only included when provided
     },
     query: directory ? { directory } : undefined,
