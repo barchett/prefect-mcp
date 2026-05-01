@@ -619,7 +619,13 @@ server.registerTool(
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      if (!data) throw new Error('Session command returned no data');
+      const cmdParseResult = PartSchema.array().safeParse((data as { parts?: unknown }).parts);
+      if (!cmdParseResult.success) {
+        console.error('PartSchema validation warning (prefect_session_command):', cmdParseResult.error.message);
+      }
+      const cmdParts = cmdParseResult.success ? cmdParseResult.data : (data as { parts?: unknown }).parts;
+      return { content: [{ type: 'text', text: JSON.stringify({ info: (data as { info?: unknown }).info, parts: cmdParts }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
@@ -805,7 +811,11 @@ server.registerTool(
       const msgs = messagesResult.data ?? [];
       const last = [...msgs].reverse().find((m) => (m.info as { role?: string }).role === 'assistant');
       if (!last) throw new Error('prefect_await: no assistant message found in session after idle');
-      const validatedParts = PartSchema.array().parse(last.parts);
+      const awaitParseResult = PartSchema.array().safeParse(last.parts);
+      if (!awaitParseResult.success) {
+        console.error('PartSchema validation warning (prefect_await):', awaitParseResult.error.message);
+      }
+      const validatedParts = awaitParseResult.success ? awaitParseResult.data : (last.parts as unknown[]);
       const diff = (diffResult.data ?? []).map((d) => ({
         ...d,
         patch: createPatch(d.file, d.before, d.after),

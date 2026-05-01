@@ -81,7 +81,11 @@ export async function runPrompt(
   });
   if (error) throw new Error(JSON.stringify(error));
   if (!data) throw new Error('runPrompt: API returned no data and no error');
-  const validatedParts = PartSchema.array().parse(data.parts);
+  const parseResult = PartSchema.array().safeParse(data.parts);
+  if (!parseResult.success) {
+    console.error('PartSchema validation warning (runPrompt):', parseResult.error.message);
+  }
+  const validatedParts = parseResult.success ? parseResult.data : (data.parts as z.infer<typeof PartSchema>[]);
   return { info: data.info, parts: validatedParts };
 }
 
