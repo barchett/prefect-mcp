@@ -80,7 +80,7 @@ server.registerTool(
 // Uses AbortController so timeout cancels the in-flight TCP connection rather
 // than orphaning it (the previous Promise.race left the request running on
 // OpenCode after we gave up on it). Response parts are validated against
-// PartSchema and returned as a structured { info, parts } payload.
+// PartSchema in handlers.ts:runPrompt and returned as a structured { info, parts } payload.
 server.registerTool(
   'prefect_run',
   {
