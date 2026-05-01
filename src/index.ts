@@ -110,7 +110,10 @@ server.registerTool(
         type: z.literal('file'),
         mime: z.string(),
         filename: z.string().optional(),
-        url: z.string(),
+        url: z.string().refine(
+          (u) => u.startsWith('file://'),
+          { message: 'files[].url must be a file:// URI' }
+        ),
       })).optional()
         .describe('File attachments to include as context. Each file requires mime type and url (use file:// URIs for local paths).'),
       // RUN-07: message ID assignment (idempotency key for user message creation)
@@ -130,7 +133,10 @@ server.registerTool(
         agent: z.string(),
       }).optional()
         .describe('Structured subtask part input — delegate a subtask to a specific agent.'),
-    }),
+    }).refine(
+      (v) => !(v.agent && v.agentInput),
+      { message: 'Provide either agent or agentInput, not both — they are mutually exclusive overrides' }
+    ),
   },
   async ({ sessionId, prompt, directory, model, agent, system, tools, files, messageID, agentInput, subtaskInput }) => {
     const dir = resolveDirectory(directory);
@@ -188,7 +194,10 @@ server.registerTool(
         type: z.literal('file'),
         mime: z.string(),
         filename: z.string().optional(),
-        url: z.string(),
+        url: z.string().refine(
+          (u) => u.startsWith('file://'),
+          { message: 'files[].url must be a file:// URI' }
+        ),
       })).optional()
         .describe('File attachments to include as context. Each file requires mime type and url (use file:// URIs for local paths).'),
       // RUN-07: message ID assignment (idempotency key for user message creation)
@@ -208,7 +217,10 @@ server.registerTool(
         agent: z.string(),
       }).optional()
         .describe('Structured subtask part input — delegate a subtask to a specific agent.'),
-    }),
+    }).refine(
+      (v) => !(v.agent && v.agentInput),
+      { message: 'Provide either agent or agentInput, not both — they are mutually exclusive overrides' }
+    ),
   },
   async ({ sessionId, prompt, directory, model, agent, system, tools, files, messageID, agentInput, subtaskInput }) => {
     const dir = resolveDirectory(directory);
@@ -640,7 +652,7 @@ server.registerTool(
   'prefect_delegate',
   {
     description:
-      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call prefect_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded.',
+      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call prefect_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded. Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_run directly for those features.',
     inputSchema: z.object({
       prompt: z.string().describe('The coding task or instruction to execute'),
       title: z.string().optional().describe('Optional display title for the created session'),
@@ -689,7 +701,7 @@ server.registerTool(
   'prefect_dispatch',
   {
     description:
-      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use prefect_await to poll for completion or prefect_inspect to check status.',
+      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use prefect_await to poll for completion or prefect_inspect to check status. Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_prompt_async directly for those features.',
     inputSchema: z.object({
       prompt: z.string().describe('The coding task or instruction to execute'),
       title: z.string().optional().describe('Optional display title for the created session'),
