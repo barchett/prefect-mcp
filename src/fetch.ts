@@ -7,7 +7,12 @@ import { ensureOpencodeRunning } from './autostart.js';
 function isConnRefused(err: unknown): boolean {
   if (!(err instanceof TypeError)) return false;
   const cause = (err as { cause?: unknown }).cause;
-  return String(err).includes('ECONNREFUSED') || String(cause).includes('ECONNREFUSED');
+  const causeCode = (cause as { code?: string } | undefined)?.code;
+  return (
+    causeCode === 'ECONNREFUSED' ||
+    String(err).includes('ECONNREFUSED') ||
+    String(cause).includes('ECONNREFUSED')
+  );
 }
 
 /**

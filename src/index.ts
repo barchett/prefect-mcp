@@ -912,7 +912,7 @@ server.registerTool(
           path: filePath,
           range: sym.location.range,
         };
-      }).filter((sym) => sym !== null);
+      }).filter((sym): sym is NonNullable<typeof sym> => sym !== null);
       return { content: [{ type: 'text', text: JSON.stringify(mapped) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
