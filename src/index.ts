@@ -1166,6 +1166,7 @@ server.registerTool(
   },
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
+    // NOTE: Response may contain API keys or provider credentials — do not log or cache.
     try {
       const { data, error } = await client.config.get({
         query: dir ? { directory: dir } : undefined,
