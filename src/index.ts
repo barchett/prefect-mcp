@@ -55,7 +55,7 @@ server.registerTool(
   {
     description: 'Abort a running OpenCode session. Returns true on success.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID returned from prefect_create_session'),
+      sessionId: z.string().min(1).describe('Session ID returned from prefect_create_session'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -87,7 +87,7 @@ server.registerTool(
     description:
       'Send a prompt to an OpenCode session and block until the agent finishes. Returns { info: AssistantMessage, parts: Part[] } as JSON. Optional model/agent/system override the session defaults for this single call. May take seconds to minutes depending on task complexity.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID from prefect_create_session'),
+      sessionId: z.string().min(1).describe('Session ID from prefect_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
       directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
       // RUN-01: model override — both providerID AND modelID required together
@@ -168,7 +168,7 @@ server.registerTool(
     description:
       'Send a prompt to an OpenCode session and return immediately without waiting for the agent to finish. Returns { sessionId, accepted: true } on success. Use prefect_session_status to poll for completion, then prefect_session_messages or prefect_get_diff to retrieve results.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID from prefect_create_session'),
+      sessionId: z.string().min(1).describe('Session ID from prefect_create_session'),
       prompt: z.string().describe('The coding task or instruction to send'),
       directory: z.string().optional().describe('Routes this call to the OpenCode project at the specified path. Does not change the session\'s working directory. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
       model: z
@@ -248,7 +248,7 @@ server.registerTool(
   {
     description: 'Get the file diff for an OpenCode session. Returns an array of FileDiff objects (file, before, after, additions, deletions). If messageID is provided, returns the diff for that message; otherwise returns the diff for the session.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       messageID: z.string().optional().describe('Optional message ID to scope the diff to a single message'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
@@ -272,7 +272,7 @@ server.registerTool(
   {
     description: 'Respond to an OpenCode permission request. once = approve this request only; always = approve similar future requests; reject = deny.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       permissionId: z.string().describe('Permission request ID'),
       response: z.enum(['once', 'always', 'reject']).describe(
         'once = approve this request only; always = approve similar future requests; reject = deny'
@@ -303,7 +303,7 @@ server.registerTool(
   {
     description: 'Fork an OpenCode session, optionally at a specific message. Returns a new Session. Use this as an escape hatch when a session has gone off the rails.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to fork from'),
+      sessionId: z.string().min(1).describe('Session ID to fork from'),
       messageID: z.string().optional().describe('Optional message ID to fork at; if omitted, forks at the current tip'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
     }),
@@ -330,7 +330,7 @@ server.registerTool(
   {
     description: 'Revert an OpenCode session to a prior message. messageID is required. Optionally scope to a specific part of that message via partID.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       messageID: z.string().describe('Required: message ID to revert to'),
       partID: z.string().optional().describe('Optional: specific part within the message'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var if not provided.'),
@@ -381,7 +381,7 @@ server.registerTool(
   {
     description: 'Fetch a single OpenCode session by ID. Returns the full Session object including id, title, directory, parentID (if forked), and revert state.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to fetch'),
+      sessionId: z.string().min(1).describe('Session ID to fetch'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
   },
@@ -429,7 +429,7 @@ server.registerTool(
   {
     description: 'Retrieve the message history for an OpenCode session. Each message includes an info object (UserMessage or AssistantMessage) and a parts array (TextPart, ToolPart, PatchPart, etc.). Use limit to cap the number of messages returned — this returns the most recent N messages only; there is no cursor or offset. Omit limit to return all messages.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       limit: z.number().int().positive().optional().describe(
         'Maximum number of messages to return. Returns the most recent N messages — there is no offset or cursor. Omit to return all messages.'
       ),
@@ -457,7 +457,7 @@ server.registerTool(
   {
     description: 'Fetch a single message by ID within an OpenCode session. Returns the message info and all its parts (TextPart, ToolPart, PatchPart, etc.).',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       messageId: z.string().describe('Message ID to fetch'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
@@ -483,7 +483,7 @@ server.registerTool(
   {
     description: 'Delete an OpenCode session and all its data permanently. Returns true on success. WARNING: this is irreversible — all messages, parts, and session history will be deleted. Consider using prefect_session_rename to archive instead of deleting.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to delete'),
+      sessionId: z.string().min(1).describe('Session ID to delete'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
   },
@@ -508,7 +508,7 @@ server.registerTool(
   {
     description: 'Rename an OpenCode session. Returns the full updated Session object.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to rename'),
+      sessionId: z.string().min(1).describe('Session ID to rename'),
       title: z.string().describe('New display title for the session'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
@@ -535,7 +535,7 @@ server.registerTool(
   {
     description: 'List all child sessions forked from this session. Returns an empty array if no forks have been made from this session. Use prefect_fork to create child sessions.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Parent session ID — must be a session that was previously forked from'),
+      sessionId: z.string().min(1).describe('Parent session ID — must be a session that was previously forked from'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
   },
@@ -560,7 +560,7 @@ server.registerTool(
   {
     description: 'Restore all messages removed by a prior prefect_revert — undo the revert. Only valid if the session is in a reverted state (Session.revert field is non-null). Returns the updated Session object with the revert field cleared.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to unrevert — must have been previously reverted'),
+      sessionId: z.string().min(1).describe('Session ID to unrevert — must have been previously reverted'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
   },
@@ -592,7 +592,7 @@ server.registerTool(
     description:
       'Run a slash command inside an OpenCode session (e.g. compact, clear). Returns { info: AssistantMessage, parts: Part[] } as JSON. Use this for session-level operations that have no equivalent SDK method.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       command: z.string().describe('The slash command name without the leading slash (e.g. "compact")'),
       arguments: z.string().describe('Arguments string to pass to the command (use empty string if none)'),
       messageID: z.string().optional().describe('Optional message ID for context'),
@@ -728,7 +728,7 @@ server.registerTool(
     description:
       'Return a compact snapshot { status, todos, changedFiles } for a session. Faster than fetching full message history. changedFiles contains { file, additions, deletions } — use prefect_get_diff for full patch content.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to inspect'),
+      sessionId: z.string().min(1).describe('Session ID to inspect'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
     }),
   },
@@ -769,7 +769,7 @@ server.registerTool(
     description:
       'Poll a dispatched session until it reaches idle state, then return { result: { info, parts }, diff }. Use after prefect_dispatch. Accepts pollIntervalMs (default 2000) and timeoutMs (default PREFECT_TIMEOUT_MS).',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID from prefect_dispatch'),
+      sessionId: z.string().min(1).describe('Session ID from prefect_dispatch'),
       pollIntervalMs: z.number().int().positive().optional().describe('Milliseconds between status polls. Default: 2000.'),
       timeoutMs: z.number().int().positive().optional().describe('Maximum milliseconds to wait. Default: PREFECT_TIMEOUT_MS env var (default 120000).'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
@@ -916,7 +916,7 @@ server.registerTool(
   {
     description: 'Trigger summary generation for an OpenCode session. Returns true when the summarization was accepted. providerID and modelID are required — the endpoint has no default fallback. providerID must match a provider configured in the OpenCode server (e.g. "vllm" or "anthropic"); using an unconfigured provider returns ProviderModelNotFoundError.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       providerID: z.string().describe('Required. Provider ID for summarization — must match a provider configured in the OpenCode server (e.g. "vllm"). Using an unconfigured provider returns ProviderModelNotFoundError.'),
       modelID: z.string().describe('Required. Model ID for summarization. Must be available under the specified providerID.'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
@@ -944,7 +944,7 @@ server.registerTool(
   {
     description: 'Get the current todo list for an OpenCode session. Returns Array<{ id, content, status, priority }> where status is one of pending/in_progress/completed/cancelled and priority is high/medium/low.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -982,7 +982,7 @@ server.registerTool(
 
 providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message. accepted: true confirms the command was accepted, not that the file was written or changed.`,
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID'),
+      sessionId: z.string().min(1).describe('Session ID'),
       providerID: z.string().describe('Required. Provider ID — must match a provider configured in the OpenCode server (e.g. "vllm"). Using an unconfigured provider returns ProviderModelNotFoundError.'),
       modelID: z.string().describe('Required. Model ID. Must be available under the specified providerID.'),
       messageID: z.string().describe('Required. The ID assigned to the new user message created by this call. Must start with "msg" (e.g. "msg_" + Date.now(), or "msg" + a random suffix). UUID format is rejected. Not a reference to an existing message.'),
@@ -1020,7 +1020,7 @@ server.registerTool(
   {
     description: 'Make an OpenCode session publicly shareable. Returns the full Session object — after sharing, the share URL is available at session.share.url in the returned Session.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to share'),
+      sessionId: z.string().min(1).describe('Session ID to share'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -1045,7 +1045,7 @@ server.registerTool(
   {
     description: 'Remove public sharing from an OpenCode session. Returns the updated Session object with the share field cleared (session.share will be absent/undefined).',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID to unshare'),
+      sessionId: z.string().min(1).describe('Session ID to unshare'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),
   },
@@ -1185,7 +1185,7 @@ server.registerTool(
   {
     description: 'WARNING: Executes an arbitrary shell command in the context of an OpenCode session. The command runs in the session\'s working directory with the session\'s environment. Returns AssistantMessage containing command output. Use with caution — there is no sandboxing at the Prefect layer. sessionId, agent, and command are all required. model override is optional.',
     inputSchema: z.object({
-      sessionId: z.string().describe('Session ID in which to execute the command'),
+      sessionId: z.string().min(1).describe('Session ID in which to execute the command'),
       command: z.string().describe('Shell command to execute in the session\'s context'),
       agent: z.string().describe('Required. Agent context for command execution (e.g. "general"). Must match a configured agent name.'),
       model: z.object({
