@@ -379,6 +379,6 @@ Plans:
 | 10. Run + Session Param Additions | v4.0 | 1/1 | Complete | 2026-04-29 |
 | 11. Session Lifecycle Tools | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete | 2026-04-30 |
-| 13. Server Registry | v5.0 | 2/2 | Complete | 2026-05-01 |
+| 13. Server Registry | v5.0 | 2/2 | Complete    | 2026-05-01 |
 | 14. Session-Server Routing | v5.0 | 0/TBD | Not started | - |
 | 15. Onboarding + Session Reuse | v5.0 | 0/TBD | Not started | - |

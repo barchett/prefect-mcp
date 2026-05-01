@@ -2,10 +2,10 @@
 
 ## Multi-Server Registry
 
-- [ ] **MULTI-01**: `prefect add-server <name> <host> <port> <model>` CLI command — registers a named OpenCode server in `~/.config/prefect/servers.json`
-- [ ] **MULTI-02**: `prefect remove-server <name>` CLI command — deregisters a named server from the registry
-- [ ] **MULTI-03**: `prefect list-servers` CLI command — prints the server registry in tabular form (name, host, port, model)
-- [ ] **MULTI-04**: Server registry persisted to `~/.config/prefect/servers.json`; read at every CLI invocation (no in-process cache)
+- [x] **MULTI-01**: `prefect add-server <name> <host> <port> <model>` CLI command — registers a named OpenCode server in `~/.config/prefect/servers.json`
+- [x] **MULTI-02**: `prefect remove-server <name>` CLI command — deregisters a named server from the registry
+- [x] **MULTI-03**: `prefect list-servers` CLI command — prints the server registry in tabular form (name, host, port, model)
+- [x] **MULTI-04**: Server registry persisted to `~/.config/prefect/servers.json`; read at every CLI invocation (no in-process cache)
 - [ ] **MULTI-05**: `server` param added to exactly 3 entry points — `prefect_create_session`, `prefect_delegate`, `prefect_dispatch`; all other tools route transparently via the session→server map; defaults to first registered server or `PREFECT_SERVER_URL` if registry is empty
 - [ ] **MULTI-06**: Session→server map persisted to `~/.config/prefect/sessions.json`; composite tools (`prefect_delegate`, `prefect_dispatch`) register the sessionId→server mapping immediately on internal session creation; stale sessionIDs (OpenCode returns 404 after restart) are removed from the map and surfaced as actionable errors
 - [ ] **MULTI-07**: `ensureOpencodeRunning()` is server-aware — auto-starts the correct OpenCode instance for the targeted named server using that server's host and port
@@ -77,10 +77,10 @@
 | API-10 | Phase 12 | Complete |
 | API-11 | Phase 12 | Complete |
 | API-12 | Phase 12 | Complete |
-| MULTI-01 | Phase 13 | Pending |
-| MULTI-02 | Phase 13 | Pending |
-| MULTI-03 | Phase 13 | Pending |
-| MULTI-04 | Phase 13 | Pending |
+| MULTI-01 | Phase 13 | Complete |
+| MULTI-02 | Phase 13 | Complete |
+| MULTI-03 | Phase 13 | Complete |
+| MULTI-04 | Phase 13 | Complete |
 | MULTI-05 | Phase 14 | Pending |
 | MULTI-06 | Phase 14 | Pending |
 | MULTI-07 | Phase 14 | Pending |
