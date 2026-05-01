@@ -12,6 +12,9 @@ function freshTmp(): string {
 }
 
 const REGISTRY_BUILD = resolve(process.cwd(), 'build/registry.js');
+if (!existsSync(REGISTRY_BUILD)) {
+  throw new Error(`Build artifact missing: run 'npm run build' first`);
+}
 
 function runDriver(script: string): { status: number; stdout: string; stderr: string } {
   const res = spawnSync('node', ['--input-type=module', '-e', script], { encoding: 'utf8' });

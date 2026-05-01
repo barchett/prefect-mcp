@@ -6,6 +6,9 @@ import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 
 const CLI = resolve(process.cwd(), 'build/cli.js');
+if (!existsSync(CLI)) {
+  throw new Error(`Build artifact missing: run 'npm run build' first`);
+}
 
 function freshTmp(): string {
   return mkdtempSync(join(tmpdir(), 'prefect-cli-'));
