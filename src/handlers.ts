@@ -2,6 +2,7 @@ import { createOpencodeClient } from '@opencode-ai/sdk';
 import { createPatch } from 'diff';
 import { z } from 'zod';
 import { PartSchema } from './parts.js';
+import { addSession } from './sessions.js';
 
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
@@ -26,7 +27,9 @@ export async function createSession(
   client: OpencodeClient,
   title: string | undefined,
   directory: string | undefined,
-  parentID?: string,                                       // NEW — SESSION-10 (trailing optional, existing 3-arg callers unaffected)
+  parentID?: string,                                       // SESSION-10
+  serverUrl?: string,                                      // NEW — for sessions.json write (D-11)
+  serverName?: string,                                     // NEW — store name alongside URL per D-08
 ): Promise<{ id: string; [key: string]: unknown }> {
   const { data, error } = await client.session.create({
     body: {
@@ -37,6 +40,12 @@ export async function createSession(
   });
   if (error) throw new Error(JSON.stringify(error));
   if (!data) throw new Error('createSession: API returned no data and no error');
+  // D-11: persist sessionId → server mapping immediately so subsequent tool calls
+  // route to the correct server even after an MCP server restart. Both serverUrl
+  // and serverName must be present — entry-point handlers always pass both.
+  if (serverUrl && serverName) {
+    addSession(data.id, { server: serverName, url: serverUrl });
+  }
   return data;
 }
 
