@@ -343,8 +343,8 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — sessions.ts SessionMap module + sessions.test.ts (MULTI-06 persistence layer)
-- [ ] 14-02-PLAN.md — autostart.ts ensureOpencodeRunning(ServerEntry) refactor + autostart.test.ts rewrite + fetch.ts caller update (MULTI-07)
+- [x] 14-01-PLAN.md — sessions.ts SessionMap module + sessions.test.ts (MULTI-06 persistence layer)
+- [x] 14-02-PLAN.md — autostart.ts ensureOpencodeRunning(ServerEntry) refactor + autostart.test.ts rewrite + fetch.ts caller update (MULTI-07)
 - [ ] 14-03-PLAN.md — handlers.ts createSession sessions.json write + index.ts getClient/resolveServerUrl/isNotFound helpers + server param on 3 entry points + 40 handler substitutions with D-12 stale-session detection (MULTI-05, MULTI-06)
 
 ---
