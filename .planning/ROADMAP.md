@@ -340,7 +340,12 @@ Plans:
   4. `ensureOpencodeRunning()` starts the correct OpenCode instance — using host and port from the named server's registry entry rather than the global default — when the targeted server is not reachable
   5. `npm run build` passes with zero errors after all routing changes
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — sessions.ts SessionMap module + sessions.test.ts (MULTI-06 persistence layer)
+- [ ] 14-02-PLAN.md — autostart.ts ensureOpencodeRunning(ServerEntry) refactor + autostart.test.ts rewrite + fetch.ts caller update (MULTI-07)
+- [ ] 14-03-PLAN.md — handlers.ts createSession sessions.json write + index.ts getClient/resolveServerUrl/isNotFound helpers + server param on 3 entry points + 40 handler substitutions with D-12 stale-session detection (MULTI-05, MULTI-06)
 
 ---
 
@@ -380,5 +385,5 @@ Plans:
 | 11. Session Lifecycle Tools | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 13. Server Registry | v5.0 | 2/2 | Complete    | 2026-05-01 |
-| 14. Session-Server Routing | v5.0 | 0/TBD | Not started | - |
+| 14. Session-Server Routing | v5.0 | 0/3 | Not started | - |
 | 15. Onboarding + Session Reuse | v5.0 | 0/TBD | Not started | - |
