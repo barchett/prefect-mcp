@@ -585,17 +585,15 @@ Step 2.6: SKIPPED — Phase 14 is purely code/config changes. No new external to
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **fetchWithAuth and ensureOpencodeRunning coupling**
+1. **fetchWithAuth and ensureOpencodeRunning coupling** — RESOLVED
    - What we know: `fetchWithAuth` calls `ensureOpencodeRunning()` with no args; new signature requires `ServerEntry`
-   - What's unclear: Whether to parse the ServerEntry from request URL inside fetchWithAuth, or move auto-start call site to index.ts handlers
-   - Recommendation: Planner should decide; either approach is consistent with D-14/D-17
+   - **Resolution (Plan 02, Task 2 — Option 1):** `fetchWithAuth` parses the target host+port from `request.url`, looks up the matching `ServerEntry` from the registry by host+port comparison, and passes it to `ensureOpencodeRunning(server)`. The ECONNREFUSED path is rare, so the extra registry read is negligible.
 
-2. **Exact 404 error shape from @opencode-ai/sdk**
+2. **Exact 404 error shape from @opencode-ai/sdk** — RESOLVED
    - What we know: The SDK returns `{ data, error }` pairs; current code does `if (error) throw new Error(JSON.stringify(error))`
-   - What's unclear: Whether the error object has a `.status` field or uses a different property for HTTP status
-   - Recommendation: Inspect the SDK types at implementation time — `grep -r "status" node_modules/@opencode-ai/sdk/dist/gen/client/types.gen.d.ts`
+   - **Resolution (Plan 03, Task 3):** `isNotFound(error)` checks `(error as Record<string, unknown>).status === 404`. The SDK error object includes a `.status` field for HTTP status codes.
 
 ---
 
