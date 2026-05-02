@@ -9,6 +9,8 @@ import { fetchWithAuth } from './fetch.js';
 import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
+import { readRegistry } from './registry.js';
+import { lookupSession, removeSession } from './sessions.js';
 
 // CORE-08: Base URL from PREFECT_SERVER_URL env var (OPENCODE_URL accepted with deprecation warning)
 const BASE_URL =
@@ -20,7 +22,66 @@ const BASE_URL =
   })() ??
   'http://localhost:4096';
 const TIMEOUT_MS = parseInt(process.env.PREFECT_TIMEOUT_MS ?? '', 10) || 120_000;
-const client = createOpencodeClient({ baseUrl: BASE_URL, fetch: fetchWithAuth });
+
+// D-01..D-03: per-URL client cache. Replaces the single global client so the
+// MCP server can route tool calls to multiple OpenCode instances.
+const clientCache = new Map<string, ReturnType<typeof createOpencodeClient>>();
+
+function getClient(serverUrl: string): ReturnType<typeof createOpencodeClient> {
+  let c = clientCache.get(serverUrl);
+  if (!c) {
+    c = createOpencodeClient({ baseUrl: serverUrl, fetch: fetchWithAuth });
+    clientCache.set(serverUrl, c);
+  }
+  return c;
+}
+
+// D-06: server URL resolution fallback chain.
+//   1. sessionId → sessions.json lookup → that session's server URL
+//   2. serverName (entry points only) → registry lookup by name
+//   3. no inputs → first entry in registry
+//   4. registry empty → BASE_URL (PREFECT_SERVER_URL env var)
+// D-07: unknown serverName throws with the exact message below.
+function resolveServerUrl(sessionId?: string, serverName?: string): string {
+  if (sessionId) {
+    const entry = lookupSession(sessionId);
+    if (entry) return entry.url;
+  }
+  if (serverName) {
+    const reg = readRegistry();
+    const found = reg.servers.find((s) => s.name === serverName);
+    if (!found) {
+      throw new Error(
+        `Server '${serverName}' not found in registry. Run 'prefect list-servers' to see registered servers.`,
+      );
+    }
+    return `http://${found.host}:${found.port}`;
+  }
+  const reg = readRegistry();
+  if (reg.servers.length > 0) {
+    const s = reg.servers[0];
+    return `http://${s.host}:${s.port}`;
+  }
+  return BASE_URL;
+}
+
+// D-12 helper: SDK returns { data, error } pairs; 404 surfaces as error with status: 404.
+// Without this check, every API error (400, 403, 500) would be treated as a stale session.
+function isNotFound(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const status = (error as Record<string, unknown>).status;
+  return status === 404;
+}
+
+// Resolve the canonical server name for a URL — used by entry points to write
+// sessions.json with both name and URL (D-08). Falls back to the supplied
+// serverParam (entry point's optional input) or the literal 'default' when
+// no registry match exists (registry-empty fallback path).
+function serverNameForUrl(serverUrl: string, serverParam?: string): string {
+  const reg = readRegistry();
+  const found = reg.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+  return found?.name ?? serverParam ?? 'default';
+}
 
 export { resolveDirectory };
 
@@ -35,12 +96,17 @@ server.registerTool(
       title: z.string().optional().describe('Optional display title for the session'),
       parentID: z.string().optional().describe('Optional parent session ID — creates this session as a child of the given parent for hierarchy tracking.'),
       directory: z.string().optional().describe('Absolute path to the project root for this session. Defaults to the directory OpenCode was started from.'),
+      server: z.string().min(1).optional().describe(
+        "Named server from registry (prefect list-servers). Omit to use the first registered server or PREFECT_SERVER_URL."
+      ),
     }),
   },
-  async ({ title, parentID, directory }) => {
+  async ({ title, parentID, directory, server: serverParam }) => {
     const dir = resolveDirectory(directory);
     try {
-      const session = await createSession(client, title, dir, parentID);
+      const serverUrl = resolveServerUrl(undefined, serverParam);
+      const serverName = serverNameForUrl(serverUrl, serverParam);
+      const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName);
       return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -61,11 +127,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.abort({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.abort({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: String(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -142,7 +220,8 @@ server.registerTool(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const result = await runPrompt(client, sessionId, prompt, { model, agent, system, tools, files, messageID, agentInput, subtaskInput }, dir, controller.signal);
+      const serverUrl = resolveServerUrl(sessionId);
+      const result = await runPrompt(getClient(serverUrl), sessionId, prompt, { model, agent, system, tools, files, messageID, agentInput, subtaskInput }, dir, controller.signal);
       clearTimeout(timer);
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (err) {
@@ -156,6 +235,19 @@ server.registerTool(
             },
           ],
           isError: true,
+        };
+      }
+      // D-12 stale-session detection inside the JSON-encoded error string from runPrompt
+      if (typeof (err as Error).message === 'string' && (err as Error).message.includes('"status":404')) {
+        const entry = lookupSession(sessionId);
+        removeSession(sessionId);
+        const staleUrl = entry?.url ?? resolveServerUrl();
+        return {
+          content: [{ type: 'text', text:
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${staleUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`
+          }], isError: true,
         };
       }
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -224,7 +316,8 @@ server.registerTool(
   async ({ sessionId, prompt, directory, model, agent, system, tools, files, messageID, agentInput, subtaskInput }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { error } = await client.session.promptAsync({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { error } = await getClient(serverUrl).session.promptAsync({
         path: { id: sessionId },
         body: {
           parts: [
@@ -241,7 +334,18 @@ server.registerTool(
         },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return {
         content: [
           { type: 'text', text: JSON.stringify({ sessionId, accepted: true }) },
@@ -267,9 +371,23 @@ server.registerTool(
   async ({ sessionId, messageID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const diffs = await getDiff(client, sessionId, messageID, dir);
+      const serverUrl = resolveServerUrl(sessionId);
+      const diffs = await getDiff(getClient(serverUrl), sessionId, messageID, dir);
       return { content: [{ type: 'text', text: JSON.stringify(diffs) }] };
     } catch (err) {
+      // D-12 stale-session detection inside the JSON-encoded error string from getDiff
+      if (typeof (err as Error).message === 'string' && (err as Error).message.includes('"status":404')) {
+        const entry = lookupSession(sessionId);
+        removeSession(sessionId);
+        const staleUrl = entry?.url ?? resolveServerUrl();
+        return {
+          content: [{ type: 'text', text:
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${staleUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`
+          }], isError: true,
+        };
+      }
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
   }
@@ -294,13 +412,25 @@ server.registerTool(
   async ({ sessionId, permissionId, response, directory }) => {
     const dir = resolveDirectory(directory);
     try {
+      const serverUrl = resolveServerUrl(sessionId);
       // CRITICAL: permissions method is on TOP-LEVEL client, NOT client.session
-      const { data, error } = await client.postSessionIdPermissionsPermissionId({
+      const { data, error } = await getClient(serverUrl).postSessionIdPermissionsPermissionId({
         path: { id: sessionId, permissionID: permissionId },
         body: { response },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -322,12 +452,24 @@ server.registerTool(
   async ({ sessionId, messageID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.fork({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.fork({
         path: { id: sessionId },
         ...(messageID ? { body: { messageID } } : {}),
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -350,12 +492,24 @@ server.registerTool(
   async ({ sessionId, messageID, partID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.revert({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.revert({
         path: { id: sessionId },
         body: { messageID, ...(partID ? { partID } : {}) },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -375,7 +529,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.list({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).session.list({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -399,11 +554,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.get({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.get({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -423,7 +590,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.status({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).session.status({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -450,11 +618,23 @@ server.registerTool(
   async ({ sessionId, limit, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.messages({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.messages({
         path: { id: sessionId },
         query: { ...(limit !== undefined ? { limit } : {}), ...(dir ? { directory: dir } : {}) },
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -476,11 +656,23 @@ server.registerTool(
   async ({ sessionId, messageId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.message({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.message({
         path: { id: sessionId, messageID: messageId },  // SDK path param is messageID (capital D)
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -501,11 +693,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.delete({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.delete({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -527,12 +731,24 @@ server.registerTool(
   async ({ sessionId, title, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.update({  // NOT client.session.rename — does not exist
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.update({  // NOT client.session.rename — does not exist
         path: { id: sessionId },
         body: { title },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -553,11 +769,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.children({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.children({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -578,12 +806,24 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.unrevert({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.unrevert({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
         // NO body — SessionUnrevertData.body is typed `never`
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -618,7 +858,8 @@ server.registerTool(
   async ({ sessionId, command, arguments: args, messageID, agent, model, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.command({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.command({
         path: { id: sessionId },
         body: {
           command,
@@ -629,7 +870,18 @@ server.registerTool(
         },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       if (!data) throw new Error('Session command returned no data');
       const cmdParseResult = PartSchema.array().safeParse((data as { parts?: unknown }).parts);
       if (!cmdParseResult.success) {
@@ -662,26 +914,32 @@ server.registerTool(
         .describe('Override the model for this call. Both providerID and modelID required together.'),
       agent: z.string().optional().describe('Override the agent for this call.'),
       system: z.string().optional().describe('Override the system prompt for this call.'),
+      server: z.string().min(1).optional().describe(
+        "Named server from registry (prefect list-servers). Omit to use the first registered server or PREFECT_SERVER_URL."
+      ),
     }),
   },
-  async ({ prompt, title, directory, model, agent, system }) => {
+  async ({ prompt, title, directory, model, agent, system, server: serverParam }) => {
     const dir = resolveDirectory(directory);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     let sessionId: string | undefined;
     try {
-      const session = await createSession(client, title, dir);
+      const serverUrl = resolveServerUrl(undefined, serverParam);
+      const serverName = serverNameForUrl(serverUrl, serverParam);
+      const c = getClient(serverUrl);
+      const session = await createSession(c, title, dir, undefined, serverUrl, serverName);
       sessionId = session.id;
-      const result = await runPrompt(client, sessionId, prompt, { model, agent, system }, dir, controller.signal);
+      const result = await runPrompt(c, sessionId, prompt, { model, agent, system }, dir, controller.signal);
       clearTimeout(timer);
-      const diff = await getDiff(client, sessionId, undefined, dir);
+      const diff = await getDiff(c, sessionId, undefined, dir);
       return { content: [{ type: 'text', text: JSON.stringify({ sessionId, result, diff }) }] };
     } catch (err) {
       clearTimeout(timer);
       if ((err as Error).name === 'AbortError') {
         // sessionId may be undefined if abort fired during createSession
         if (sessionId) {
-          await client.session.abort({ path: { id: sessionId } }).catch(() => {});
+          try { await getClient(resolveServerUrl(sessionId)).session.abort({ path: { id: sessionId } }); } catch { /* swallow */ }
         }
         return {
           content: [{ type: 'text', text: `prefect_delegate timed out after ${TIMEOUT_MS / 1000}s${sessionId ? ` — session ${sessionId} aborted` : ' — during session creation'}` }],
@@ -711,13 +969,19 @@ server.registerTool(
         .describe('Override the model for this call. Both providerID and modelID required together.'),
       agent: z.string().optional().describe('Override the agent for this call.'),
       system: z.string().optional().describe('Override the system prompt for this call.'),
+      server: z.string().min(1).optional().describe(
+        "Named server from registry (prefect list-servers). Omit to use the first registered server or PREFECT_SERVER_URL."
+      ),
     }),
   },
-  async ({ prompt, title, directory, model, agent, system }) => {
+  async ({ prompt, title, directory, model, agent, system, server: serverParam }) => {
     const dir = resolveDirectory(directory);
     try {
-      const session = await createSession(client, title, dir);
-      const { error } = await client.session.promptAsync({
+      const serverUrl = resolveServerUrl(undefined, serverParam);
+      const serverName = serverNameForUrl(serverUrl, serverParam);
+      const c = getClient(serverUrl);
+      const session = await createSession(c, title, dir, undefined, serverUrl, serverName);
+      const { error } = await c.session.promptAsync({
         path: { id: session.id },
         body: {
           parts: [{ type: 'text', text: prompt }],
@@ -752,11 +1016,25 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
+      const serverUrl = resolveServerUrl(sessionId);
+      const c = getClient(serverUrl);
       const [statusResult, todoResult, diffResult] = await Promise.all([
-        client.session.status({ query: dir ? { directory: dir } : undefined }),
-        client.session.todo({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
-        client.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        c.session.status({ query: dir ? { directory: dir } : undefined }),
+        c.session.todo({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        c.session.diff({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
       ]);
+      // Stale-session detection: if either todo or diff (the sessionId-bearing calls) returns 404, treat as stale
+      for (const r of [todoResult, diffResult]) {
+        if (r.error && isNotFound(r.error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+      }
       if (statusResult.error) throw new Error(JSON.stringify(statusResult.error));
       if (todoResult.error) throw new Error(JSON.stringify(todoResult.error));
       if (diffResult.error) throw new Error(JSON.stringify(diffResult.error));
@@ -796,9 +1074,10 @@ server.registerTool(
     const dir = resolveDirectory(directory);
     const deadline = Date.now() + timeoutMs;
     try {
+      const serverUrl = resolveServerUrl(sessionId);
       // Poll until idle or timeout
       while (true) {
-        const { data, error } = await client.session.status({ query: dir ? { directory: dir } : undefined });
+        const { data, error } = await getClient(serverUrl).session.status({ query: dir ? { directory: dir } : undefined });
         if (error) throw new Error(JSON.stringify(error));
         const statusEntry = (data as Record<string, { type: string }>)[sessionId];
         // Treat undefined (session not in map) as idle — may have completed before first poll
@@ -813,10 +1092,21 @@ server.registerTool(
       }
       // Reconstruct result from messages (last assistant message) and full diff
       const [messagesResult, diff] = await Promise.all([
-        client.session.messages({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
-        getDiff(client, sessionId, undefined, dir),
+        getClient(serverUrl).session.messages({ path: { id: sessionId }, query: dir ? { directory: dir } : undefined }),
+        getDiff(getClient(serverUrl), sessionId, undefined, dir),
       ]);
-      if (messagesResult.error) throw new Error(JSON.stringify(messagesResult.error));
+      if (messagesResult.error) {
+        if (isNotFound(messagesResult.error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(messagesResult.error));
+      }
       // D-12: find last assistant message — same shape as prefect_run result
       const msgs = messagesResult.data ?? [];
       const last = [...msgs].reverse().find((m) => (m.info as { role?: string }).role === 'assistant');
@@ -829,6 +1119,19 @@ server.registerTool(
       // D-13: return shape matches prefect_delegate for easy substitution
       return { content: [{ type: 'text', text: JSON.stringify({ result: { info: last.info, parts: validatedParts }, diff }) }] };
     } catch (err) {
+      // D-12 stale-session detection inside the JSON-encoded error string from getDiff
+      if (typeof (err as Error).message === 'string' && (err as Error).message.includes('"status":404')) {
+        const entry = lookupSession(sessionId);
+        removeSession(sessionId);
+        const staleUrl = entry?.url ?? resolveServerUrl();
+        return {
+          content: [{ type: 'text', text:
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${staleUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`
+          }], isError: true,
+        };
+      }
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
   }
@@ -846,7 +1149,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.app.agents({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).app.agents({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -874,7 +1178,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.provider.list({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).provider.list({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -904,7 +1209,8 @@ server.registerTool(
     const { query: symbolQuery, directory } = args;
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.find.symbols({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).find.symbols({
         query: { query: symbolQuery, ...(dir ? { directory: dir } : {}) },
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -941,12 +1247,24 @@ server.registerTool(
   async ({ sessionId, providerID, modelID, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.summarize({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.summarize({
         path: { id: sessionId },
         body: { providerID, modelID },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -967,11 +1285,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.todo({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.todo({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1017,12 +1347,24 @@ providerID, modelID, and messageID are all required. messageID is the ID assigne
       }
 
       const existed = agentsPath ? existsSync(agentsPath) : false;
-      const { data, error } = await client.session.init({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.init({
         path: { id: sessionId },
         body: { providerID, modelID, messageID } as { modelID: string; providerID: string; messageID: string },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify({ existed, accepted: data }) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1043,11 +1385,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.share({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.share({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1068,11 +1422,23 @@ server.registerTool(
   async ({ sessionId, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.unshare({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.unshare({
         path: { id: sessionId },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1092,7 +1458,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.vcs.get({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).vcs.get({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -1115,7 +1482,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.file.status({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).file.status({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -1138,7 +1506,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.mcp.status({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).mcp.status({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -1162,7 +1531,8 @@ server.registerTool(
     const dir = resolveDirectory(directory);
     // NOTE: Response may contain API keys or provider credentials — do not log or cache.
     try {
-      const { data, error } = await client.config.get({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).config.get({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -1185,7 +1555,8 @@ server.registerTool(
   async ({ directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.command.list({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).command.list({
         query: dir ? { directory: dir } : undefined,
       });
       if (error) throw new Error(JSON.stringify(error));
@@ -1215,7 +1586,8 @@ server.registerTool(
   async ({ sessionId, command, agent, model, directory }) => {
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.session.shell({
+      const serverUrl = resolveServerUrl(sessionId);
+      const { data, error } = await getClient(serverUrl).session.shell({
         path: { id: sessionId },
         body: {
           agent,
@@ -1224,7 +1596,18 @@ server.registerTool(
         },
         query: dir ? { directory: dir } : undefined,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) {
+        if (isNotFound(error)) {
+          const entry = lookupSession(sessionId);
+          removeSession(sessionId);
+          throw new Error(
+            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `The session may have been deleted or the server restarted.\n` +
+            `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
+          );
+        }
+        throw new Error(JSON.stringify(error));
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1273,7 +1656,8 @@ server.registerTool(
               ...(headers ? { headers } : {}),
               ...(enabled !== undefined ? { enabled } : {}),
             };
-      const { data, error } = await client.mcp.add({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).mcp.add({
         body: { name, config },
         query: dir ? { directory: dir } : undefined,
       });
@@ -1302,9 +1686,10 @@ server.registerTool(
       if ((provider && !model) || (!provider && model)) {
         throw new Error('prefect_list_tools: provider and model must be supplied together; omit both for tool IDs only');
       }
+      const serverUrl = resolveServerUrl();
       if (provider && model) {
         // GET /experimental/tool — requires BOTH provider + model (non-optional in SDK types)
-        const { data, error } = await client.tool.list({
+        const { data, error } = await getClient(serverUrl).tool.list({
           query: {
             provider,
             model,
@@ -1315,7 +1700,7 @@ server.registerTool(
         return { content: [{ type: 'text', text: JSON.stringify(data) }] };
       } else {
         // GET /experimental/tool/ids — no required params
-        const { data, error } = await client.tool.ids({
+        const { data, error } = await getClient(serverUrl).tool.ids({
           query: dir ? { directory: dir } : undefined,
         });
         if (error) throw new Error(JSON.stringify(error));
@@ -1342,7 +1727,8 @@ server.registerTool(
     const { query: fileQuery, dirs, directory } = args;
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.find.files({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).find.files({
         query: {
           query: fileQuery,
           ...(dirs ? { dirs } : {}),
@@ -1371,7 +1757,8 @@ server.registerTool(
     const { path: filePath, directory } = args;
     const dir = resolveDirectory(directory);
     try {
-      const { data, error } = await client.file.read({
+      const serverUrl = resolveServerUrl();
+      const { data, error } = await getClient(serverUrl).file.read({
         query: {
           path: filePath,
           ...(dir ? { directory: dir } : {}),
