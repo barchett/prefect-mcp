@@ -1001,8 +1001,15 @@ server.registerTool(
   'prefect_dispatch',
   {
     description:
-      'Non-blocking composite: create a session and fire a prompt asynchronously. Returns { sessionId } immediately — the agent runs in the background. Use prefect_await to poll for completion or prefect_inspect to check status. Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_prompt_async directly for those features.',
+      'Non-blocking composite: fire a prompt asynchronously and return { sessionId } immediately — the agent runs in the background. ' +
+      'When sessionId is provided: reuses that existing session (server/title/directory ignored). ' +
+      'When omitted: creates a new session on the named server (server defaults to first registered or PREFECT_SERVER_URL). ' +
+      'Use prefect_await to poll for completion or prefect_inspect to check status. ' +
+      'Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_prompt_async directly for those features.',
     inputSchema: z.object({
+      sessionId: z.string().optional().describe(
+        'Reuse an existing session. When provided: server/title/directory are ignored; the session runs on its already-registered server. model/agent/system still apply as per-prompt overrides.'
+      ),
       prompt: z.string().describe('The coding task or instruction to execute'),
       title: z.string().optional().describe('Optional display title for the created session'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
@@ -1017,7 +1024,29 @@ server.registerTool(
       ),
     }),
   },
-  async ({ prompt, title, directory, model, agent, system, server: serverParam }) => {
+  async ({ sessionId: providedSessionId, prompt, title, directory, model, agent, system, server: serverParam }) => {
+    if (providedSessionId) {
+      // D-09: reuse path — skip createSession; server/directory/title ignored
+      try {
+        const serverUrl = resolveServerUrl(providedSessionId); // sessions.json lookup
+        const { error } = await getClient(serverUrl).session.promptAsync({
+          path: { id: providedSessionId },
+          body: {
+            parts: [{ type: 'text', text: prompt }],
+            ...(model ? { model } : {}),
+            ...(agent ? { agent } : {}),
+            ...(system ? { system } : {}),
+          },
+          // directory ignored in reuse mode per D-09
+        });
+        if (error) throw new Error(JSON.stringify(error));
+        return { content: [{ type: 'text', text: JSON.stringify({ sessionId: providedSessionId }) }] };
+      } catch (err) {
+        return { content: [{ type: 'text', text: String(err) }], isError: true };
+      }
+    }
+
+    // Create-new-session path (existing logic — unchanged)
     const dir = resolveDirectory(directory);
     try {
       const serverUrl = resolveServerUrl(undefined, serverParam);
