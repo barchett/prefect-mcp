@@ -133,6 +133,17 @@ switch (subcommand) {
       const config: McpJson = { mcpServers: { prefect: PREFECT_ENTRY } };
       writeFileSync(mcpJsonPath, JSON.stringify(config, null, 2) + '\n');
       console.error('Created .mcp.json with prefect entry');
+      {
+        const reg = readRegistry();
+        if (reg.servers.length === 0) {
+          console.error(
+            '\nNo servers registered yet. Register your first OpenCode server:\n' +
+            '  prefect add-server <name> <host> <port> <provider> <model>\n' +
+            'Example:\n' +
+            '  prefect add-server local localhost 4096 ollama qwen2.5-coder'
+          );
+        }
+      }
       process.exit(0);
     }
 
@@ -159,6 +170,17 @@ switch (subcommand) {
     existing.mcpServers = servers;
     writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + '\n');
     console.error(force ? 'Updated prefect entry in .mcp.json' : 'Added prefect entry to .mcp.json');
+    {
+      const reg = readRegistry();
+      if (reg.servers.length === 0) {
+        console.error(
+          '\nNo servers registered yet. Register your first OpenCode server:\n' +
+          '  prefect add-server <name> <host> <port> <provider> <model>\n' +
+          'Example:\n' +
+          '  prefect add-server local localhost 4096 ollama qwen2.5-coder'
+        );
+      }
+    }
     process.exit(0);
   }
   case 'add-server':
