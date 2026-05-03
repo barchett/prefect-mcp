@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { addServer, removeServer, listServers } from './registry.js';
+import { addServer, removeServer, listServers, readRegistry } from './registry.js';
 
 // Resolve absolute path to build/index.js (the MCP server) from this CLI's
 // own location. Both files live side-by-side in the build/ output dir.
@@ -31,6 +31,40 @@ const PREFECT_ENTRY = isGlobal
       env: {},
     } as const;
 
+function updateClaudemdWorkers(cwd: string): void {
+  const claudePath = resolve(cwd, 'CLAUDE.md');
+  const existing = existsSync(claudePath) ? readFileSync(claudePath, 'utf8') : '';
+  const { servers } = readRegistry();
+
+  const bullets = servers.map(
+    (s) => `- **${s.name}** — ${s.providerID}/${s.modelID}, ${s.host}:${s.port}`
+  );
+  const sectionContent = bullets.length > 0 ? bullets.join('\n') : '*(no servers registered)*';
+  const newSection = `## Available Workers\n\n${sectionContent}\n`;
+
+  const fileLines = existing.split('\n');
+  const startIdx = fileLines.findIndex((l) => l.trimEnd() === '## Available Workers');
+
+  let updated: string;
+  if (startIdx === -1) {
+    // Section absent — append (with separator if file is non-empty)
+    const sep = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
+    updated = existing + sep + '\n' + newSection;
+  } else {
+    // Find end of section (next ## heading or EOF)
+    const endIdx = fileLines.findIndex((l, i) => i > startIdx && /^## /.test(l));
+    const tail = endIdx === -1 ? [] : fileLines.slice(endIdx);
+    updated = [
+      ...fileLines.slice(0, startIdx),
+      ...newSection.split('\n'),
+      ...(tail.length > 0 ? ['', ...tail] : []),
+    ].join('\n');
+  }
+
+  // Normalize: exactly one trailing newline
+  writeFileSync(claudePath, updated.trimEnd() + '\n');
+}
+
 function usageAndExit(): never {
   console.error(
     'Usage: prefect <subcommand> [options]\n\n' +
@@ -56,6 +90,7 @@ function handleAddServer(handlerArgs: string[]): never {
   }
   addServer({ name, host, port, providerID, modelID });
   console.error(`Registered server '${name}' at ${host}:${port} (${providerID}/${modelID})`);
+  try { updateClaudemdWorkers(process.cwd()); } catch (e) { console.error(`Warning: could not update CLAUDE.md: ${(e as Error).message}`); }
   process.exit(0);
 }
 
@@ -71,6 +106,7 @@ function handleRemoveServer(handlerArgs: string[]): never {
     console.error(`Error: ${(err as Error).message}`);
     process.exit(1);
   }
+  try { updateClaudemdWorkers(process.cwd()); } catch (e) { console.error(`Warning: could not update CLAUDE.md: ${(e as Error).message}`); }
   process.exit(0);
 }
 
