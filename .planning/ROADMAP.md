@@ -58,7 +58,7 @@ Full archive: `.planning/milestones/v4.0-ROADMAP.md`
 
 - [x] **Phase 13: Server Registry** — MULTI-01..04: CLI add-server/remove-server/list-servers commands + `~/.config/prefect/servers.json` persistence (completed 2026-05-01)
 - [ ] **Phase 14: Session-Server Routing** — MULTI-05..07: `server` param on 3 entry points, session→server map in `~/.config/prefect/sessions.json`, stale-session handling, server-aware `ensureOpencodeRunning()`
-- [ ] **Phase 15: Onboarding + Session Reuse** — MULTI-08..10: CLAUDE.md server registry docs, `prefect init` first-server prompt, optional `sessionId` on delegate/dispatch
+- [x] **Phase 15: Onboarding + Session Reuse** — MULTI-08..10: CLAUDE.md server registry docs, `prefect init` first-server prompt, optional `sessionId` on delegate/dispatch (completed 2026-05-03)
 
 ---
 
@@ -358,8 +358,8 @@ Plans:
 **Requirements**: MULTI-08, MULTI-09, MULTI-10
 
 **Success Criteria** (what must be TRUE):
-  1. CLAUDE.md contains a "Server Registry" section that lists available worker servers so Claude Code can decide which server to route work to without reading config files directly
-  2. Running `prefect init` in a fresh project prompts the user to register a first server; if a model-related env var is already set, the model field is pre-populated rather than left blank
+  1. CLAUDE.md contains a `## Available Workers` section that lists available worker servers so Claude Code can decide which server to route work to without reading config files directly (D-01: section named "Available Workers", not "Server Registry")
+  2. Running `prefect init` in a fresh project with no registered servers prints a static example `add-server` command (D-06: no env var pre-population — guidance is always the same static example)
   3. Calling `prefect_delegate` or `prefect_dispatch` with an existing `sessionId` reuses that session on its already-registered server — the `server` param is ignored and no new session is created
   4. Calling `prefect_delegate` or `prefect_dispatch` without `sessionId` requires `server` and creates a new session on that server, as before
   5. `npm run build` passes and `examples/test-task.md` is updated to reflect the new `sessionId` reuse capability
@@ -390,14 +390,14 @@ Plans:
 | 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 13. Server Registry | v5.0 | 2/2 | Complete    | 2026-05-01 |
 | 14. Session-Server Routing | v5.0 | 0/3 | Not started | - |
-| 15. Onboarding + Session Reuse | v5.0 | 0/2 | Not started | - |
+| 15. Onboarding + Session Reuse | v5.0 | 2/2 | Complete    | 2026-05-03 |
 
 ### Phase 15.1: MULTI-11: Server capacity management — maxSessions field on ServerEntry, --max-sessions flag on add-server, capacity check before createSession in prefect_create_session/prefect_delegate/prefect_dispatch (error only when maxSessions is set; omit entirely if unlimited), capacity column in list-servers, capacity in CLAUDE.md workers section. Backward compatible — no maxSessions = unlimited. (INSERTED)
 
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 15
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 15.1 to break down)

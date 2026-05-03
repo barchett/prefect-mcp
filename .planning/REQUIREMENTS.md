@@ -9,9 +9,9 @@
 - [ ] **MULTI-05**: `server` param added to exactly 3 entry points — `prefect_create_session`, `prefect_delegate`, `prefect_dispatch`; all other tools route transparently via the session→server map; defaults to first registered server or `PREFECT_SERVER_URL` if registry is empty
 - [ ] **MULTI-06**: Session→server map persisted to `~/.config/prefect/sessions.json`; composite tools (`prefect_delegate`, `prefect_dispatch`) register the sessionId→server mapping immediately on internal session creation; stale sessionIDs (OpenCode returns 404 after restart) are removed from the map and surfaced as actionable errors
 - [ ] **MULTI-07**: `ensureOpencodeRunning()` is server-aware — auto-starts the correct OpenCode instance for the targeted named server using that server's host and port
-- [ ] **MULTI-08**: CLAUDE.md server registry section documents available worker servers so Claude Code can make informed routing decisions without inspecting config files
-- [ ] **MULTI-09**: `prefect init` prompts for first server registration during setup; if an existing env var provides model information, pre-populates the model field
-- [ ] **MULTI-10**: `prefect_delegate` and `prefect_dispatch` accept an optional `sessionId` param — if provided, reuses that existing session on its already-registered server (`server` param ignored); if omitted, creates a new session on the named server (`server` required)
+- [x] **MULTI-08**: CLAUDE.md server registry section documents available worker servers so Claude Code can make informed routing decisions without inspecting config files
+- [x] **MULTI-09**: `prefect init` prints first-server guidance when the registry is empty — a static example `prefect add-server` command (D-06: no env var pre-population; guidance is always the same static example)
+- [x] **MULTI-10**: `prefect_delegate` and `prefect_dispatch` accept an optional `sessionId` param — if provided, reuses that existing session on its already-registered server (`server` param ignored); if omitted, creates a new session on the named server (`server` required)
 - [ ] **MULTI-11**: Server capacity management — optional `maxSessions` field on `ServerEntry` in `servers.json`; `--max-sessions <n>` flag on `prefect add-server`; capacity check before session creation in `prefect_create_session`, `prefect_delegate`, `prefect_dispatch` (error only when `maxSessions` is set; no value = unlimited, backward compatible); `prefect list-servers` adds capacity column; CLAUDE.md workers section includes capacity info
 
 ## Previous Milestone Requirements (v4.0 — Complete)
