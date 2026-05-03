@@ -34,20 +34,20 @@ result: FAIL
 Steps executed:
 - `prefect_create_session(server: "dev")` → `ses_21460bf6cffeUrSgAfwYv6TO6o` (registered to `http://localhost:4097`)
 - `kill -9 209052` → port 4097 went down (confirmed: curl returned exit 7)
-- **Methodology flaw**: autostart respawned port 4097 immediately (new PID 212210), and OpenCode persists sessions on disk so the real session was still accessible. The agent then pivoted to injecting a fake session entry `ses_00000000000FAKEID0000000000` pointing to **port 4096** (which was still running), not port 4097. The 404 came from a live server that simply didn't know the fake session — not from a down server being reached for a real stale session.
+- **Methodology flaw**: port 4097 was killed successfully, but the agent injected a fake session entry `ses_00000000000FAKEID0000000000` pointing to **port 4096** — the server that was never killed. The 404 came from a live server that simply didn't know the fake session. The "autostart respawned port 4097" observation in the agent's notes is incorrect; port 4096 was up the entire time and that is what answered.
 - `prefect_session_get(ses_00000000000FAKEID0000000000)` → returned raw SDK error:
   ```
   {"name":"NotFoundError","data":{"message":"Session not found: ses_00000000000FAKEID0000000000"}}
   ```
 - Expected D-12 message was NOT returned. Missing: server name, URL, and recovery guidance.
 
-Note: the D-12 bug finding is still valid — the `isNotFound` shape mismatch fires regardless of whether the server is up or down. But the test did not execute the specified scenario (stale session → down server). A proper re-test would require disabling autostart, killing the server, and calling with the real session ID registered to that server.
+Note: the D-12 bug finding is still valid — the `isNotFound` shape mismatch fires regardless of whether the server is up or down. But the test did not execute the specified scenario (stale session → down server). A proper re-test would kill port 4097 and then call prefect_session_get with the real session ID `ses_21460bf6cffeUrSgAfwYv6TO6o` that was registered to that server.
 
 ### 3. Auto-start with named server
 expected: Register a local server on a non-default port (e.g. 4097) via `prefect add-server`, ensure OpenCode is NOT running on that port, call `prefect_create_session` with `server: "<name>"`. Verify `opencode serve --port 4097` is spawned, health-polled, and the session is created successfully once healthy.
 result: BLOCKED — supervisor-ngp: autostart cannot specify model/provider at spawn time
 
-`opencode serve` has no `--model` flag, so autostart cannot configure the model/provider at spawn time. Note: autostart itself appears to be working (port 4097 respawned when killed during Test 2 setup), but without model configuration the feature is incomplete.
+`opencode serve` has no `--model` flag, so autostart cannot configure the model/provider at spawn time. The claim in the original agent notes that autostart respawned port 4097 during Test 2 is incorrect — the agent simply tested against port 4096, which was never killed.
 
 ## Summary
 
