@@ -367,8 +367,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 15-01-PLAN.md — updateClaudemdWorkers() in cli.ts (MULTI-08) + prefect init first-server guidance (MULTI-09) + cli.test.ts tests
-- [ ] 15-02-PLAN.md — sessionId optional param on prefect_delegate + prefect_dispatch in index.ts (MULTI-10) + examples/test-task.md update
+- [x] 15-01-PLAN.md — updateClaudemdWorkers() in cli.ts (MULTI-08) + prefect init first-server guidance (MULTI-09) + cli.test.ts tests
+- [x] 15-02-PLAN.md — sessionId optional param on prefect_delegate + prefect_dispatch in index.ts (MULTI-10) + examples/test-task.md update
 
 ---
 
@@ -391,3 +391,13 @@ Plans:
 | 13. Server Registry | v5.0 | 2/2 | Complete    | 2026-05-01 |
 | 14. Session-Server Routing | v5.0 | 0/3 | Not started | - |
 | 15. Onboarding + Session Reuse | v5.0 | 0/2 | Not started | - |
+
+### Phase 15.1: MULTI-11: Server capacity management — maxSessions field on ServerEntry, --max-sessions flag on add-server, capacity check before createSession in prefect_create_session/prefect_delegate/prefect_dispatch (error only when maxSessions is set; omit entirely if unlimited), capacity column in list-servers, capacity in CLAUDE.md workers section. Backward compatible — no maxSessions = unlimited. (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 15.1 to break down)

@@ -4,14 +4,14 @@ milestone: v5.0
 milestone_name: Multi-Server Registry
 status: executing
 stopped_at: Phase 15 context gathered
-last_updated: "2026-05-03T03:51:36.735Z"
-last_activity: 2026-05-02 -- Phase 14 execution started
+last_updated: "2026-05-03T21:58:17.887Z"
+last_activity: 2026-05-03 -- Phase 15 execution started
 progress:
   total_phases: 13
   completed_phases: 12
-  total_plans: 23
+  total_plans: 25
   completed_plans: 23
-  percent: 100
+  percent: 92
 ---
 
 # Project State
@@ -21,18 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-30 for v5.0 milestone)
 
 **Core value:** Claude Code can delegate implementation to a local model and review/correct the results without leaving the Claude Code workflow.
-**Current focus:** Phase 14 — session-server-routing
+**Current focus:** Phase 15 — onboarding-session-reuse
 
 ## Current Position
 
-Phase: 14 (session-server-routing) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 14
-Last activity: 2026-05-02 -- Phase 14 execution started
+Phase: 15 (onboarding-session-reuse) — EXECUTING
+Plan: 1 of 2
+Plans: 2 plans in 1 wave
+Status: Executing Phase 15
+Last activity: 2026-05-03 -- Phase 15 execution started
 
-Progress: [####______] 33%  (1/3 v5.0 phases complete)
+Progress: [##########] 67%  (2/3 v5.0 phases complete)
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 15.1 inserted after Phase 15: MULTI-11 Server capacity management — maxSessions field + capacity checks (INSERTED)
 
 ### Decisions
 
