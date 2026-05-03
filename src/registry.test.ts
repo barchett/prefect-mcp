@@ -37,13 +37,13 @@ test('writeRegistry creates parent directory and writes pretty-printed JSON with
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'nested', 'subdir', 'servers.json');
-    writeRegistry({ servers: [{ name: 'a', host: 'h', port: 1, model: 'm' }] }, regPath);
+    writeRegistry({ servers: [{ name: 'a', host: 'h', port: 1, providerID: 'vllm', modelID: 'qwen3' }] }, regPath);
     assert.equal(existsSync(regPath), true);
     const raw = readFileSync(regPath, 'utf8');
     assert.ok(raw.endsWith('\n'), 'file should end with newline');
     assert.ok(raw.includes('  "name": "a"'), 'file should use 2-space indent');
     const parsed = JSON.parse(raw);
-    assert.deepEqual(parsed, { servers: [{ name: 'a', host: 'h', port: 1, model: 'm' }] });
+    assert.deepEqual(parsed, { servers: [{ name: 'a', host: 'h', port: 1, providerID: 'vllm', modelID: 'qwen3' }] });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -53,7 +53,7 @@ test('addServer appends a new entry when name is not present', () => {
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'servers.json');
-    addServer({ name: 'local', host: 'localhost', port: 4096, model: 'qwen3' }, regPath);
+    addServer({ name: 'local', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' }, regPath);
     const reg = readRegistry(regPath);
     assert.equal(reg.servers.length, 1);
     assert.equal(reg.servers[0].port, 4096);
@@ -67,8 +67,8 @@ test('addServer overwrites entry when name already exists', () => {
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'servers.json');
-    addServer({ name: 'local', host: 'old', port: 1, model: 'a' }, regPath);
-    addServer({ name: 'local', host: 'new', port: 2, model: 'b' }, regPath);
+    addServer({ name: 'local', host: 'old', port: 1, providerID: 'vllm', modelID: 'a' }, regPath);
+    addServer({ name: 'local', host: 'new', port: 2, providerID: 'vllm', modelID: 'b' }, regPath);
     const reg = readRegistry(regPath);
     assert.equal(reg.servers.length, 1);
     assert.equal(reg.servers[0].host, 'new');
@@ -82,8 +82,8 @@ test('removeServer deletes a matching entry and persists', () => {
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'servers.json');
-    addServer({ name: 'local', host: 'localhost', port: 4096, model: 'qwen3' }, regPath);
-    addServer({ name: 'dev', host: 'devbox', port: 4097, model: 'qwen3' }, regPath);
+    addServer({ name: 'local', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' }, regPath);
+    addServer({ name: 'dev', host: 'devbox', port: 4097, providerID: 'vllm', modelID: 'qwen3' }, regPath);
     removeServer('local', regPath);
     const reg = readRegistry(regPath);
     assert.equal(reg.servers.length, 1);
@@ -124,13 +124,14 @@ test('listServers prints tabular header + rows to stdout when entries exist', ()
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'servers.json');
-    addServer({ name: 'local', host: 'localhost', port: 4096, model: 'qwen3' }, regPath);
-    addServer({ name: 'dev', host: 'devbox', port: 4097, model: 'llama3' }, regPath);
+    addServer({ name: 'local', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' }, regPath);
+    addServer({ name: 'dev', host: 'devbox', port: 4097, providerID: 'ollama', modelID: 'llama3' }, regPath);
     const driver = `import('${pathToFileURL(REGISTRY_BUILD).href}').then(m => m.listServers('${regPath}'));`;
     const res = runDriver(driver);
     assert.equal(res.status, 0);
     assert.ok(res.stdout.includes('NAME'), `stdout missing NAME, was: ${res.stdout}`);
     assert.ok(res.stdout.includes('PORT'), `stdout missing PORT, was: ${res.stdout}`);
+    assert.ok(res.stdout.includes('PROVIDER'), `stdout missing PROVIDER, was: ${res.stdout}`);
     assert.ok(res.stdout.includes('MODEL'), `stdout missing MODEL, was: ${res.stdout}`);
     assert.ok(res.stdout.includes('local'), `stdout missing 'local', was: ${res.stdout}`);
     assert.ok(res.stdout.includes('dev'), `stdout missing 'dev', was: ${res.stdout}`);
@@ -143,7 +144,7 @@ test('port stored in registry is typeof number not string', () => {
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'servers.json');
-    addServer({ name: 'a', host: 'h', port: 4096, model: 'm' }, regPath);
+    addServer({ name: 'a', host: 'h', port: 4096, providerID: 'vllm', modelID: 'qwen3' }, regPath);
     const raw = JSON.parse(readFileSync(regPath, 'utf8'));
     assert.equal(raw.servers[0].port, 4096);
     assert.equal(typeof raw.servers[0].port, 'number');

@@ -30,6 +30,7 @@ export async function createSession(
   parentID?: string,                                       // SESSION-10
   serverUrl?: string,                                      // NEW — for sessions.json write (D-11)
   serverName?: string,                                     // NEW — store name alongside URL per D-08
+  model?: { providerID: string; modelID: string },         // registered server model — auto-injected on prefect_run
 ): Promise<{ id: string; [key: string]: unknown }> {
   const { data, error } = await client.session.create({
     body: {
@@ -44,7 +45,7 @@ export async function createSession(
   // route to the correct server even after an MCP server restart. Both serverUrl
   // and serverName must be present — entry-point handlers always pass both.
   if (serverUrl && serverName) {
-    addSession(data.id, { server: serverName, url: serverUrl });
+    addSession(data.id, { server: serverName, url: serverUrl, ...(model ? { model } : {}) });
   }
   return data;
 }

@@ -35,7 +35,8 @@ function resolveServerFromRequest(request: Request): ServerEntry {
     name: requestUrl.hostname,
     host: requestUrl.hostname,
     port: parseInt(requestUrl.port || '4096', 10),
-    model: '',
+    providerID: '',
+    modelID: '',
   };
 }
 

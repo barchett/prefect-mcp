@@ -7,10 +7,10 @@ beforeEach(() => {
   _resetStartPromise();
 });
 
-const LOCAL: ServerEntry = { name: 'local', host: 'localhost', port: 4096, model: 'm' };
-const LOCAL_ALT: ServerEntry = { name: 'b', host: 'localhost', port: 4097, model: 'm' };
-const CUSTOM: ServerEntry = { name: 'custom', host: 'localhost', port: 4099, model: 'm' };
-const REMOTE: ServerEntry = { name: 'remote', host: '192.168.1.100', port: 4096, model: 'x' };
+const LOCAL: ServerEntry = { name: 'local', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' };
+const LOCAL_ALT: ServerEntry = { name: 'b', host: 'localhost', port: 4097, providerID: 'vllm', modelID: 'qwen3' };
+const CUSTOM: ServerEntry = { name: 'custom', host: 'localhost', port: 4099, providerID: 'vllm', modelID: 'qwen3' };
+const REMOTE: ServerEntry = { name: 'remote', host: '192.168.1.100', port: 4096, providerID: 'vllm', modelID: 'qwen3' };
 
 function mockOk(counter?: { n: number }, urlCapture?: { url: string }): (req: Request) => Promise<Response> {
   return (req: Request) => {

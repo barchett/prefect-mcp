@@ -120,3 +120,27 @@ test('readSessionMap throws when sessions field is missing or not an object', ()
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('addSession stores model when provided and lookupSession returns it', () => {
+  const dir = freshTmp();
+  try {
+    const regPath = join(dir, 'sessions.json');
+    addSession('ses_abc123', { server: 'local', url: 'http://localhost:4096', model: { providerID: 'vllm', modelID: 'qwen3' } }, regPath);
+    const entry = lookupSession('ses_abc123', regPath);
+    assert.deepEqual(entry?.model, { providerID: 'vllm', modelID: 'qwen3' });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('addSession without model stores entry with no model field', () => {
+  const dir = freshTmp();
+  try {
+    const regPath = join(dir, 'sessions.json');
+    addSession('ses_abc123', { server: 'local', url: 'http://localhost:4096' }, regPath);
+    const entry = lookupSession('ses_abc123', regPath);
+    assert.equal(entry?.model, undefined);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

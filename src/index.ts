@@ -65,12 +65,13 @@ function resolveServerUrl(sessionId?: string, serverName?: string): string {
   return BASE_URL;
 }
 
-// D-12 helper: SDK returns { data, error } pairs; 404 surfaces as error with status: 404.
+// D-12 helper: SDK returns { data, error } pairs; 404 surfaces as either { status: 404 }
+// or { name: 'NotFoundError' } depending on the SDK version and endpoint.
 // Without this check, every API error (400, 403, 500) would be treated as a stale session.
 function isNotFound(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
-  const status = (error as Record<string, unknown>).status;
-  return status === 404;
+  const e = error as Record<string, unknown>;
+  return e.status === 404 || e.name === 'NotFoundError';
 }
 
 // Resolve the canonical server name for a URL — used by entry points to write
@@ -106,7 +107,10 @@ server.registerTool(
     try {
       const serverUrl = resolveServerUrl(undefined, serverParam);
       const serverName = serverNameForUrl(serverUrl, serverParam);
-      const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName);
+      const reg = readRegistry();
+      const serverEntry = reg.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+      const model = serverEntry ? { providerID: serverEntry.providerID, modelID: serverEntry.modelID } : undefined;
+      const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName, model);
       return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -221,7 +225,8 @@ server.registerTool(
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       const serverUrl = resolveServerUrl(sessionId);
-      const result = await runPrompt(getClient(serverUrl), sessionId, prompt, { model, agent, system, tools, files, messageID, agentInput, subtaskInput }, dir, controller.signal);
+      const effectiveModel = model ?? lookupSession(sessionId)?.model;
+      const result = await runPrompt(getClient(serverUrl), sessionId, prompt, { model: effectiveModel, agent, system, tools, files, messageID, agentInput, subtaskInput }, dir, controller.signal);
       clearTimeout(timer);
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (err) {
@@ -238,7 +243,10 @@ server.registerTool(
         };
       }
       // D-12 stale-session detection inside the JSON-encoded error string from runPrompt
-      if (typeof (err as Error).message === 'string' && (err as Error).message.includes('"status":404')) {
+      if (typeof (err as Error).message === 'string' && (
+        (err as Error).message.includes('"status":404') ||
+        (err as Error).message.includes('"NotFoundError"')
+      )) {
         const entry = lookupSession(sessionId);
         removeSession(sessionId);
         const staleUrl = entry?.url ?? resolveServerUrl();

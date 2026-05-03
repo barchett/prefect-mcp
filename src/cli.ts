@@ -36,7 +36,7 @@ function usageAndExit(): never {
     'Usage: prefect <subcommand> [options]\n\n' +
     'Subcommands:\n' +
     '  init [--force]                          Write .mcp.json for this project\n' +
-    '  add-server <name> <host> <port> <model> Register a named OpenCode server\n' +
+    '  add-server <name> <host> <port> <provider> <model>  Register a named OpenCode server\n' +
     '  remove-server <name>                    Remove a named server from the registry\n' +
     '  list-servers                            List all registered servers',
   );
@@ -44,9 +44,9 @@ function usageAndExit(): never {
 }
 
 function handleAddServer(handlerArgs: string[]): never {
-  const [name, host, portStr, model] = handlerArgs;
-  if (!name || !host || !portStr || !model) {
-    console.error('Usage: prefect add-server <name> <host> <port> <model>');
+  const [name, host, portStr, providerID, modelID] = handlerArgs;
+  if (!name || !host || !portStr || !providerID || !modelID) {
+    console.error('Usage: prefect add-server <name> <host> <port> <provider> <model>');
     process.exit(1);
   }
   const port = parseInt(portStr, 10);
@@ -54,8 +54,8 @@ function handleAddServer(handlerArgs: string[]): never {
     console.error(`Error: invalid port '${portStr}' — must be an integer 1-65535`);
     process.exit(1);
   }
-  addServer({ name, host, port, model });
-  console.error(`Registered server '${name}' at ${host}:${port} (model: ${model})`);
+  addServer({ name, host, port, providerID, modelID });
+  console.error(`Registered server '${name}' at ${host}:${port} (${providerID}/${modelID})`);
   process.exit(0);
 }
 

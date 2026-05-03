@@ -119,7 +119,7 @@ test('Bogus subcommand exits 1 with usage', () => {
     const { status, stderr } = runCli(dir, env, 'bogus');
     assert.equal(status, 1);
     assert.match(stderr, /Usage: prefect <subcommand>/);
-    assert.match(stderr, /add-server <name> <host> <port> <model>/);
+    assert.match(stderr, /add-server <name> <host> <port> <provider> <model>/);
     assert.match(stderr, /list-servers/);
     assert.equal(existsSync(join(dir, '.mcp.json')), false);
   } finally {
@@ -131,11 +131,11 @@ test('add-server creates ~/.config/prefect/servers.json under HOME=tempdir', () 
   const dir = freshTmp();
   try {
     const env = { ...process.env, HOME: dir, USERPROFILE: dir };
-    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'qwen3');
+    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3');
     assert.equal(status, 0);
     assert.ok(existsSync(join(dir, '.config', 'prefect', 'servers.json')));
     const reg = JSON.parse(readFileSync(join(dir, '.config', 'prefect', 'servers.json'), 'utf8'));
-    assert.deepEqual(reg.servers[0], { name: 'local', host: 'localhost', port: 4096, model: 'qwen3' });
+    assert.deepEqual(reg.servers[0], { name: 'local', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' });
     assert.equal(typeof reg.servers[0].port, 'number');
     assert.match(stderr, /Registered server 'local'/);
   } finally {
@@ -159,7 +159,7 @@ test('add-server with non-numeric port exits 1', () => {
   const dir = freshTmp();
   try {
     const env = { ...process.env, HOME: dir, USERPROFILE: dir };
-    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', 'abc', 'qwen3');
+    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', 'abc', 'vllm', 'qwen3');
     assert.equal(status, 1);
     assert.match(stderr, /invalid port 'abc'/);
   } finally {
@@ -171,7 +171,7 @@ test('add-server with out-of-range port exits 1', () => {
   const dir = freshTmp();
   try {
     const env = { ...process.env, HOME: dir, USERPROFILE: dir };
-    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', '99999', 'qwen3');
+    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', '99999', 'vllm', 'qwen3');
     assert.equal(status, 1);
     assert.match(stderr, /invalid port '99999'/);
     assert.match(stderr, /1-65535/);
@@ -188,8 +188,8 @@ test('remove-server removes existing entry and exits 0', () => {
     writeFileSync(
       join(dir, '.config', 'prefect', 'servers.json'),
       JSON.stringify({ servers: [
-        { name: 'local', host: 'h1', port: 4096, model: 'm1' },
-        { name: 'dev', host: 'h2', port: 5000, model: 'm2' },
+        { name: 'local', host: 'h1', port: 4096, providerID: 'vllm', modelID: 'qwen3' },
+        { name: 'dev', host: 'h2', port: 5000, providerID: 'ollama', modelID: 'llama3' },
       ] }, null, 2) + '\n',
     );
     const { status, stderr } = runCli(dir, env, 'remove-server', 'local');
@@ -235,13 +235,13 @@ test('list-servers prints tabular output to stdout when entries exist', () => {
     writeFileSync(
       join(dir, '.config', 'prefect', 'servers.json'),
       JSON.stringify({ servers: [
-        { name: 'local', host: 'h1', port: 4096, model: 'm1' },
-        { name: 'dev', host: 'h2', port: 5000, model: 'm2' },
+        { name: 'local', host: 'h1', port: 4096, providerID: 'vllm', modelID: 'qwen3' },
+        { name: 'dev', host: 'h2', port: 5000, providerID: 'ollama', modelID: 'llama3' },
       ] }, null, 2) + '\n',
     );
     const { status, stdout } = runCli(dir, env, 'list-servers');
     assert.equal(status, 0);
-    assert.match(stdout, /NAME\s+HOST\s+PORT\s+MODEL/);
+    assert.match(stdout, /NAME\s+HOST\s+PORT\s+PROVIDER\s+MODEL/);
     assert.ok(stdout.includes('local'));
     assert.ok(stdout.includes('dev'));
   } finally {
