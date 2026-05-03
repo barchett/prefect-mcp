@@ -392,12 +392,12 @@ Plans:
 | 14. Session-Server Routing | v5.0 | 0/3 | Not started | - |
 | 15. Onboarding + Session Reuse | v5.0 | 2/2 | Complete    | 2026-05-03 |
 
-### Phase 15.1: MULTI-11: Server capacity management — maxSessions field on ServerEntry, --max-sessions flag on add-server, capacity check before createSession in prefect_create_session/prefect_delegate/prefect_dispatch (error only when maxSessions is set; omit entirely if unlimited), capacity column in list-servers, capacity in CLAUDE.md workers section. Backward compatible — no maxSessions = unlimited. (INSERTED)
+### Phase 15.1: Server Capacity Management (MULTI-11)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Add optional `maxSessions` capacity field to server registry entries — enforced before session creation in all three entry points; surface in `list-servers` and CLAUDE.md workers section. No maxSessions = unlimited (backward compatible).
+**Requirements**: MULTI-11
 **Depends on:** Phase 15
-**Plans:** 2/2 plans complete
+**Plans:** TBD
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 15.1 to break down)
