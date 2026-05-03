@@ -914,8 +914,16 @@ server.registerTool(
   'prefect_delegate',
   {
     description:
-      'Blocking composite: create a session, run a prompt, and return { sessionId, result, diff } in one call. Replicates the canonical three-step Prefect loop. Session stays alive after completion — call prefect_session_delete to clean up. Aborts the session and returns an error if PREFECT_TIMEOUT_MS is exceeded. Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_run directly for those features.',
+      'Blocking composite: run a prompt and return { sessionId, result, diff } in one call. ' +
+      'When sessionId is provided: reuses that existing session (server/title/directory ignored). ' +
+      'When omitted: creates a new session on the named server (server defaults to first registered or PREFECT_SERVER_URL). ' +
+      'Session stays alive after completion — call prefect_session_delete to clean up. ' +
+      'Aborts a newly-created session and returns an error if PREFECT_TIMEOUT_MS is exceeded (does NOT abort a reused session). ' +
+      'Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_run directly for those features.',
     inputSchema: z.object({
+      sessionId: z.string().optional().describe(
+        'Reuse an existing session. When provided: server/title/directory are ignored; the session runs on its already-registered server. model/agent/system still apply as per-prompt overrides.'
+      ),
       prompt: z.string().describe('The coding task or instruction to execute'),
       title: z.string().optional().describe('Optional display title for the created session'),
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to OPENCODE_DEFAULT_PROJECT env var.'),
@@ -930,10 +938,34 @@ server.registerTool(
       ),
     }),
   },
-  async ({ prompt, title, directory, model, agent, system, server: serverParam }) => {
-    const dir = resolveDirectory(directory);
+  async ({ sessionId: providedSessionId, prompt, title, directory, model, agent, system, server: serverParam }) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    if (providedSessionId) {
+      // D-08: reuse path — skip createSession; server/directory/title ignored
+      try {
+        const serverUrl = resolveServerUrl(providedSessionId); // sessions.json lookup
+        const c = getClient(serverUrl);
+        const result = await runPrompt(c, providedSessionId, prompt, { model, agent, system }, undefined, controller.signal);
+        clearTimeout(timer);
+        const diff = await getDiff(c, providedSessionId, undefined, undefined);
+        return { content: [{ type: 'text', text: JSON.stringify({ sessionId: providedSessionId, result, diff }) }] };
+      } catch (err) {
+        clearTimeout(timer);
+        if ((err as Error).name === 'AbortError') {
+          // D-08: do NOT abort the session — the caller owns it
+          return {
+            content: [{ type: 'text', text: `prefect_delegate timed out after ${TIMEOUT_MS / 1000}s — session ${providedSessionId} NOT aborted (caller owns it)` }],
+            isError: true,
+          };
+        }
+        return { content: [{ type: 'text', text: String(err) }], isError: true };
+      }
+    }
+
+    // Create-new-session path (existing logic — unchanged)
+    const dir = resolveDirectory(directory);
     let sessionId: string | undefined;
     try {
       const serverUrl = resolveServerUrl(undefined, serverParam);
