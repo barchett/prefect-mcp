@@ -248,3 +248,97 @@ test('list-servers prints tabular output to stdout when entries exist', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// MULTI-08: updateClaudemdWorkers behavior tests
+test('MULTI-08: add-server creates CLAUDE.md with Available Workers section', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    const { status } = runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'ollama', 'qwen2.5-coder');
+    assert.equal(status, 0);
+    assert.ok(existsSync(join(dir, 'CLAUDE.md')));
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    assert.match(content, /## Available Workers/);
+    assert.match(content, /\*\*local\*\* — ollama\/qwen2\.5-coder, localhost:4096/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-08: remove-server updates section to placeholder when registry empty', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    // Add then remove
+    runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'ollama', 'qwen2.5-coder');
+    const { status } = runCli(dir, env, 'remove-server', 'local');
+    assert.equal(status, 0);
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    assert.match(content, /## Available Workers/);
+    assert.match(content, /\*\(no servers registered\)\*/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-08: add-server preserves existing CLAUDE.md content', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    writeFileSync(join(dir, 'CLAUDE.md'), '# My Project\n\nSome existing content.\n');
+    runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'ollama', 'qwen3');
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    assert.match(content, /# My Project/);
+    assert.match(content, /Some existing content/);
+    assert.match(content, /## Available Workers/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-08: repeated add-server does not duplicate section', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    runCli(dir, env, 'add-server', 'a', 'localhost', '4096', 'ollama', 'qwen3');
+    runCli(dir, env, 'add-server', 'b', 'localhost', '4097', 'vllm', 'llama3');
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    const matches = content.match(/## Available Workers/g);
+    assert.equal(matches?.length, 1, 'section heading must appear exactly once');
+    assert.match(content, /\*\*a\*\*/);
+    assert.match(content, /\*\*b\*\*/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-08: CLAUDE.md ends with exactly one newline', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'ollama', 'qwen3');
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    assert.ok(content.endsWith('\n'), 'must end with newline');
+    assert.ok(!content.endsWith('\n\n'), 'must not end with double newline');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// MULTI-09: init guidance tests
+test('MULTI-09: init prints guidance when registry empty', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    const { status, stderr } = runCli(dir, env, 'init');
+    assert.equal(status, 0);
+    assert.match(stderr, /No servers registered yet/);
+    assert.match(stderr, /prefect add-server local localhost 4096 ollama qwen2\.5-coder/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-09: init silent when servers already registered', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    // Pre-populate registry
+    mkdirSync(join(dir, '.config', 'prefect'), { recursive: true });
+    writeFileSync(
+      join(dir, '.config', 'prefect', 'servers.json'),
+      JSON.stringify({ servers: [{ name: 'local', host: 'localhost', port: 4096, providerID: 'ollama', modelID: 'qwen2.5-coder' }] }, null, 2) + '\n',
+    );
+    const { status, stderr } = runCli(dir, env, 'init');
+    assert.equal(status, 0);
+    assert.doesNotMatch(stderr, /No servers registered yet/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
