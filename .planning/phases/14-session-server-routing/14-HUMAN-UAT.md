@@ -34,14 +34,14 @@ result: FAIL
 Steps executed:
 - `prefect_create_session(server: "dev")` → `ses_21460bf6cffeUrSgAfwYv6TO6o` (registered to `http://localhost:4097`)
 - `kill -9 209052` → port 4097 went down (confirmed: curl returned exit 7)
-- Injected fake session entry `ses_00000000000FAKEID0000000000` → `http://localhost:4096` into sessions.json to test 404 path (kill+restart did not produce a stale session because OpenCode persists sessions to disk across restarts, and autostart respawned port 4097 immediately)
+- **Methodology flaw**: autostart respawned port 4097 immediately (new PID 212210), and OpenCode persists sessions on disk so the real session was still accessible. The agent then pivoted to injecting a fake session entry `ses_00000000000FAKEID0000000000` pointing to **port 4096** (which was still running), not port 4097. The 404 came from a live server that simply didn't know the fake session — not from a down server being reached for a real stale session.
 - `prefect_session_get(ses_00000000000FAKEID0000000000)` → returned raw SDK error:
   ```
   {"name":"NotFoundError","data":{"message":"Session not found: ses_00000000000FAKEID0000000000"}}
   ```
 - Expected D-12 message was NOT returned. Missing: server name, URL, and recovery guidance.
 
-Side observation: killing port 4097 triggered autostart — `opencode serve --port 4097` respawned automatically (new PID 212210) before the session_get call completed. This means the 404 path requires a truly non-existent session ID, not just a killed server.
+Note: the D-12 bug finding is still valid — the `isNotFound` shape mismatch fires regardless of whether the server is up or down. But the test did not execute the specified scenario (stale session → down server). A proper re-test would require disabling autostart, killing the server, and calling with the real session ID registered to that server.
 
 ### 3. Auto-start with named server
 expected: Register a local server on a non-default port (e.g. 4097) via `prefect add-server`, ensure OpenCode is NOT running on that port, call `prefect_create_session` with `server: "<name>"`. Verify `opencode serve --port 4097` is spawned, health-polled, and the session is created successfully once healthy.
