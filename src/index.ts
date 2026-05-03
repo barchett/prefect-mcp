@@ -109,7 +109,9 @@ server.registerTool(
       const serverName = serverNameForUrl(serverUrl, serverParam);
       const reg = readRegistry();
       const serverEntry = reg.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
-      const model = serverEntry ? { providerID: serverEntry.providerID, modelID: serverEntry.modelID } : undefined;
+      const model = (serverEntry?.providerID && serverEntry?.modelID)
+        ? { providerID: serverEntry.providerID, modelID: serverEntry.modelID }
+        : undefined;
       const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName, model);
       return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
@@ -225,7 +227,8 @@ server.registerTool(
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       const serverUrl = resolveServerUrl(sessionId);
-      const effectiveModel = model ?? lookupSession(sessionId)?.model;
+      const stored = lookupSession(sessionId)?.model;
+      const effectiveModel = model ?? (stored?.providerID && stored?.modelID ? stored : undefined);
       const result = await runPrompt(getClient(serverUrl), sessionId, prompt, { model: effectiveModel, agent, system, tools, files, messageID, agentInput, subtaskInput }, dir, controller.signal);
       clearTimeout(timer);
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
