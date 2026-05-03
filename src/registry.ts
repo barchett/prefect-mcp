@@ -69,6 +69,6 @@ export function listServers(registryPath: string = REGISTRY_PATH): void {
   console.log('----            ----            ----   --------        -----');
   const cell = (s: string, w: number): string => s.length >= w ? s.slice(0, w - 1) + '…' : s.padEnd(w);
   for (const s of reg.servers) {
-    console.log(cell(s.name, 16) + cell(s.host, 16) + cell(String(s.port), 7) + cell(s.providerID, 16) + s.modelID);
+    console.log(cell(s.name, 16) + cell(s.host, 16) + cell(String(s.port), 7) + cell(s.providerID ?? '', 16) + (s.modelID ?? ''));
   }
 }
