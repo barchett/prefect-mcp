@@ -364,7 +364,11 @@ Plans:
   4. Calling `prefect_delegate` or `prefect_dispatch` without `sessionId` requires `server` and creates a new session on that server, as before
   5. `npm run build` passes and `examples/test-task.md` is updated to reflect the new `sessionId` reuse capability
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — updateClaudemdWorkers() in cli.ts (MULTI-08) + prefect init first-server guidance (MULTI-09) + cli.test.ts tests
+- [ ] 15-02-PLAN.md — sessionId optional param on prefect_delegate + prefect_dispatch in index.ts (MULTI-10) + examples/test-task.md update
 
 ---
 
@@ -386,4 +390,4 @@ Plans:
 | 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 13. Server Registry | v5.0 | 2/2 | Complete    | 2026-05-01 |
 | 14. Session-Server Routing | v5.0 | 0/3 | Not started | - |
-| 15. Onboarding + Session Reuse | v5.0 | 0/TBD | Not started | - |
+| 15. Onboarding + Session Reuse | v5.0 | 0/2 | Not started | - |
