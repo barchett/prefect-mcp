@@ -37,7 +37,7 @@ function updateClaudemdWorkers(cwd: string): void {
   const { servers } = readRegistry();
 
   const bullets = servers.map(
-    (s) => `- **${s.name}** — ${s.providerID}/${s.modelID}, ${s.host}:${s.port}`
+    (s) => `- **${s.name}** — ${s.providerID}/${s.modelID}, ${s.host}:${s.port}, capacity: ${s.maxSessions ?? 'unlimited'}`
   );
   const sectionContent = bullets.length > 0 ? bullets.join('\n') : '*(no servers registered)*';
   const newSection = `## Available Workers\n\n${sectionContent}\n`;
@@ -70,7 +70,7 @@ function usageAndExit(): never {
     'Usage: prefect <subcommand> [options]\n\n' +
     'Subcommands:\n' +
     '  init [--force]                          Write .mcp.json for this project\n' +
-    '  add-server <name> <host> <port> <provider> <model>  Register a named OpenCode server\n' +
+    '  add-server <name> <host> <port> <provider> <model> [--max-sessions <n>]  Register a named OpenCode server\n' +
     '  remove-server <name>                    Remove a named server from the registry\n' +
     '  list-servers                            List all registered servers',
   );
@@ -78,9 +78,24 @@ function usageAndExit(): never {
 }
 
 function handleAddServer(handlerArgs: string[]): never {
-  const [name, host, portStr, providerID, modelID] = handlerArgs;
+  // Extract optional --max-sessions flag (may appear in any position after positional args)
+  const maxSessionsIdx = handlerArgs.indexOf('--max-sessions');
+  let maxSessions: number | undefined;
+  let positionalArgs = handlerArgs;
+  if (maxSessionsIdx !== -1) {
+    const maxSessionsStr = handlerArgs[maxSessionsIdx + 1];
+    const parsed = parseInt(maxSessionsStr ?? '', 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      console.error(`Error: invalid --max-sessions '${maxSessionsStr ?? ''}' — must be a positive integer`);
+      process.exit(1);
+    }
+    maxSessions = parsed;
+    // Remove the flag and its value from the positional args array
+    positionalArgs = handlerArgs.filter((_, i) => i !== maxSessionsIdx && i !== maxSessionsIdx + 1);
+  }
+  const [name, host, portStr, providerID, modelID] = positionalArgs;
   if (!name || !host || !portStr || !providerID || !modelID) {
-    console.error('Usage: prefect add-server <name> <host> <port> <provider> <model>');
+    console.error('Usage: prefect add-server <name> <host> <port> <provider> <model> [--max-sessions <n>]');
     process.exit(1);
   }
   const port = parseInt(portStr, 10);
@@ -88,8 +103,8 @@ function handleAddServer(handlerArgs: string[]): never {
     console.error(`Error: invalid port '${portStr}' — must be an integer 1-65535`);
     process.exit(1);
   }
-  addServer({ name, host, port, providerID, modelID });
-  console.error(`Registered server '${name}' at ${host}:${port} (${providerID}/${modelID})`);
+  addServer({ name, host, port, providerID, modelID, ...(maxSessions !== undefined ? { maxSessions } : {}) });
+  console.error(`Registered server '${name}' at ${host}:${port} (${providerID}/${modelID})${maxSessions !== undefined ? `, max sessions: ${maxSessions}` : ''}`);
   try { updateClaudemdWorkers(process.cwd()); } catch (e) { console.error(`Warning: could not update CLAUDE.md: ${(e as Error).message}`); }
   process.exit(0);
 }

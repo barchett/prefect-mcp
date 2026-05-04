@@ -315,6 +315,101 @@ test('MULTI-08: CLAUDE.md ends with exactly one newline', () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// MULTI-11: --max-sessions flag on add-server
+test('MULTI-11: add-server --max-sessions stores integer in registry', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    const { status } = runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3', '--max-sessions', '5');
+    assert.equal(status, 0);
+    const reg = JSON.parse(readFileSync(join(dir, '.config', 'prefect', 'servers.json'), 'utf8'));
+    assert.equal(reg.servers[0].maxSessions, 5);
+    assert.equal(typeof reg.servers[0].maxSessions, 'number');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: add-server without --max-sessions stores no maxSessions field', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3');
+    const reg = JSON.parse(readFileSync(join(dir, '.config', 'prefect', 'servers.json'), 'utf8'));
+    assert.ok(!('maxSessions' in reg.servers[0]), 'maxSessions must not appear when not provided');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: add-server --max-sessions with non-integer exits 1', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3', '--max-sessions', 'abc');
+    assert.equal(status, 1);
+    assert.match(stderr, /invalid --max-sessions/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: add-server --max-sessions 0 exits 1', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    const { status, stderr } = runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3', '--max-sessions', '0');
+    assert.equal(status, 1);
+    assert.match(stderr, /invalid --max-sessions/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: list-servers shows CAPACITY column header', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    mkdirSync(join(dir, '.config', 'prefect'), { recursive: true });
+    writeFileSync(
+      join(dir, '.config', 'prefect', 'servers.json'),
+      JSON.stringify({ servers: [{ name: 'local', host: 'h', port: 4096, providerID: 'vllm', modelID: 'qwen3' }] }, null, 2) + '\n',
+    );
+    const { status, stdout } = runCli(dir, env, 'list-servers');
+    assert.equal(status, 0);
+    assert.match(stdout, /CAPACITY/);
+    assert.match(stdout, /unlimited/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: list-servers shows numeric capacity for capped server', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    mkdirSync(join(dir, '.config', 'prefect'), { recursive: true });
+    writeFileSync(
+      join(dir, '.config', 'prefect', 'servers.json'),
+      JSON.stringify({ servers: [{ name: 'local', host: 'h', port: 4096, providerID: 'vllm', modelID: 'qwen3', maxSessions: 4 }] }, null, 2) + '\n',
+    );
+    const { status, stdout } = runCli(dir, env, 'list-servers');
+    assert.equal(status, 0);
+    assert.match(stdout, /4/);
+    assert.doesNotMatch(stdout, /unlimited/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: add-server --max-sessions updates CLAUDE.md bullet with capacity', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3', '--max-sessions', '5');
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    assert.match(content, /capacity: 5/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: add-server without --max-sessions shows capacity: unlimited in CLAUDE.md', () => {
+  const dir = freshTmp();
+  try {
+    const env = { ...process.env, HOME: dir, USERPROFILE: dir };
+    runCli(dir, env, 'add-server', 'local', 'localhost', '4096', 'vllm', 'qwen3');
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    assert.match(content, /capacity: unlimited/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // MULTI-09: init guidance tests
 test('MULTI-09: init prints guidance when registry empty', () => {
   const dir = freshTmp();
