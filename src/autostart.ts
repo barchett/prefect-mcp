@@ -70,11 +70,13 @@ export async function ensureOpencodeRunning(server: ServerEntry): Promise<void> 
   const port = String(server.port);
   const serverUrl = `http://${server.host}:${server.port}`;
   const cwd = resolveDirectory(undefined);
+  // On Windows, npm-installed binaries are .cmd wrappers; spawn needs the .cmd suffix.
+  const cmd = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
 
   console.error(`[Prefect] OpenCode not reachable on ${serverUrl} — spawning 'opencode serve --port ${port}'`);
 
   const promise = (async () => {
-    const child = spawn('opencode', ['serve', '--port', port], {
+    const child = spawn(cmd, ['serve', '--port', port], {
       stdio: ['ignore', 'ignore', 'inherit'],
       cwd,
       detached: false,

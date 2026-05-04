@@ -95,8 +95,7 @@ prefect init
     "prefect": {
       "type": "stdio",
       "command": "prefect-mcp",
-      "args": [],
-      "env": {}
+      "args": []
     }
   }
 }
@@ -123,8 +122,7 @@ cd /your/project
     "prefect": {
       "type": "stdio",
       "command": "node",
-      "args": ["/abs/path/to/prefect-mcp/build/index.js"],
-      "env": {}
+      "args": ["/abs/path/to/prefect-mcp/build/index.js"]
     }
   }
 }

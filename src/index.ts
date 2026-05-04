@@ -795,9 +795,9 @@ server.registerTool(
 server.registerTool(
   'prefect_session_children',
   {
-    description: 'List all child sessions forked from this session. Returns an empty array if no forks have been made from this session. Use prefect_fork to create child sessions.',
+    description: 'List all child sessions forked from a given PARENT session. sessionId must be the parent (the session that was forked FROM, not a child). Returns an empty array if no forks have been made from this session. Use prefect_fork to create child sessions.',
     inputSchema: z.object({
-      sessionId: z.string().min(1).describe('Parent session ID — the session that child forks were created from'),
+      sessionId: z.string().min(1).describe('Parent session ID — the session that child forks were created from (not a child session ID)'),
       directory: z.string().optional().describe('Optional directory filter'),
     }),
   },
@@ -1655,7 +1655,7 @@ server.registerTool(
 server.registerTool(
   'prefect_get_config',
   {
-    description: 'Get the current OpenCode configuration object. Returns the full Config as JSON. The response may contain API keys or provider credentials — treat as sensitive. Pass directory to scope to a specific project root.',
+    description: 'Get the current OpenCode configuration object. Returns the full Config as JSON. Pass directory to scope to a specific project root. WARNING: response may include sensitive values (API keys, tokens) from the OpenCode config. Do not log or display raw output in shared environments.',
     inputSchema: z.object({
       directory: z.string().optional().describe('Absolute path to the project root. Falls back to PREFECT_DEFAULT_PROJECT env var if not provided.'),
     }),

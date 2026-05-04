@@ -22,13 +22,11 @@ const PREFECT_ENTRY = isGlobal
       type: 'stdio',
       command: 'prefect-mcp',
       args: [],
-      env: {},
     } as const
   : {
       type: 'stdio',
       command: 'node',
       args: [resolve(__dirname, 'index.js')],
-      env: {},
     } as const;
 
 function updateClaudemdWorkers(cwd: string): void {
