@@ -684,14 +684,12 @@ prefect_list_agents({ directory: "/tmp/prefect-uat" })
 
 ### T8.3 — `prefect_find_symbol` finds a TypeScript symbol
 
-**Prerequisite — LSP warm-up:** OpenCode's LSP only indexes files after they have been read during an active session. Before calling `prefect_find_symbol`, ensure a session has read TypeScript files in `SUPERVISOR_REPO`. The session from T7.7 may be sufficient; if not, run:
-```
-prefect_run({
-  sessionId: SESSION_ID_THOR,
-  prompt: "Read the file test/uat-dummy.ts and tell me what functions it exports."
-})
-```
-Then proceed:
+> **EXPERIMENTAL — Skip unless testing LSP specifically.** As of OpenCode 1.14.33, the `/find/symbol` endpoint returns `[]` even when the TypeScript LSP is running and has indexed the file. The LSP client does not implement `workspace/symbol` requests in this version; the endpoint is not yet wired to the LSP protocol.
+>
+> **Requirements when this does work (future OpenCode versions):**
+> 1. `"lsp": true` must be set in `~/.config/opencode/opencode.json`
+> 2. `typescript-language-server` must be installed globally (`npm install -g typescript-language-server typescript`)
+> 3. A session must have opened/edited a TypeScript file to trigger `textDocument/didOpen` before querying
 
 ```
 prefect_find_symbol({
@@ -701,7 +699,7 @@ prefect_find_symbol({
 ```
 
 **Pass:** Returns array with at least one entry pointing to `test/uat-dummy.ts`.  
-**Partial:** If returns `[]` despite the warm-up — LSP indexing is non-deterministic and may require the model to have opened the file explicitly. Mark as PARTIAL and note which warm-up step was used.  
+**Skip:** If OpenCode version ≤ 1.14.33 — workspace symbol search not implemented. Mark as SKIP.  
 **Note:** Uses the supervisor repo (not the scratch dir) — LSP indexing requires a real TypeScript project with tsconfig.json.
 
 ---
@@ -945,6 +943,8 @@ prefect_create_session({ title: "autostart test", server: "thor", directory: "/t
 4. `add-server` uses `providerID` and `modelID` as separate fields (not a flat `model` string).
 5. Sessions persist across server restarts only if `sessions.json` is intact — if the OpenCode server is replaced/restarted, `sessions.json` entries pointing to old session IDs will return 404 and should be cleaned up.
 6. `prefect_session_init` on a sparse/empty directory with no relevant code may produce a minimal or empty AGENTS.md even with `force: true` — this is expected model behavior.
+7. `prefect_find_symbol` (T8.3) is non-functional in OpenCode ≤ 1.14.33 — the `/find/symbol` endpoint returns `[]` because `workspace/symbol` LSP requests are not yet implemented. Mark T8.3 as SKIP on this version.
+8. LSP features require two setup steps: (a) `"lsp": true` in `~/.config/opencode/opencode.json`, and (b) `npm install -g typescript-language-server typescript`. Without these, OpenCode logs "all LSPs are disabled" and all LSP-backed endpoints fail silently.
 
 ---
 
