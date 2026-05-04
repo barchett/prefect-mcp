@@ -1476,7 +1476,9 @@ server.registerTool(
 
 3. force: true always calls the endpoint. OpenCode rewrites AGENTS.md using model judgment — it preserves sections it deems worth keeping and drops others. Custom or hand-authored content can be lost. Returns { existed: <bool>, accepted: true }.
 
-providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message. accepted: true confirms the command was accepted, not that the file was written or changed.`,
+providerID, modelID, and messageID are all required. messageID is the ID assigned to the new user message created by this call — pass any unique string (e.g. a UUID); it is not a reference to an existing message. accepted: true confirms the command was accepted, not that the file was written or changed.
+
+WARNING: If AGENTS.md is staged for deletion in git (shows as "D" in git status), OpenCode will treat it as absent but the model may still skip writing it — interpreting the git-deleted state as an intentional removal. Before calling, ensure AGENTS.md is either committed (present) or fully removed from both the working tree and git index (git rm --cached AGENTS.md && rm AGENTS.md). A file that is deleted on disk but still tracked will confuse the model.`,
     inputSchema: z.object({
       sessionId: z.string().min(1).describe('Session ID'),
       providerID: z.string().describe('Required. Provider ID — must match a provider configured in the OpenCode server (e.g. "vllm"). Using an unconfigured provider returns ProviderModelNotFoundError.'),
