@@ -83,13 +83,12 @@ function handleAddServer(handlerArgs: string[]): never {
   let maxSessions: number | undefined;
   let positionalArgs = handlerArgs;
   if (maxSessionsIdx !== -1) {
-    const maxSessionsStr = handlerArgs[maxSessionsIdx + 1];
-    const parsed = parseInt(maxSessionsStr ?? '', 10);
-    if (!Number.isFinite(parsed) || parsed < 1) {
-      console.error(`Error: invalid --max-sessions '${maxSessionsStr ?? ''}' — must be a positive integer`);
+    const maxSessionsStr = handlerArgs[maxSessionsIdx + 1] ?? '';
+    if (!/^\d+$/.test(maxSessionsStr) || parseInt(maxSessionsStr, 10) < 1) {
+      console.error(`Error: invalid --max-sessions '${maxSessionsStr}' — must be a positive integer`);
       process.exit(1);
     }
-    maxSessions = parsed;
+    maxSessions = parseInt(maxSessionsStr, 10);
     // Remove the flag and its value from the positional args array
     positionalArgs = handlerArgs.filter((_, i) => i !== maxSessionsIdx && i !== maxSessionsIdx + 1);
   }
@@ -130,6 +129,18 @@ function handleListServers(): never {
   process.exit(0);
 }
 
+function printOnboardingIfNoServers(): void {
+  const reg = readRegistry();
+  if (reg.servers.length === 0) {
+    console.error(
+      '\nNo servers registered yet. Register your first OpenCode server:\n' +
+      '  prefect add-server <name> <host> <port> <provider> <model>\n' +
+      'Example:\n' +
+      '  prefect add-server local localhost 4096 ollama qwen2.5-coder'
+    );
+  }
+}
+
 const args = process.argv.slice(2);
 const subcommand = args[0];
 const force = args.includes('--force');
@@ -148,17 +159,7 @@ switch (subcommand) {
       const config: McpJson = { mcpServers: { prefect: PREFECT_ENTRY } };
       writeFileSync(mcpJsonPath, JSON.stringify(config, null, 2) + '\n');
       console.error('Created .mcp.json with prefect entry');
-      {
-        const reg = readRegistry();
-        if (reg.servers.length === 0) {
-          console.error(
-            '\nNo servers registered yet. Register your first OpenCode server:\n' +
-            '  prefect add-server <name> <host> <port> <provider> <model>\n' +
-            'Example:\n' +
-            '  prefect add-server local localhost 4096 ollama qwen2.5-coder'
-          );
-        }
-      }
+      printOnboardingIfNoServers();
       process.exit(0);
     }
 
@@ -185,25 +186,18 @@ switch (subcommand) {
     existing.mcpServers = servers;
     writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + '\n');
     console.error(force ? 'Updated prefect entry in .mcp.json' : 'Added prefect entry to .mcp.json');
-    {
-      const reg = readRegistry();
-      if (reg.servers.length === 0) {
-        console.error(
-          '\nNo servers registered yet. Register your first OpenCode server:\n' +
-          '  prefect add-server <name> <host> <port> <provider> <model>\n' +
-          'Example:\n' +
-          '  prefect add-server local localhost 4096 ollama qwen2.5-coder'
-        );
-      }
-    }
+    printOnboardingIfNoServers();
     process.exit(0);
   }
   case 'add-server':
     handleAddServer(args.slice(1));
+    break;
   case 'remove-server':
     handleRemoveServer(args.slice(1));
+    break;
   case 'list-servers':
     handleListServers();
+    break;
   default:
     usageAndExit();
 }
