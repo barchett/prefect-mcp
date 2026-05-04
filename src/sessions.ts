@@ -7,6 +7,7 @@ export interface SessionEntry {
   server: string;  // name from registry (must match a ServerEntry.name in servers.json)
   url: string;     // full http://host:port URL — stored alongside name so error messages show both without re-lookup
   model?: { providerID: string; modelID: string };  // registered model for this server — auto-injected on every prefect_run
+  parentId?: string;  // set when session was created via prefect_fork — used by prefect_session_children
 }
 
 export interface SessionMap {

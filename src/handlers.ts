@@ -134,6 +134,6 @@ export async function getDiff(
   if (error) throw new Error(JSON.stringify(error));
   return (data ?? []).map((d) => ({
     ...d,
-    patch: createPatch(d.file, d.before, d.after),
+    patch: createPatch(d.file, d.before ?? '', d.after ?? ''),
   }));
 }

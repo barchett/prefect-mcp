@@ -10,7 +10,7 @@ import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
 import { readRegistry } from './registry.js';
-import { addSession, lookupSession, removeSession, countSessionsForServer } from './sessions.js';
+import { addSession, lookupSession, removeSession, countSessionsForServer, readSessionMap } from './sessions.js';
 
 // CORE-08: Base URL from PREFECT_SERVER_URL env var (OPENCODE_URL accepted with deprecation warning)
 const BASE_URL =
@@ -46,6 +46,9 @@ function resolveServerUrl(sessionId?: string, serverName?: string): string {
   if (sessionId) {
     const entry = lookupSession(sessionId);
     if (entry) return entry.url;
+    throw new Error(
+      `Session '${sessionId}' not found in sessions.json. It may have been deleted or never created via prefect_create_session.`,
+    );
   }
   if (serverName) {
     const reg = readRegistry();
@@ -79,9 +82,10 @@ function isNotFound(error: unknown): boolean {
 // serverParam (entry point's optional input) or the literal 'default' when
 // no registry match exists (registry-empty fallback path).
 function serverNameForUrl(serverUrl: string, serverParam?: string): string {
+  if (serverParam) return serverParam;
   const reg = readRegistry();
   const found = reg.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
-  return found?.name ?? serverParam ?? 'default';
+  return found?.name ?? 'default';
 }
 
 /**
@@ -500,10 +504,11 @@ server.registerTool(
         }
         throw new Error(JSON.stringify(error));
       }
-      // Persist the forked session so subsequent tool calls can route to the same server
+      // Persist the forked session so subsequent tool calls can route to the same server.
+      // Store parentId so prefect_session_children can find fork-created children locally.
       const sourceEntry = lookupSession(sessionId);
       if (data && sourceEntry) {
-        addSession((data as { id: string }).id, sourceEntry);
+        addSession((data as { id: string }).id, { ...sourceEntry, parentId: sessionId });
       }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
@@ -821,7 +826,17 @@ server.registerTool(
         }
         throw new Error(JSON.stringify(error));
       }
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+      // OpenCode only tracks sessions created with parentID (native children).
+      // Fork-created sessions are tracked locally in sessions.json with parentId set.
+      // Merge both sources, deduplicating by session id.
+      const serverChildren: Array<{ id: string }> = (data as Array<{ id: string }>) ?? [];
+      const serverChildIds = new Set(serverChildren.map((s) => s.id));
+      const localMap = readSessionMap();
+      const localChildren = Object.entries(localMap.sessions)
+        .filter(([id, e]) => e.parentId === sessionId && !serverChildIds.has(id))
+        .map(([id, e]) => ({ id, server: e.server, url: e.url }));
+      const merged = [...serverChildren, ...localChildren];
+      return { content: [{ type: 'text', text: JSON.stringify(merged) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
@@ -1471,10 +1486,13 @@ providerID, modelID, and messageID are all required. messageID is the ID assigne
   },
   async ({ sessionId, providerID, modelID, messageID, directory, force }) => {
     const dir = resolveDirectory(directory);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       const agentsPath = dir ? path.join(dir, 'AGENTS.md') : null;
 
       if (!force && agentsPath && existsSync(agentsPath)) {
+        clearTimeout(timer);
         const content = readFileSync(agentsPath, 'utf8');
         return { content: [{ type: 'text', text: JSON.stringify({ existed: true, content }) }] };
       }
@@ -1485,7 +1503,9 @@ providerID, modelID, and messageID are all required. messageID is the ID assigne
         path: { id: sessionId },
         body: { providerID, modelID, messageID } as { modelID: string; providerID: string; messageID: string },
         query: dir ? { directory: dir } : undefined,
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       if (error) {
         if (isNotFound(error)) {
           const entry = lookupSession(sessionId);
@@ -1500,6 +1520,18 @@ providerID, modelID, and messageID are all required. messageID is the ID assigne
       }
       return { content: [{ type: 'text', text: JSON.stringify({ existed, accepted: data }) }] };
     } catch (err) {
+      clearTimeout(timer);
+      if ((err as Error).name === 'AbortError') {
+        return {
+          content: [{
+            type: 'text',
+            text: `prefect_session_init timed out after ${TIMEOUT_MS / 1000}s — the OpenCode server did not return a response. ` +
+              `This is a known upstream issue: the /session/{id}/init endpoint may not send a response on some OpenCode versions. ` +
+              `Check whether AGENTS.md was created in the project directory anyway.`,
+          }],
+          isError: true,
+        };
+      }
       return { content: [{ type: 'text', text: String(err) }], isError: true };
     }
   }
