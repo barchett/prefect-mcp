@@ -10,7 +10,7 @@ import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
 import { readRegistry } from './registry.js';
-import { lookupSession, removeSession, countSessionsForServer } from './sessions.js';
+import { addSession, lookupSession, removeSession, countSessionsForServer } from './sessions.js';
 
 // CORE-08: Base URL from PREFECT_SERVER_URL env var (OPENCODE_URL accepted with deprecation warning)
 const BASE_URL =
@@ -500,6 +500,11 @@ server.registerTool(
         }
         throw new Error(JSON.stringify(error));
       }
+      // Persist the forked session so subsequent tool calls can route to the same server
+      const sourceEntry = lookupSession(sessionId);
+      if (data && sourceEntry) {
+        addSession((data as { id: string }).id, sourceEntry);
+      }
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -963,8 +968,16 @@ server.registerTool(
 
     if (providedSessionId) {
       // D-08: reuse path — skip createSession; server/directory/title ignored
+      const sessionEntry = lookupSession(providedSessionId);
+      if (!sessionEntry) {
+        clearTimeout(timer);
+        return {
+          content: [{ type: 'text', text: `Session '${providedSessionId}' not found in sessions registry. It may have been cleared or registered on a different MCP instance. Call prefect_session_list to see active sessions.` }],
+          isError: true,
+        };
+      }
       try {
-        const serverUrl = resolveServerUrl(providedSessionId); // sessions.json lookup
+        const serverUrl = sessionEntry.url;
         const c = getClient(serverUrl);
         const result = await runPrompt(c, providedSessionId, prompt, { model, agent, system }, undefined, controller.signal);
         clearTimeout(timer);
@@ -1053,8 +1066,15 @@ server.registerTool(
   async ({ sessionId: providedSessionId, prompt, title, directory, model, agent, system, server: serverParam }) => {
     if (providedSessionId) {
       // D-09: reuse path — skip createSession; server/directory/title ignored
+      const sessionEntry = lookupSession(providedSessionId);
+      if (!sessionEntry) {
+        return {
+          content: [{ type: 'text', text: `Session '${providedSessionId}' not found in sessions registry. It may have been cleared or registered on a different MCP instance. Call prefect_session_list to see active sessions.` }],
+          isError: true,
+        };
+      }
       try {
-        const serverUrl = resolveServerUrl(providedSessionId); // sessions.json lookup
+        const serverUrl = sessionEntry.url;
         const { error } = await getClient(serverUrl).session.promptAsync({
           path: { id: providedSessionId },
           body: {
@@ -1065,7 +1085,18 @@ server.registerTool(
           },
           // directory ignored in reuse mode per D-09
         });
-        if (error) throw new Error(JSON.stringify(error));
+        if (error) {
+          if (isNotFound(error)) {
+            const entry = lookupSession(providedSessionId);
+            removeSession(providedSessionId);
+            throw new Error(
+              `Session ${providedSessionId} not found on server '${entry?.server ?? 'unknown'}' (${entry?.url ?? serverUrl}).\n` +
+              `The session may have been deleted or the server restarted.\n` +
+              `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`
+            );
+          }
+          throw new Error(JSON.stringify(error));
+        }
         return { content: [{ type: 'text', text: JSON.stringify({ sessionId: providedSessionId }) }] };
       } catch (err) {
         return { content: [{ type: 'text', text: String(err) }], isError: true };

@@ -25,7 +25,9 @@ export function readSessionMap(sessionsPath: string = SESSIONS_PATH): SessionMap
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === 'ENOENT') return { sessions: {} };
-    throw new Error(`could not parse ${sessionsPath}: ${(err as Error).message}`);
+    // Corrupt file — log warning and recover with empty map rather than crashing all tools
+    console.error(`[Prefect] Warning: sessions.json is corrupt and will be ignored: ${(err as Error).message}`);
+    return { sessions: {} };
   }
 }
 

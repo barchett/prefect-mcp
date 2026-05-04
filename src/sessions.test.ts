@@ -99,23 +99,27 @@ test('removeSession on unknown id is a silent no-op (does not throw)', () => {
   }
 });
 
-test('readSessionMap throws on malformed JSON', () => {
+test('readSessionMap returns { sessions: {} } on malformed JSON (corrupt file recovery)', () => {
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'sessions.json');
     writeFileSync(regPath, 'not-json{');
-    assert.throws(() => readSessionMap(regPath), /could not parse/);
+    // Corrupt files are now recovered gracefully (returns empty map, logs warning) rather than throwing
+    const result = readSessionMap(regPath);
+    assert.deepEqual(result, { sessions: {} });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('readSessionMap throws when sessions field is missing or not an object', () => {
+test('readSessionMap returns { sessions: {} } when sessions field is missing or not an object (corrupt file recovery)', () => {
   const dir = freshTmp();
   try {
     const regPath = join(dir, 'sessions.json');
     writeFileSync(regPath, '{"foo": 1}');
-    assert.throws(() => readSessionMap(regPath), /malformed/);
+    // Malformed structure is now recovered gracefully rather than throwing
+    const result = readSessionMap(regPath);
+    assert.deepEqual(result, { sessions: {} });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
