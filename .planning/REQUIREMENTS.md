@@ -12,7 +12,7 @@
 - [x] **MULTI-08**: CLAUDE.md server registry section documents available worker servers so Claude Code can make informed routing decisions without inspecting config files
 - [x] **MULTI-09**: `prefect init` prints first-server guidance when the registry is empty — a static example `prefect add-server` command (D-06: no env var pre-population; guidance is always the same static example)
 - [x] **MULTI-10**: `prefect_delegate` and `prefect_dispatch` accept an optional `sessionId` param — if provided, reuses that existing session on its already-registered server (`server` param ignored); if omitted, creates a new session on the named server (`server` required)
-- [ ] **MULTI-11**: Server capacity management — optional `maxSessions` field on `ServerEntry` in `servers.json`; `--max-sessions <n>` flag on `prefect add-server`; capacity check before session creation in `prefect_create_session`, `prefect_delegate`, `prefect_dispatch` (error only when `maxSessions` is set; no value = unlimited, backward compatible); `prefect list-servers` adds capacity column; CLAUDE.md workers section includes capacity info
+- [x] **MULTI-11**: Server capacity management — optional `maxSessions` field on `ServerEntry` in `servers.json`; `--max-sessions <n>` flag on `prefect add-server`; capacity check before session creation in `prefect_create_session`, `prefect_delegate`, `prefect_dispatch` (error only when `maxSessions` is set; no value = unlimited, backward compatible); `prefect list-servers` adds capacity column; CLAUDE.md workers section includes capacity info
 
 ## Previous Milestone Requirements (v4.0 — Complete)
 
@@ -88,4 +88,4 @@
 | MULTI-08 | Phase 15 | Complete |
 | MULTI-09 | Phase 15 | Complete |
 | MULTI-10 | Phase 15 | Complete |
-| MULTI-11 | Phase 15.1 | Pending |
+| MULTI-11 | Phase 15.1 | Complete |

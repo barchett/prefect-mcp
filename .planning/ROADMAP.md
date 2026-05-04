@@ -397,8 +397,8 @@ Plans:
 **Goal:** Add optional `maxSessions` capacity field to server registry entries — enforced before session creation in all three entry points; surface in `list-servers` and CLAUDE.md workers section. No maxSessions = unlimited (backward compatible).
 **Requirements**: MULTI-11
 **Depends on:** Phase 15
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 15.1-01-PLAN.md — maxSessions field on ServerEntry + --max-sessions CLI flag + CAPACITY column in list-servers + capacity in CLAUDE.md bullet + countSessionsForServer helper (MULTI-11)
-- [ ] 15.1-02-PLAN.md — checkCapacity() enforcement in prefect_create_session, prefect_delegate, prefect_dispatch (MULTI-11)
+- [x] 15.1-01-PLAN.md — maxSessions field on ServerEntry + --max-sessions CLI flag + CAPACITY column in list-servers + capacity in CLAUDE.md bullet + countSessionsForServer helper (MULTI-11)
+- [x] 15.1-02-PLAN.md — checkCapacity() enforcement in prefect_create_session, prefect_delegate, prefect_dispatch (MULTI-11)
