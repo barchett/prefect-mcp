@@ -192,12 +192,12 @@ test('remove-server removes existing entry and exits 0', () => {
         { name: 'dev', host: 'h2', port: 5000, providerID: 'ollama', modelID: 'llama3' },
       ] }, null, 2) + '\n',
     );
-    const { status, stderr } = runCli(dir, env, 'remove-server', 'local');
+    const { status, stdout } = runCli(dir, env, 'remove-server', 'local');
     assert.equal(status, 0);
     const reg = JSON.parse(readFileSync(join(dir, '.config', 'prefect', 'servers.json'), 'utf8'));
     assert.equal(reg.servers.length, 1);
     assert.equal(reg.servers[0].name, 'dev');
-    assert.match(stderr, /Removed server 'local'/);
+    assert.match(stdout, /Removed server 'local'/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

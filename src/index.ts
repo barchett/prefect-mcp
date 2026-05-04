@@ -131,7 +131,7 @@ server.registerTool(
         : undefined;
       const capacityError = checkCapacity(serverName, serverEntry);
       if (capacityError) return { content: [{ type: 'text', text: capacityError }], isError: true };
-      const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName, model);
+      const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName, model, serverEntry?.maxSessions);
       return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1010,7 +1010,7 @@ server.registerTool(
         clearTimeout(timer);
         return { content: [{ type: 'text', text: capacityError2 }], isError: true };
       }
-      const session = await createSession(c, title, dir, undefined, serverUrl, serverName);
+      const session = await createSession(c, title, dir, undefined, serverUrl, serverName, undefined, serverEntry2?.maxSessions);
       sessionId = session.id;
       const result = await runPrompt(c, sessionId, prompt, { model, agent, system }, dir, controller.signal);
       clearTimeout(timer);
@@ -1113,7 +1113,7 @@ server.registerTool(
       const serverEntry2 = reg2.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
       const capacityError2 = checkCapacity(serverName, serverEntry2);
       if (capacityError2) return { content: [{ type: 'text', text: capacityError2 }], isError: true };
-      const session = await createSession(c, title, dir, undefined, serverUrl, serverName);
+      const session = await createSession(c, title, dir, undefined, serverUrl, serverName, undefined, serverEntry2?.maxSessions);
       const { error } = await c.session.promptAsync({
         path: { id: session.id },
         body: {

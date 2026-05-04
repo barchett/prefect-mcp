@@ -2,7 +2,7 @@ import { createOpencodeClient } from '@opencode-ai/sdk';
 import { createPatch } from 'diff';
 import { z } from 'zod';
 import { PartSchema } from './parts.js';
-import { addSession } from './sessions.js';
+import { addSession, atomicCheckAndAdd } from './sessions.js';
 
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
@@ -31,6 +31,7 @@ export async function createSession(
   serverUrl?: string,                                      // NEW — for sessions.json write (D-11)
   serverName?: string,                                     // NEW — store name alongside URL per D-08
   model?: { providerID: string; modelID: string },         // registered server model — auto-injected on prefect_run
+  maxSessions?: number | null,                             // WR-01: capacity cap for atomic check-and-add
 ): Promise<{ id: string; [key: string]: unknown }> {
   const { data, error } = await client.session.create({
     body: {
@@ -45,7 +46,19 @@ export async function createSession(
   // route to the correct server even after an MCP server restart. Both serverUrl
   // and serverName must be present — entry-point handlers always pass both.
   if (serverUrl && serverName) {
-    addSession(data.id, { server: serverName, url: serverUrl, ...(model ? { model } : {}) });
+    const entry = { server: serverName, url: serverUrl, ...(model ? { model } : {}) };
+    if (maxSessions != null) {
+      // WR-01: atomic lock covers read → count → check → write so concurrent instances
+      // cannot both pass the capacity gate. If we lost the race, abort the session we
+      // just created on OpenCode and surface the capacity error to the caller.
+      const capacityError = await atomicCheckAndAdd(data.id, entry, maxSessions);
+      if (capacityError) {
+        try { await client.session.delete({ path: { id: data.id } }); } catch { /* best-effort */ }
+        throw new Error(capacityError);
+      }
+    } else {
+      addSession(data.id, entry);
+    }
   }
   return data;
 }
