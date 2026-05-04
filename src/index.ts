@@ -959,7 +959,7 @@ server.registerTool(
       'When sessionId is provided: reuses that existing session (server/title/directory ignored). ' +
       'When omitted: creates a new session on the named server (server defaults to first registered or PREFECT_SERVER_URL). ' +
       'Session stays alive after completion — call prefect_session_delete to clean up. ' +
-      'Aborts a newly-created session and returns an error if PREFECT_TIMEOUT_MS is exceeded (does NOT abort a reused session). ' +
+      'On timeout (PREFECT_TIMEOUT_MS exceeded): aborts the in-flight run (both new and reused sessions) and returns isError:true — session itself is kept alive. ' +
       'Note: does not support tools/files/messageID/agentInput/subtaskInput — use prefect_create_session + prefect_run directly for those features.',
     inputSchema: z.object({
       sessionId: z.string().optional().describe(

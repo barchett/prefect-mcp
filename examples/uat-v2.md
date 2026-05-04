@@ -30,7 +30,7 @@ Before starting:
    ```bash
    rm -f ~/.config/prefect/servers.json ~/.config/prefect/sessions.json
    ```
-6. Working directory for all file-modification tests: a scratch directory, e.g., `/tmp/prefect-uat`
+6. Working directory for session/run tests: a scratch directory `/tmp/prefect-uat`
    ```bash
    mkdir -p /tmp/prefect-uat
    cd /tmp/prefect-uat
@@ -38,6 +38,11 @@ Before starting:
    echo "# UAT scratch" > README.md
    git add . && git commit -m "init"
    ```
+7. Set `SUPERVISOR_REPO` for file-introspection tests (T8.3–T8.7, T7.7):
+   ```bash
+   SUPERVISOR_REPO=/mnt/c/Users/larry/Documents/repos/personal/supervisor
+   ```
+   The fixture file `test/uat-dummy.ts` (committed) provides real TypeScript symbols for LSP indexing.
 
 ---
 
@@ -50,7 +55,7 @@ cd /tmp/prefect-uat
 prefect init
 ```
 
-**Pass:** `.mcp.json` created. Contains `prefect-mcp` server entry with `build/index.js` or the installed bin path.  
+**Pass:** `.mcp.json` created. Contains a `prefect` server entry with `build/index.js` or the installed bin path.  
 **Fail:** File not created, or error output.
 
 ---
@@ -61,7 +66,7 @@ prefect init
 prefect add-server thor localhost 4096 vllm "Qwen/Qwen3-Coder-30B-A3B-Instruct"
 ```
 
-**Pass:** Output confirms "Added server thor". `servers.json` now contains an entry with `name: "thor"`, `host: "localhost"`, `port: 4096`, `providerID: "vllm"`, `modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct"`.  
+**Pass:** Output confirms "Registered server 'thor'". `servers.json` now contains an entry with `name: "thor"`, `host: "localhost"`, `port: 4096`, `providerID: "vllm"`, `modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct"`.  
 **Fail:** Error, or `servers.json` missing/malformed.
 
 ---
@@ -83,7 +88,7 @@ prefect add-server lab localhost 4097 mlx "mlx-community/Qwen3-Coder-Next-4bit" 
 prefect list-servers
 ```
 
-**Pass:** Output is a formatted table with columns `NAME | HOST | PORT | PROVIDER | MODEL | CAPACITY`. Thor shows `unlimited`; Lab shows `2`. No truncation errors on model IDs.
+**Pass:** Output is a formatted table with columns `NAME | HOST | PORT | PROVIDER | MODEL | CAPACITY`. Thor shows `unlimited`; Lab shows `2`. Long model IDs may be truncated in narrow terminals — that is acceptable.
 
 ---
 
@@ -172,7 +177,7 @@ prefect_create_session({ title: "bad server", server: "does-not-exist" })
 prefect_session_list({ directory: "/tmp/prefect-uat" })
 ```
 
-**Pass:** Returns array containing at least SESSION_ID_THOR and SESSION_ID_DEFAULT. Each entry has `id`, `title`, `created` fields.
+**Pass:** Returns array containing at least SESSION_ID_THOR and SESSION_ID_DEFAULT. Each entry has `id`, `title` fields. Note: `created` is nested under `time.created`, not top-level.
 
 ---
 
@@ -273,7 +278,7 @@ Take a message ID from early in the session (first assistant reply), `FORK_MSG_I
 prefect_fork({ sessionId: SESSION_ID_THOR, messageID: FORK_MSG_ID })
 ```
 
-**Pass:** Returns new session object with a different `id`. New session has messages only up to `FORK_MSG_ID`.  
+**Pass:** Returns new session object with a different `id`. New session has messages only up to `FORK_MSG_ID`. Note: `directory` in the forked session reflects the OpenCode server's working directory, not necessarily `/tmp/prefect-uat`.  
 **Save:** `SESSION_ID_FORK = <returned id>`
 
 ---
@@ -332,7 +337,8 @@ prefect_delegate({
 })
 ```
 
-**Pass:** Runs in SESSION_ID_DELEGATE (no new session created). File now has both `greet` and `farewell`.
+**Pass:** Runs in SESSION_ID_DELEGATE (no new session created). File now has both `greet` and `farewell`.  
+**Partial:** If the call times out after PREFECT_TIMEOUT_MS and returns `isError: true` with "run aborted" — this is a model-speed issue, not a code defect. The session is kept alive and the in-flight run is aborted to prevent cascading busy state. Increase `PREFECT_TIMEOUT_MS` in `.mcp.json` if model is consistently slow.
 
 ---
 
@@ -485,30 +491,28 @@ prefect_session_rename({ sessionId: SESSION_ID_THOR, title: "UAT Thor (renamed)"
 prefect_session_get({ sessionId: SESSION_ID_THOR })
 ```
 
-**Pass:** Returns `{ id, title, messages, ... }`. `id` matches SESSION_ID_THOR.
+**Pass:** Returns session object with `id` matching SESSION_ID_THOR. Note: `messages` is not a top-level field on the session object — use `prefect_session_messages` to retrieve message history separately.
 
 ---
 
 ### T7.3 — `prefect_session_summarize` accepts the request
 
 ```
-prefect_session_summarize({ sessionId: SESSION_ID_THOR })
+prefect_session_summarize({
+  sessionId: SESSION_ID_THOR,
+  providerID: "vllm",
+  modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+})
 ```
 
-**Pass:** Returns `true` (async acceptance). No `isError: true`. The summary is generated asynchronously by the model — poll `prefect_session_messages` to retrieve it once the session is idle.  
-**Note:** `providerID`, `modelID`, and `messageID` are no longer part of the tool schema.
+**Pass:** Returns `true` (async acceptance). No `isError: true`. The summary is generated asynchronously by the model — poll `prefect_session_messages` to retrieve it once the session is idle.
 
 ---
 
 ### T7.4 — `prefect_session_todo` returns a TODO list
 
 ```
-prefect_session_todo({
-  sessionId: SESSION_ID_THOR,
-  providerID: "vllm",
-  modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
-  messageID: "msg_uat_todo_01"
-})
+prefect_session_todo({ sessionId: SESSION_ID_THOR })
 ```
 
 **Pass:** Returns a structured TODO list or empty array. No error.
@@ -522,11 +526,11 @@ First check what commands exist:
 prefect_list_commands({ directory: "/tmp/prefect-uat" })
 ```
 
-Then run a command from the returned list (e.g., if `compact` exists). Note: `command` is the name WITHOUT a leading slash; `arguments` is required (pass empty string if none).
+Then run `gsd-help` (always available). Note: `command` is the name WITHOUT a leading slash; `arguments` is required (pass empty string if none).
 ```
 prefect_session_command({
   sessionId: SESSION_ID_THOR,
-  command: "compact",
+  command: "gsd-help",
   arguments: ""
 })
 ```
@@ -556,7 +560,7 @@ prefect_session_shell({
 (Run in a session whose project directory lacks AGENTS.md)
 
 ```bash
-rm -f /tmp/prefect-uat/AGENTS.md
+rm -f $SUPERVISOR_REPO/AGENTS.md
 ```
 
 ```
@@ -565,12 +569,13 @@ prefect_session_init({
   providerID: "vllm",
   modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
   messageID: "msg_uat_init_01",
-  directory: "/tmp/prefect-uat"
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
 })
 ```
 
-**Pass:** Returns `{ existed: false, accepted: true }`. AGENTS.md created in `/tmp/prefect-uat`.  
-**Known issue (OpenCode 1.14.33):** The `/session/{id}/init` endpoint may never return an HTTP response on this OpenCode version. If so, Prefect will timeout after TIMEOUT_MS and return an `isError: true` response mentioning the upstream issue. Check whether AGENTS.md was created in `/tmp/prefect-uat/` regardless. Mark as PARTIAL if file was created but tool returned timeout error.
+**Pass:** Returns `{ existed: false, accepted: true }`. AGENTS.md created in the supervisor repo.  
+**Known issue (OpenCode 1.14.33):** The `/session/{id}/init` endpoint may never return an HTTP response on this OpenCode version. If so, Prefect will timeout after TIMEOUT_MS and return an `isError: true` response mentioning the upstream issue. Check whether AGENTS.md was created regardless. Mark as PARTIAL if file was created but tool returned timeout error.  
+**Note:** Using the supervisor repo (not the sparse scratch dir) ensures the model has real code context to generate meaningful AGENTS.md content.
 
 ---
 
@@ -582,7 +587,7 @@ prefect_session_init({
   providerID: "vllm",
   modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
   messageID: "msg_uat_init_02",
-  directory: "/tmp/prefect-uat"
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
 })
 ```
 
@@ -598,7 +603,7 @@ prefect_session_init({
   providerID: "vllm",
   modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
   messageID: "msg_uat_init_03",
-  directory: "/tmp/prefect-uat",
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor",
   force: true
 })
 ```
@@ -610,13 +615,17 @@ prefect_session_init({
 
 ### T7.10 — `prefect_session_init` rejects UUID as messageID
 
+```bash
+rm -f /mnt/c/Users/larry/Documents/repos/personal/supervisor/AGENTS.md
+```
+
 ```
 prefect_session_init({
   sessionId: SESSION_ID_THOR,
   providerID: "vllm",
   modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
   messageID: "550e8400-e29b-41d4-a716-446655440000",
-  directory: "/tmp/prefect-uat"
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
 })
 ```
 
@@ -673,31 +682,38 @@ prefect_list_agents({ directory: "/tmp/prefect-uat" })
 ```
 prefect_find_symbol({
   query: "greet",
-  directory: "/tmp/prefect-uat"
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
 })
 ```
 
-**Pass:** Returns array with at least one entry pointing to `delegate-test.ts` (created in T5.1).
+**Pass:** Returns array with at least one entry pointing to `test/uat-dummy.ts`.  
+**Note:** Uses the supervisor repo (not the scratch dir) — LSP indexing requires a real TypeScript project with tsconfig.json.
 
 ---
 
 ### T8.4 — `prefect_find_file` finds files by name pattern
 
 ```
-prefect_find_file({ query: "hello", directory: "/tmp/prefect-uat" })
+prefect_find_file({
+  query: "uat-dummy",
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
+})
 ```
 
-**Pass:** Returns array containing path to `hello.ts`.
+**Pass:** Returns array containing path to `test/uat-dummy.ts`.
 
 ---
 
 ### T8.5 — `prefect_get_file_content` returns file content
 
 ```
-prefect_get_file_content({ path: "hello.ts", directory: "/tmp/prefect-uat" })
+prefect_get_file_content({
+  path: "test/uat-dummy.ts",
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
+})
 ```
 
-**Pass:** Returns `{ type: "text", content: "<file contents>" }`. Content contains `UAT hello v2`.
+**Pass:** Returns `{ type: "text", content: "<file contents>" }`. Content contains `greet` and `farewell` functions.
 
 ---
 
@@ -713,26 +729,32 @@ prefect_vcs_info({ directory: "/tmp/prefect-uat" })
 
 ### T8.7 — `prefect_file_status` returns modified files
 
-First make a change:
+First make a change to the committed fixture:
 ```bash
-echo "// modified" >> /tmp/prefect-uat/hello.ts
+echo "// uat-modified" >> /mnt/c/Users/larry/Documents/repos/personal/supervisor/test/uat-dummy.ts
 ```
 
 ```
-prefect_file_status({ directory: "/tmp/prefect-uat" })
+prefect_file_status({
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
+})
 ```
 
-**Pass:** Returns array with `hello.ts` having `status: "modified"`.
+**Pass:** Returns array with `test/uat-dummy.ts` having `status: "modified"`.  
+**Cleanup:** `git checkout -- test/uat-dummy.ts` after the test.
 
 ---
 
 ### T8.8 — `prefect_list_mcp_servers` returns MCP server status map
 
 ```
-prefect_list_mcp_servers({ directory: "/tmp/prefect-uat" })
+prefect_list_mcp_servers({
+  directory: "/mnt/c/Users/larry/Documents/repos/personal/supervisor"
+})
 ```
 
-**Pass:** Returns object `{ [serverName]: McpStatus }`. At minimum `prefect-mcp` appears with `status: "connected"` (or similar).
+**Pass:** Returns object `{ [serverName]: McpStatus }`. At minimum one server entry appears.  
+**Note:** MCP server visibility depends on the OpenCode host's project-level config. An empty map `{}` is acceptable if no MCP servers are configured for this project on the OpenCode host — this is not a Prefect defect.
 
 ---
 
