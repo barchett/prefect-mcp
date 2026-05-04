@@ -94,6 +94,10 @@ Claude Code can delegate implementation to a local model and review/correct the 
 - ✓ MULTI-03: `prefect list-servers` CLI command — Phase 13 complete — v5.0
 - ✓ MULTI-04: Server registry persisted to `~/.config/prefect/servers.json` via `src/registry.ts` — Phase 13 complete — v5.0
 
+### Validated (v5.0 — Phase 15.1)
+
+- ✓ MULTI-11: `ServerEntry.maxSessions?: number` field; `--max-sessions <n>` on `prefect add-server`; CAPACITY column in `prefect list-servers`; `countSessionsForServer()` helper; capacity enforcement at `prefect_create_session`, `prefect_delegate` (new-session), `prefect_dispatch` (new-session) — Phase 15.1 complete — v5.0
+
 ### Future (v5.0 targets — Multi-server Routing)
 
 - [ ] MULTI-05: All composite + session tools accept optional `server:` param for routing
@@ -153,4 +157,4 @@ Claude Code can delegate implementation to a local model and review/correct the 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-05-01 — Phase 13 complete (MULTI-01..04); v5.0 Phase 14 (session-server routing) is next*
+*Last updated: 2026-05-04 — Phase 15.1 complete (MULTI-11 server capacity management); v5.0 milestone continues*
