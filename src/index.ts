@@ -10,7 +10,7 @@ import { resolveDirectory } from './config.js';
 import { PartSchema } from './parts.js';
 import { createSession, runPrompt, getDiff } from './handlers.js';
 import { readRegistry } from './registry.js';
-import { lookupSession, removeSession } from './sessions.js';
+import { lookupSession, removeSession, countSessionsForServer } from './sessions.js';
 
 // CORE-08: Base URL from PREFECT_SERVER_URL env var (OPENCODE_URL accepted with deprecation warning)
 const BASE_URL =
@@ -84,6 +84,23 @@ function serverNameForUrl(serverUrl: string, serverParam?: string): string {
   return found?.name ?? serverParam ?? 'default';
 }
 
+/**
+ * Check whether a named server has reached its session capacity.
+ * Returns an error string to surface to the caller if at capacity, or undefined if creation is allowed.
+ * MULTI-11: only enforced when serverEntry.maxSessions is set; undefined = unlimited.
+ */
+function checkCapacity(serverName: string, serverEntry: import('./registry.js').ServerEntry | undefined): string | undefined {
+  if (!serverEntry || serverEntry.maxSessions == null) return undefined;  // unlimited
+  const active = countSessionsForServer(serverName);
+  if (active >= serverEntry.maxSessions) {
+    return (
+      `Server '${serverName}' is at capacity (${active}/${serverEntry.maxSessions} active sessions). ` +
+      `Delete an existing session with prefect_session_delete or choose a different server.`
+    );
+  }
+  return undefined;
+}
+
 export { resolveDirectory };
 
 const server = new McpServer({ name: 'prefect', version: '1.0.0' });
@@ -112,6 +129,8 @@ server.registerTool(
       const model = (serverEntry?.providerID && serverEntry?.modelID)
         ? { providerID: serverEntry.providerID, modelID: serverEntry.modelID }
         : undefined;
+      const capacityError = checkCapacity(serverName, serverEntry);
+      if (capacityError) return { content: [{ type: 'text', text: capacityError }], isError: true };
       const session = await createSession(getClient(serverUrl), title, dir, parentID, serverUrl, serverName, model);
       return { content: [{ type: 'text', text: JSON.stringify(session) }] };
     } catch (err) {
@@ -971,6 +990,13 @@ server.registerTool(
       const serverUrl = resolveServerUrl(undefined, serverParam);
       const serverName = serverNameForUrl(serverUrl, serverParam);
       const c = getClient(serverUrl);
+      const reg2 = readRegistry();
+      const serverEntry2 = reg2.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+      const capacityError2 = checkCapacity(serverName, serverEntry2);
+      if (capacityError2) {
+        clearTimeout(timer);
+        return { content: [{ type: 'text', text: capacityError2 }], isError: true };
+      }
       const session = await createSession(c, title, dir, undefined, serverUrl, serverName);
       sessionId = session.id;
       const result = await runPrompt(c, sessionId, prompt, { model, agent, system }, dir, controller.signal);
@@ -1052,6 +1078,10 @@ server.registerTool(
       const serverUrl = resolveServerUrl(undefined, serverParam);
       const serverName = serverNameForUrl(serverUrl, serverParam);
       const c = getClient(serverUrl);
+      const reg2 = readRegistry();
+      const serverEntry2 = reg2.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+      const capacityError2 = checkCapacity(serverName, serverEntry2);
+      if (capacityError2) return { content: [{ type: 'text', text: capacityError2 }], isError: true };
       const session = await createSession(c, title, dir, undefined, serverUrl, serverName);
       const { error } = await c.session.promptAsync({
         path: { id: session.id },
