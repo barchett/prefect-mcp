@@ -166,8 +166,10 @@ prefect_create_session({ title: "bad server", server: "does-not-exist" })
 
 ### T2.4 — `prefect_session_list` returns active sessions
 
+`prefect_session_list` without `directory` returns ALL sessions on the OpenCode server regardless of project. Pass `directory` to scope to a specific project.
+
 ```
-prefect_session_list({})
+prefect_session_list({ directory: "/tmp/prefect-uat" })
 ```
 
 **Pass:** Returns array containing at least SESSION_ID_THOR and SESSION_ID_DEFAULT. Each entry has `id`, `title`, `created` fields.
@@ -249,7 +251,7 @@ Take the ID of the last user message from `prefect_session_messages`.
 prefect_revert({ sessionId: SESSION_ID_THOR, messageID: LAST_MSG_ID })
 ```
 
-**Pass:** Returns success. `prefect_session_messages` now has fewer messages (the last turn removed).
+**Pass:** Returns success. Session object has `revert.messageID` set (the virtual tip is moved back). Note: OpenCode 1.14.33 does NOT hide reverted messages from the messages list endpoint — message count will be unchanged. Verify by calling `prefect_session_get` and confirming the `revert` field is non-null.
 
 ---
 
