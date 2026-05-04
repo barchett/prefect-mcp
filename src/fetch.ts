@@ -40,6 +40,8 @@ function resolveServerFromRequest(request: Request): ServerEntry {
   };
 }
 
+const _warnedRemoteHosts = new Set<string>();
+
 /**
  * Authenticated fetch wrapper with auto-start.
  * Every outbound OpenCode SDK request flows through this function via the
@@ -55,6 +57,13 @@ function resolveServerFromRequest(request: Request): ServerEntry {
  */
 export async function fetchWithAuth(request: Request): Promise<Response> {
   const retry = request.clone();
+  const reqUrl = new URL(request.url);
+  if (reqUrl.protocol === 'http:' && reqUrl.hostname !== 'localhost' && reqUrl.hostname !== '127.0.0.1') {
+    if (!_warnedRemoteHosts.has(reqUrl.hostname)) {
+      _warnedRemoteHosts.add(reqUrl.hostname);
+      console.error(`[Prefect] Warning: routing requests to '${reqUrl.hostname}' over plain HTTP — credentials will be sent in cleartext. Use an SSH tunnel for remote servers.`);
+    }
+  }
   try {
     return await authFetch(request);
   } catch (err) {
