@@ -369,7 +369,7 @@ prefect_await({ sessionId: SESSION_ID_DISPATCH })
 prefect_inspect({ sessionId: SESSION_ID_DISPATCH })
 ```
 
-**Pass:** Returns a Session object with `id`, `title`, `messages`, and model info.
+**Pass:** Returns a compact snapshot `{ status, todos, changedFiles }`. No `isError: true`. (`prefect_inspect` is not a full session object — use `prefect_session_get` for full session details.)
 
 ---
 
@@ -381,7 +381,7 @@ prefect_inspect({ sessionId: SESSION_ID_DISPATCH })
 prefect_session_status({ directory: "/tmp/prefect-uat" })
 ```
 
-**Pass:** Returns a map `{ [sessionId]: { type: "idle" | "busy" | "retry" } }`. Find SESSION_ID_THOR in the map and confirm its `type` is `"idle"` (since no run is active).
+**Pass:** Returns a map `{ [sessionId]: { type: "busy" | "retry" } }` containing only **non-idle** sessions. An empty map `{}` is a valid response when all sessions are idle — it means no active runs. No `isError: true`.
 
 ---
 
@@ -489,18 +489,14 @@ prefect_session_get({ sessionId: SESSION_ID_THOR })
 
 ---
 
-### T7.3 — `prefect_session_summarize` returns a summary
+### T7.3 — `prefect_session_summarize` accepts the request
 
 ```
-prefect_session_summarize({
-  sessionId: SESSION_ID_THOR,
-  providerID: "vllm",
-  modelID: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
-  messageID: "msg_uat_summarize_01"
-})
+prefect_session_summarize({ sessionId: SESSION_ID_THOR })
 ```
 
-**Pass:** Returns a text summary of the session's activity. No error. (messageID must start with `msg`.)
+**Pass:** Returns `true` (async acceptance). No `isError: true`. The summary is generated asynchronously by the model — poll `prefect_session_messages` to retrieve it once the session is idle.  
+**Note:** `providerID`, `modelID`, and `messageID` are no longer part of the tool schema.
 
 ---
 

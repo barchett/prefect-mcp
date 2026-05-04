@@ -129,7 +129,7 @@ server.registerTool(
       const serverUrl = resolveServerUrl(undefined, serverParam);
       const serverName = serverNameForUrl(serverUrl, serverParam);
       const reg = readRegistry();
-      const serverEntry = reg.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+      const serverEntry = reg.servers.find((s) => s.name === serverName);
       const model = (serverEntry?.providerID && serverEntry?.modelID)
         ? { providerID: serverEntry.providerID, modelID: serverEntry.modelID }
         : undefined;
@@ -751,6 +751,7 @@ server.registerTool(
         }
         throw new Error(JSON.stringify(error));
       }
+      removeSession(sessionId);
       return { content: [{ type: 'text', text: JSON.stringify(data) }] };
     } catch (err) {
       return { content: [{ type: 'text', text: String(err) }], isError: true };
@@ -1002,9 +1003,9 @@ server.registerTool(
       } catch (err) {
         clearTimeout(timer);
         if ((err as Error).name === 'AbortError') {
-          // D-08: do NOT abort the session — the caller owns it
+          try { await getClient(sessionEntry.url).session.abort({ path: { id: providedSessionId } }); } catch { /* swallow */ }
           return {
-            content: [{ type: 'text', text: `prefect_delegate timed out after ${TIMEOUT_MS / 1000}s — session ${providedSessionId} NOT aborted (caller owns it)` }],
+            content: [{ type: 'text', text: `prefect_delegate timed out after ${TIMEOUT_MS / 1000}s — session ${providedSessionId} run aborted` }],
             isError: true,
           };
         }
@@ -1020,7 +1021,7 @@ server.registerTool(
       const serverName = serverNameForUrl(serverUrl, serverParam);
       const c = getClient(serverUrl);
       const reg2 = readRegistry();
-      const serverEntry2 = reg2.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+      const serverEntry2 = reg2.servers.find((s) => s.name === serverName);
       const capacityError2 = checkCapacity(serverName, serverEntry2);
       if (capacityError2) {
         clearTimeout(timer);
@@ -1126,7 +1127,7 @@ server.registerTool(
       const serverName = serverNameForUrl(serverUrl, serverParam);
       const c = getClient(serverUrl);
       const reg2 = readRegistry();
-      const serverEntry2 = reg2.servers.find((s) => `http://${s.host}:${s.port}` === serverUrl);
+      const serverEntry2 = reg2.servers.find((s) => s.name === serverName);
       const capacityError2 = checkCapacity(serverName, serverEntry2);
       if (capacityError2) return { content: [{ type: 'text', text: capacityError2 }], isError: true };
       const session = await createSession(c, title, dir, undefined, serverUrl, serverName, undefined, serverEntry2?.maxSessions);
