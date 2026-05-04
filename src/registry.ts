@@ -8,6 +8,7 @@ export interface ServerEntry {
   port: number;
   providerID: string;
   modelID: string;
+  maxSessions?: number;   // optional — undefined means unlimited; persisted only when set
 }
 
 export interface Registry {
@@ -65,10 +66,10 @@ export function listServers(registryPath: string = REGISTRY_PATH): void {
     console.log('No servers registered. Use: prefect add-server <name> <host> <port> <model>');
     return;
   }
-  console.log('NAME            HOST            PORT   PROVIDER        MODEL');
-  console.log('----            ----            ----   --------        -----');
+  console.log('NAME            HOST            PORT   PROVIDER        MODEL            CAPACITY');
+  console.log('----            ----            ----   --------        -----            --------');
   const cell = (s: string, w: number): string => s.length >= w ? s.slice(0, w - 1) + '…' : s.padEnd(w);
   for (const s of reg.servers) {
-    console.log(cell(s.name, 16) + cell(s.host, 16) + cell(String(s.port), 7) + cell(s.providerID ?? '', 16) + (s.modelID ?? ''));
+    console.log(cell(s.name, 16) + cell(s.host, 16) + cell(String(s.port), 7) + cell(s.providerID ?? '', 16) + cell(s.modelID ?? '', 17) + (s.maxSessions != null ? String(s.maxSessions) : 'unlimited'));
   }
 }

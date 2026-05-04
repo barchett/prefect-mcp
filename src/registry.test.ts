@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readRegistry, writeRegistry, addServer, removeServer } from './registry.js';
+import { countSessionsForServer } from './sessions.js';
 
 function freshTmp(): string {
   return mkdtempSync(join(tmpdir(), 'prefect-registry-'));
@@ -151,4 +152,89 @@ test('port stored in registry is typeof number not string', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// MULTI-11: maxSessions round-trip tests
+test('MULTI-11: addServer round-trips maxSessions field', () => {
+  const dir = freshTmp();
+  try {
+    const regPath = join(dir, 'servers.json');
+    addServer({ name: 'capped', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3', maxSessions: 5 }, regPath);
+    const reg = readRegistry(regPath);
+    assert.equal(reg.servers[0].maxSessions, 5);
+    assert.equal(typeof reg.servers[0].maxSessions, 'number');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: addServer without maxSessions stores no maxSessions key', () => {
+  const dir = freshTmp();
+  try {
+    const regPath = join(dir, 'servers.json');
+    addServer({ name: 'unlimited', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' }, regPath);
+    const reg = readRegistry(regPath);
+    assert.equal(reg.servers[0].maxSessions, undefined);
+    const raw = JSON.parse(readFileSync(regPath, 'utf8'));
+    assert.ok(!('maxSessions' in raw.servers[0]), 'maxSessions must not appear in JSON when not set');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: countSessionsForServer returns count of matching sessions', () => {
+  const dir = freshTmp();
+  try {
+    const sessionsPath = join(dir, 'sessions.json');
+    writeFileSync(sessionsPath, JSON.stringify({
+      sessions: {
+        's1': { server: 'local', url: 'http://localhost:4096' },
+        's2': { server: 'local', url: 'http://localhost:4096' },
+        's3': { server: 'dev', url: 'http://devbox:4097' },
+      }
+    }, null, 2) + '\n');
+    assert.equal(countSessionsForServer('local', sessionsPath), 2);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: countSessionsForServer returns 0 for absent server', () => {
+  const dir = freshTmp();
+  try {
+    const sessionsPath = join(dir, 'sessions.json');
+    writeFileSync(sessionsPath, JSON.stringify({
+      sessions: {
+        's1': { server: 'local', url: 'http://localhost:4096' },
+      }
+    }, null, 2) + '\n');
+    assert.equal(countSessionsForServer('absent', sessionsPath), 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: countSessionsForServer returns 0 when sessions.json does not exist', () => {
+  const dir = freshTmp();
+  try {
+    const sessionsPath = join(dir, 'sessions.json');
+    assert.equal(countSessionsForServer('local', sessionsPath), 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: listServers shows CAPACITY column header and unlimited for uncapped server', () => {
+  const dir = freshTmp();
+  try {
+    const regPath = join(dir, 'servers.json');
+    addServer({ name: 'local', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3' }, regPath);
+    const driver = `import('${pathToFileURL(REGISTRY_BUILD).href}').then(m => m.listServers('${regPath}'));`;
+    const res = runDriver(driver);
+    assert.equal(res.status, 0);
+    assert.ok(res.stdout.includes('CAPACITY'), `stdout missing CAPACITY column, was: ${res.stdout}`);
+    assert.ok(res.stdout.includes('unlimited'), `stdout missing 'unlimited', was: ${res.stdout}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('MULTI-11: listServers shows numeric capacity for capped server', () => {
+  const dir = freshTmp();
+  try {
+    const regPath = join(dir, 'servers.json');
+    addServer({ name: 'capped', host: 'localhost', port: 4096, providerID: 'vllm', modelID: 'qwen3', maxSessions: 3 }, regPath);
+    const driver = `import('${pathToFileURL(REGISTRY_BUILD).href}').then(m => m.listServers('${regPath}'));`;
+    const res = runDriver(driver);
+    assert.equal(res.status, 0);
+    assert.ok(res.stdout.includes('3'), `stdout missing '3', was: ${res.stdout}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -50,3 +50,8 @@ export function removeSession(sessionId: string, sessionsPath: string = SESSIONS
 export function lookupSession(sessionId: string, sessionsPath: string = SESSIONS_PATH): SessionEntry | undefined {
   return readSessionMap(sessionsPath).sessions[sessionId];
 }
+
+export function countSessionsForServer(serverName: string, sessionsPath: string = SESSIONS_PATH): number {
+  const map = readSessionMap(sessionsPath);
+  return Object.values(map.sessions).filter((e) => e.server === serverName).length;
+}
