@@ -1,11 +1,11 @@
 ---
 phase: 13-server-registry
-fixed_at: 2026-05-01T00:00:00Z
+fixed_at: 2026-05-03T00:00:00Z
 review_path: .planning/phases/13-server-registry/13-REVIEW.md
-iteration: 1
-fix_scope: critical_warning
-findings_in_scope: 3
-fixed: 3
+iteration: 2
+fix_scope: critical_warning_info
+findings_in_scope: 6
+fixed: 6
 skipped: 0
 status: all_fixed
 ---
@@ -41,8 +41,27 @@ status: all_fixed
 **Commit:** 6d946a1
 **Applied fix:** After `JSON.parse`, added a shape guard: `if (!parsed || !Array.isArray(parsed.servers))` throws `Error: malformed registry at <path>: expected { servers: [...] }`. This guard runs inside the try block so it is caught and re-thrown as a descriptive error by the outer catch.
 
+## Info Fixes (iteration 2)
+
+### IN-01: Column overflow in listServers tabular output
+
+**Status:** Fixed
+**Commit:** e075116
+**How:** Updated the `cell` helper in `src/registry.ts` `listServers` from single-char unicode ellipsis truncation (`s.slice(0, w-1) + '…'`) to the 3-char `...` formula (`s.slice(0, w-4) + '...'`), giving clearer visual truncation with more padding before the ellipsis.
+
+### IN-02: Fragile global-install detection
+
+**Status:** Already resolved
+**How:** The path-segment check in `src/cli.ts` (`__dirname.replace(/\\/g, '/').includes('/node_modules/')`) is already robust — it handles npm and pnpm global installs, normalizes Windows backslashes, and uses the real resolved path. No change needed.
+
+### IN-03: Missing break statements in switch (add-server, remove-server, list-servers)
+
+**Status:** Fixed
+**Commit:** 037ec44
+**How:** Added `break` after each of the three cases. Handlers have return type `never` so TypeScript does not flag breaks as unreachable, but they prevent latent fall-through if handlers throw before `process.exit`.
+
 ---
 
-_Fixed: 2026-05-01_
-_Fixer: Claude (gsd-code-fixer)_
-_Iteration: 1_
+_Fixed: 2026-05-01 (iteration 1), 2026-05-03 (iteration 2)_
+_Fixer: Claude (gsd-code-fixer / autonomous fix pass)_
+_Iteration: 2_

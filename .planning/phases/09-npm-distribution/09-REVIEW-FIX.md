@@ -1,13 +1,13 @@
 ---
 phase: 09-npm-distribution
-fixed_at: 2026-05-01T00:00:00Z
+fixed_at: 2026-05-03T00:00:00Z
 review_path: .planning/phases/09-npm-distribution/09-REVIEW.md
-iteration: 1
-fix_scope: critical_warning
-findings_in_scope: 4
-fixed: 4
-skipped: 0
-status: all_fixed
+iteration: 2
+fix_scope: critical_warning_info
+findings_in_scope: 9
+fixed: 8
+skipped: 1
+status: partial
 ---
 
 # Phase 09: Code Review Fix Report
@@ -47,8 +47,36 @@ status: all_fixed
 **Commit:** 1a5a927
 **Applied fix:** Added explicit type predicate `(sym): sym is NonNullable<typeof sym>` to the `.filter()` call. TypeScript now correctly infers the filtered array type as non-nullable.
 
+## Info Fixes (iteration 2)
+
+### IN-01: README tool count is stale
+
+**Status:** Already resolved
+**How:** README says "40 MCP tools" and `grep -c "server.registerTool" src/index.ts` returns 40. Counts match. No change needed.
+
+### IN-02: engines field conflicts with README Node version
+
+**Status:** Already resolved
+**How:** `package.json` engines says `">=20"` and README says "Node.js >= 20". Already aligned. No change needed.
+
+### IN-03: autostart.ts uses `?v=` ESM cache-bust
+
+**Status:** Already resolved
+**How:** No `?v=` query strings present in `src/autostart.ts`. Not applicable.
+
+### IN-04: spawn may need .cmd suffix on Windows
+
+**Status:** Fixed
+**Commit:** 5d32126
+**How:** Added `const cmd = process.platform === 'win32' ? 'opencode.cmd' : 'opencode'` in `src/autostart.ts` and used `cmd` instead of the hardcoded `'opencode'` string in the `spawn` call.
+
+### IN-05: Commented-out old tool names in CLAUDE.md
+
+**Status:** Already resolved
+**How:** No `opencode_*` commented-out tool names exist in CLAUDE.md. Not applicable.
+
 ---
 
-_Fixed: 2026-05-01_
-_Fixer: Claude (gsd-code-fixer)_
-_Iteration: 1_
+_Fixed: 2026-05-01 (iteration 1), 2026-05-03 (iteration 2)_
+_Fixer: Claude (gsd-code-fixer / autonomous fix pass)_
+_Iteration: 2_
