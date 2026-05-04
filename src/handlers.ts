@@ -113,9 +113,10 @@ export async function runPrompt(
 }
 
 /**
- * Get the file diff for a session with computed unified-diff patch strings.
+ * Get the file diff for a session with unified-diff patch strings.
  * Extracted from prefect_get_diff handler in src/index.ts.
- * Appends patch: createPatch(d.file, d.before, d.after) to each FileDiff.
+ * Uses the API-provided patch when present (OpenCode ≥1.14.33); falls back to
+ * createPatch(before, after) for older server versions that return before/after.
  * Throws on API error.
  */
 export async function getDiff(
@@ -123,7 +124,7 @@ export async function getDiff(
   sessionId: string,
   messageID: string | undefined,
   directory: string | undefined,
-): Promise<Array<{ file: string; before: string; after: string; additions: number; deletions: number; patch: string }>> {
+): Promise<Array<{ file: string; before?: string; after?: string; additions: number; deletions: number; patch: string; status?: string }>> {
   const { data, error } = await client.session.diff({
     path: { id: sessionId },
     query: {
@@ -132,8 +133,12 @@ export async function getDiff(
     },
   });
   if (error) throw new Error(JSON.stringify(error));
-  return (data ?? []).map((d) => ({
-    ...d,
-    patch: createPatch(d.file, d.before ?? '', d.after ?? ''),
-  }));
+  return (data ?? []).map((d) => {
+    const raw = d as Record<string, unknown>;
+    const apiPatch = typeof raw.patch === 'string' ? raw.patch : undefined;
+    return {
+      ...d,
+      patch: apiPatch ?? createPatch(d.file, d.before ?? '', d.after ?? ''),
+    };
+  });
 }

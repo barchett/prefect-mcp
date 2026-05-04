@@ -487,6 +487,9 @@ server.registerTool(
     const dir = resolveDirectory(directory);
     try {
       const serverUrl = resolveServerUrl(sessionId);
+      // Capture sourceEntry before the async fork call to avoid a race condition
+      // where another process removes the session from sessions.json during the API call.
+      const sourceEntry = lookupSession(sessionId);
       const { data, error } = await getClient(serverUrl).session.fork({
         path: { id: sessionId },
         ...(messageID ? { body: { messageID } } : {}),
@@ -494,10 +497,9 @@ server.registerTool(
       });
       if (error) {
         if (isNotFound(error)) {
-          const entry = lookupSession(sessionId);
           removeSession(sessionId);
           throw new Error(
-            `Session ${sessionId} not found on server '${entry?.server ?? 'unknown'}' (${serverUrl}).\n` +
+            `Session ${sessionId} not found on server '${sourceEntry?.server ?? 'unknown'}' (${serverUrl}).\n` +
             `The session may have been deleted or the server restarted.\n` +
             `Call prefect_session_list to see active sessions, or prefect_create_session to start a new one.`,
           );
@@ -506,7 +508,6 @@ server.registerTool(
       }
       // Persist the forked session so subsequent tool calls can route to the same server.
       // Store parentId so prefect_session_children can find fork-created children locally.
-      const sourceEntry = lookupSession(sessionId);
       if (data && sourceEntry) {
         addSession((data as { id: string }).id, { ...sourceEntry, parentId: sessionId });
       }
