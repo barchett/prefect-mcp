@@ -560,6 +560,10 @@ prefect_session_shell({
 (Run in a session whose project directory lacks AGENTS.md)
 
 ```bash
+# Remove AGENTS.md. If it is git-tracked, also remove from the index so git does not
+# show it as `D` (deleted) — the model treats a git-deleted file as intentionally removed
+# and will skip writing it.
+git -C $SUPERVISOR_REPO rm --cached AGENTS.md 2>/dev/null || true
 rm -f $SUPERVISOR_REPO/AGENTS.md
 ```
 
@@ -574,6 +578,7 @@ prefect_session_init({
 ```
 
 **Pass:** Returns `{ existed: false, accepted: true }`. AGENTS.md created in the supervisor repo.  
+**Partial:** If `{ existed: false, accepted: true }` is returned but AGENTS.md was not written — the model accepted the request but skipped the write tool. This is known model behavior when git shows AGENTS.md as `D` (deleted); ensure the prerequisite `git rm --cached` step was run. Mark as PARTIAL.  
 **Known issue (OpenCode 1.14.33):** The `/session/{id}/init` endpoint may never return an HTTP response on this OpenCode version. If so, Prefect will timeout after TIMEOUT_MS and return an `isError: true` response mentioning the upstream issue. Check whether AGENTS.md was created regardless. Mark as PARTIAL if file was created but tool returned timeout error.  
 **Note:** Using the supervisor repo (not the sparse scratch dir) ensures the model has real code context to generate meaningful AGENTS.md content.
 
@@ -679,6 +684,15 @@ prefect_list_agents({ directory: "/tmp/prefect-uat" })
 
 ### T8.3 — `prefect_find_symbol` finds a TypeScript symbol
 
+**Prerequisite — LSP warm-up:** OpenCode's LSP only indexes files after they have been read during an active session. Before calling `prefect_find_symbol`, ensure a session has read TypeScript files in `SUPERVISOR_REPO`. The session from T7.7 may be sufficient; if not, run:
+```
+prefect_run({
+  sessionId: SESSION_ID_THOR,
+  prompt: "Read the file test/uat-dummy.ts and tell me what functions it exports."
+})
+```
+Then proceed:
+
 ```
 prefect_find_symbol({
   query: "greet",
@@ -687,6 +701,7 @@ prefect_find_symbol({
 ```
 
 **Pass:** Returns array with at least one entry pointing to `test/uat-dummy.ts`.  
+**Partial:** If returns `[]` despite the warm-up — LSP indexing is non-deterministic and may require the model to have opened the file explicitly. Mark as PARTIAL and note which warm-up step was used.  
 **Note:** Uses the supervisor repo (not the scratch dir) — LSP indexing requires a real TypeScript project with tsconfig.json.
 
 ---
@@ -723,7 +738,7 @@ prefect_get_file_content({
 prefect_vcs_info({ directory: "/tmp/prefect-uat" })
 ```
 
-**Pass:** Returns `{ branch: "master" }` (or `"main"`, whichever branch was created in the prerequisite `git init`).
+**Pass:** Returns an object containing `branch: "master"` (or `"main"`, whichever branch was created in the prerequisite `git init`). The response may also include `default_branch` — both keys are valid. Presence of either or both is a pass.
 
 ---
 
