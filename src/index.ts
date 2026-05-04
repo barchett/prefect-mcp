@@ -1007,7 +1007,10 @@ server.registerTool(
       const c = getClient(serverUrl);
       const reg2 = readRegistry();
       const serverEntry2 = reg2.servers.find((s) => s.name === serverName);
-      const session = await createSession(c, title, dir, undefined, serverUrl, serverName, undefined, serverEntry2?.maxSessions);
+      const model2 = (serverEntry2?.providerID && serverEntry2?.modelID)
+        ? { providerID: serverEntry2.providerID, modelID: serverEntry2.modelID }
+        : undefined;
+      const session = await createSession(c, title, dir, undefined, serverUrl, serverName, model2, serverEntry2?.maxSessions);
       sessionId = session.id;
       const result = await runPrompt(c, sessionId, prompt, { model, agent, system }, dir, controller.signal);
       clearTimeout(timer);
@@ -1108,7 +1111,10 @@ server.registerTool(
       const c = getClient(serverUrl);
       const reg2 = readRegistry();
       const serverEntry2 = reg2.servers.find((s) => s.name === serverName);
-      const session = await createSession(c, title, dir, undefined, serverUrl, serverName, undefined, serverEntry2?.maxSessions);
+      const model2 = (serverEntry2?.providerID && serverEntry2?.modelID)
+        ? { providerID: serverEntry2.providerID, modelID: serverEntry2.modelID }
+        : undefined;
+      const session = await createSession(c, title, dir, undefined, serverUrl, serverName, model2, serverEntry2?.maxSessions);
       const { error } = await c.session.promptAsync({
         path: { id: session.id },
         body: {
