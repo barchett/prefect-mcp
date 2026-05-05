@@ -6,7 +6,7 @@
 - **v2.0 Session Management + Run Options + Infrastructure** — Phases 3–4 (shipped 2026-04-27)
 - **v3.0 Daily Driver** — Phases 5–9 (shipped 2026-04-29)
 - **v4.0 API Completeness** — Phases 10–12 (shipped 2026-04-30)
-- **v5.0 Multi-Server Registry** — Phases 13–15 (in progress)
+- **v5.0 Multi-Server Registry** — Phases 13–15 (shipped 2026-05-04)
 
 ## Phases
 
@@ -57,7 +57,7 @@ Full archive: `.planning/milestones/v4.0-ROADMAP.md`
 ### v5.0 Multi-Server Registry (Phases 13–15)
 
 - [x] **Phase 13: Server Registry** — MULTI-01..04: CLI add-server/remove-server/list-servers commands + `~/.config/prefect/servers.json` persistence (completed 2026-05-01)
-- [ ] **Phase 14: Session-Server Routing** — MULTI-05..07: `server` param on 3 entry points, session→server map in `~/.config/prefect/sessions.json`, stale-session handling, server-aware `ensureOpencodeRunning()`
+- [x] **Phase 14: Session-Server Routing** — MULTI-05..07: `server` param on 3 entry points, session→server map in `~/.config/prefect/sessions.json`, stale-session handling, server-aware `ensureOpencodeRunning()` (completed 2026-05-03)
 - [x] **Phase 15: Onboarding + Session Reuse** — MULTI-08..10: CLAUDE.md server registry docs, `prefect init` first-server prompt, optional `sessionId` on delegate/dispatch (completed 2026-05-03)
 
 ---
@@ -389,7 +389,7 @@ Plans:
 | 11. Session Lifecycle Tools | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 12. Shell + Workspace API Wrappers | v4.0 | 1/1 | Complete | 2026-04-30 |
 | 13. Server Registry | v5.0 | 2/2 | Complete    | 2026-05-01 |
-| 14. Session-Server Routing | v5.0 | 0/3 | Not started | - |
+| 14. Session-Server Routing | v5.0 | 3/3 | Complete    | 2026-05-03 |
 | 15. Onboarding + Session Reuse | v5.0 | 2/2 | Complete    | 2026-05-03 |
 
 ### Phase 15.1: Server Capacity Management (MULTI-11)
